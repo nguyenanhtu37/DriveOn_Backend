@@ -9,10 +9,10 @@ const registerCarOwner = async (req, res) => {
     }
 };
 
-const registerGarageOwner = async (req, res) => {
+const registerGarageManager = async (req, res) => {
     try {
-        const user = await authService.registerGarageOwner(req.body);
-        res.status(201).json({ message: 'Garage Owner registered successfully. Please verify your email.', user });
+        const user = await authService.registerGarageManager(req.body);
+        res.status(201).json({ message: 'Garage Manager registered successfully. Please verify your email.', user });
     } catch (error) {
         res.status(400).json({ message: error.message });
     }
@@ -46,4 +46,4 @@ const verifyEmail = async (req, res) => {
     }
 };
 
-module.exports = { registerCarOwner, registerGarageOwner, registerGarageStaff, login, verifyEmail };
+module.exports = { registerCarOwner, registerGarageManager, registerGarageStaff, login, verifyEmail };

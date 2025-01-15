@@ -48,11 +48,11 @@ const registerCarOwner = async (userData) => {
     return newUser;
 };
 
-const registerGarageOwner = async (userData) => {
+const registerGarageManager = async (userData) => {
     const { name, email, password, phone, garageName, role } = userData;
 
-    if (role !== 'garageOwner') {
-        throw new Error('Invalid role for garage owner registration');
+    if (role !== 'garageManager') {
+        throw new Error('Invalid role for garage manager registration');
     }
 
     const existingUser = await GarageManager.findOne({ email });
@@ -75,11 +75,11 @@ const registerGarageOwner = async (userData) => {
     return newUser;
 };
 
-const registerGarageStaff = async (userData, garageOwnerId) => {
+const registerGarageStaff = async (userData, garageManagerId) => {
     const { name, email, password, phone } = userData;
 
-    const garageOwner = await GarageManager.findById(garageOwnerId);
-    if (!garageOwner) throw new Error('Only a garage owner can create garage staff');
+    const garageManager = await GarageManager.findById(garageManagerId);
+    if (!garageManager) throw new Error('Only a garage manager can create garage staff');
 
     const existingUser = await GarageStaff.findOne({ email });
     if (existingUser) throw new Error('Email already exists');
@@ -126,4 +126,4 @@ const verifyEmail = async (token) => {
     return user;
 };
 
-module.exports = { registerCarOwner, registerGarageOwner, registerGarageStaff, login, verifyEmail };
+module.exports = { registerCarOwner, registerGarageManager, registerGarageStaff, login, verifyEmail };
