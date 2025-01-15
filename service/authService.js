@@ -1,5 +1,6 @@
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
 const CarOwner = require('../models/carOwner');
 const GarageManager = require('../models/garageManager');
 const GarageStaff = require('../models/garageStaff');
@@ -15,6 +16,10 @@ const sendVerificationEmail = async (user, token) => {
         text: `Please verify your email by clicking the following link: ${process.env.BASE_URL}/api/auth/verify-email?token=${token}`,
     };
     await sgMail.send(msg);
+};
+
+const generateToken = (user) => {
+    return jwt.sign({ _id: user._id, role: user.role }, process.env.JWT_SECRET_KEY, { expiresIn: '1h' });
 };
 
 const registerCarOwner = async (userData) => {
