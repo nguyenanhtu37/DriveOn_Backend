@@ -1,24 +1,15 @@
-const mongoose = require("mongoose");
+const mongoose = require('mongoose');
 
-const carOwner = new mongoose.Schema({
+const carOwnerSchema = new mongoose.Schema({
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     name: { type: String, required: true },
-    phone: { type: Number },
-    photo: { type: String },
-    role: {
-        type: String,
-        enum: ["parent", "admin"],
-        default: "parent",
-    },
-    address: {type: String},
-    age: {type: Number},
+    phone: { type: String, required: true },
+    coinBalance: { type: Number, default: 0 },
+    vehicles: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Vehicle' }],
+    verificationToken: { type: String },
     isVerified: { type: Boolean, default: false },
-
 });
 
-
-const User = mongoose.models.User || mongoose.model('User', userSchema);
-
-
-module.exports = User;
+const CarOwner = mongoose.model('CarOwner', carOwnerSchema);
+module.exports = CarOwner;
