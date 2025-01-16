@@ -1,17 +1,24 @@
 const mongoose = require("mongoose");
 
-const taskSchema = new mongoose.Schema({
-  appointment: {
+const appointmentSchema = new mongoose.Schema({
+  user: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Appointment"
+    ref: "User"
   },
   garage: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Garage"
   },
-  user: {
+  listServiceDetail: [{
     type: mongoose.Schema.Types.ObjectId,
-    ref: "User"
+    ref: "ServiceDetail"
+  }],
+  appointmentDate: {
+    type: Date,
+    required: true
+  },
+  description: {
+    type: String
   },
   createdAt: {
     type: Date,
@@ -23,5 +30,5 @@ const taskSchema = new mongoose.Schema({
   },
 });
 
-const Task = mongoose.model("Task", taskSchema);
-module.exports = Task;
+const Appointment = mongoose.model("Appointment", appointmentSchema);
+module.exports = Appointment;
