@@ -1,8 +1,5 @@
 const jwt = require('jsonwebtoken');
-const CarOwner = require('../models/carOwner');
-const GarageManager = require('../models/garageManager');
-const GarageStaff = require('../models/garageStaff');
-const Admin = require('../models/admin');
+const User = require('../models/user');
 
 const authenticate = async (req, res, next) => {
     const token = req.header('Authorization')?.replace('Bearer ', '');
@@ -13,10 +10,7 @@ const authenticate = async (req, res, next) => {
 
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
-        let user = await CarOwner.findById(decoded._id) ||
-            await GarageManager.findById(decoded._id) ||
-            await GarageStaff.findById(decoded._id) ||
-            await Admin.findById(decoded._id);
+        const user = await User.findById(decoded._id).populate('roles');
 
         if (!user) {
             return res.status(401).json({ success: false, message: 'User not found. Please authenticate.' });
@@ -31,7 +25,8 @@ const authenticate = async (req, res, next) => {
 };
 
 const restrict = roles => (req, res, next) => {
-    if (!roles.includes(req.user.role)) {
+    const userRoles = req.user.roles.map(role => role.roleName);
+    if (!roles.some(role => userRoles.includes(role))) {
         return res.status(403).json({ success: false, message: 'Forbidden. You do not have access to this resource.' });
     }
     next();

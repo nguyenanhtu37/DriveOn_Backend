@@ -1,10 +1,8 @@
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
-const CarOwner = require('../models/carOwner');
-const GarageManager = require('../models/garageManager');
-const GarageStaff = require('../models/garageStaff');
-const Admin = require('../models/admin');
+const Role = require('../models/role');
+const User = require('../models/user');
 const sgMail = require('@sendgrid/mail');
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
@@ -19,89 +17,37 @@ const sendVerificationEmail = async (user, token) => {
 };
 
 const generateToken = (user) => {
-    return jwt.sign({ _id: user._id, role: user.role }, process.env.JWT_SECRET_KEY, { expiresIn: '1h' });
+    return jwt.sign({ _id: user._id, roles: user.roles }, process.env.JWT_SECRET_KEY, { expiresIn: '1h' });
 };
 
-const registerCarOwner = async (userData) => {
-    const { name, email, password, phone, role } = userData;
+const registerUser = async (userData) => {
+    const { name, email, password, phone, roleName } = userData;
 
-    if (role !== 'carOwner') {
-        throw new Error('Invalid role for car owner registration');
-    }
-
-    const existingUser = await CarOwner.findOne({ email });
+    const existingUser = await User.findOne({ email });
     if (existingUser) throw new Error('Email already exists');
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const verificationToken = crypto.randomBytes(32).toString('hex');
 
-    const newUser = new CarOwner({
+    // Convert role names to ObjectId values
+
+    const newUser = new User({
         name,
         email,
         password: hashedPassword,
         phone,
+        roleName: Array.isArray(roleName) ? roleName : [roleName],
+
         verificationToken,
     });
 
     await newUser.save();
     await sendVerificationEmail(newUser, verificationToken);
-    return newUser;
-};
-
-const registerGarageManager = async (userData) => {
-    const { name, email, password, phone, garageName, role } = userData;
-
-    if (role !== 'garageManager') {
-        throw new Error('Invalid role for garage manager registration');
-    }
-
-    const existingUser = await GarageManager.findOne({ email });
-    if (existingUser) throw new Error('Email already exists');
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const verificationToken = crypto.randomBytes(32).toString('hex');
-
-    const newUser = new GarageManager({
-        name,
-        email,
-        password: hashedPassword,
-        phone,
-        garageName,
-        verificationToken,
-    });
-
-    await newUser.save();
-    await sendVerificationEmail(newUser, verificationToken);
-    return newUser;
-};
-
-const registerGarageStaff = async (userData, garageManagerId) => {
-    const { name, email, password, phone } = userData;
-
-    const garageManager = await GarageManager.findById(garageManagerId);
-    if (!garageManager) throw new Error('Only a garage manager can create garage staff');
-
-    const existingUser = await GarageStaff.findOne({ email });
-    if (existingUser) throw new Error('Email already exists');
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const newUser = new GarageStaff({
-        name,
-        email,
-        password: hashedPassword,
-        phone,
-    });
-
-    await newUser.save();
     return newUser;
 };
 
 const login = async (email, password) => {
-    const user = await CarOwner.findOne({ email }) ||
-        await GarageManager.findOne({ email }) ||
-        await GarageStaff.findOne({ email }) ||
-        await Admin.findOne({ email });
+    const user = await User.findOne({ email });
 
     if (!user) throw new Error('Invalid email or password');
 
@@ -115,8 +61,7 @@ const login = async (email, password) => {
 };
 
 const verifyEmail = async (token) => {
-    const user = await CarOwner.findOne({ verificationToken: token }) ||
-        await GarageManager.findOne({ verificationToken: token });
+    const user = await User.findOne({ verificationToken: token });
 
     if (!user) throw new Error('Invalid or expired token');
 
@@ -125,5 +70,4 @@ const verifyEmail = async (token) => {
     await user.save();
     return user;
 };
-
-module.exports = { registerCarOwner, registerGarageManager, registerGarageStaff, login, verifyEmail };
+module.exports = { registerUser, login, verifyEmail };

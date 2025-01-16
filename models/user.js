@@ -26,9 +26,10 @@ const userSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "Vehicle"
   }],
-  roles: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Role"
+  roleName: [{
+    type: String,
+    enum: ["carowner", "manager", "staff", "admin"],
+    default : "carowner",
   }],
   createdAt: {
     type: Date,
@@ -41,7 +42,14 @@ const userSchema = new mongoose.Schema({
   bankAccount: {
     type: String,
     unique: true
-  }
+  },
+  isVerified: {
+    type: Boolean,
+    default: false
+  },
+  verificationToken: {
+    type: String,
+  },
 });
 
 const User = mongoose.model("User", userSchema);

@@ -1,5 +1,5 @@
-const jwt = require("jsonwebtoken");
-const GarageManager = require("../models/garageManager");
+const jwt = require('jsonwebtoken');
+const GarageManager = require('../models/garageManager');
 
 const authenticateGarageManager = async (req, res, next) => {
   const authHeader = req.header("Authorization");

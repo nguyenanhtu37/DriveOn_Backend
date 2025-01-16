@@ -1,27 +1,9 @@
 const authService = require('../service/authService');
 
-const registerCarOwner = async (req, res) => {
+const registerUser = async (req, res) => {
     try {
-        const user = await authService.registerCarOwner(req.body);
-        res.status(201).json({ message: 'Car Owner registered successfully. Please verify your email.', user });
-    } catch (error) {
-        res.status(400).json({ message: error.message });
-    }
-};
-
-const registerGarageManager = async (req, res) => {
-    try {
-        const user = await authService.registerGarageManager(req.body);
-        res.status(201).json({ message: 'Garage Manager registered successfully. Please verify your email.', user });
-    } catch (error) {
-        res.status(400).json({ message: error.message });
-    }
-};
-
-const registerGarageStaff = async (req, res) => {
-    try {
-        const user = await authService.registerGarageStaff(req.body, req.user.id);
-        res.status(201).json({ message: 'Garage Staff registered successfully', user });
+        const user = await authService.registerUser(req.body);
+        res.status(201).json({ message: 'User registered successfully. Please verify your email.', user });
     } catch (error) {
         res.status(400).json({ message: error.message });
     }
@@ -46,4 +28,4 @@ const verifyEmail = async (req, res) => {
     }
 };
 
-module.exports = { registerCarOwner, registerGarageManager, registerGarageStaff, login, verifyEmail };
+module.exports = { registerUser, login, verifyEmail };
