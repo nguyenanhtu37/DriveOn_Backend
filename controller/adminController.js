@@ -43,4 +43,19 @@ const rejectGarageRegistration = async (req, res) => {
   }
 };
 
-export { viewGarageRegistrations, approveGarageRegistration, rejectGarageRegistration };
+const deleteGarage = async (req, res) => {
+  try {
+    const garageId = req.params.id;
+    const garage = await Garage.findById(garageId);
+    if (!garage) {
+      return res.status(404).json({ message: "Garage not found" });
+    }
+
+    await garage.deleteOne();
+    res.status(200).json({ message: "Garage deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export { viewGarageRegistrations, approveGarageRegistration, rejectGarageRegistration, deleteGarage };
