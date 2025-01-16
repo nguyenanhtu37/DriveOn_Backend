@@ -90,4 +90,50 @@ const login = async (req, res) => {
   }
 };
 
-export { signup, verifyEmail, login };
+const requestPasswordReset = async (req, res) => {
+  const { email } = req.body;
+  try {
+    // find usre by email
+    const user = await User.findOne({email});
+    if (!user) return res.status(400).json({ message: "User does not exist!" });
+    // tao token reset pass
+    const token = jwt.sign({id: user._id, email: user.email}, process.env.JWT_SECRET, { expiresIn: "15m" });
+    // luu token vao redis (key: email, value: token)
+    await redis.setex(email, 900, token); // 15'
+    //gui mail reset
+    const link = `http://localhost:${process.env.PORT}/api/auth/reset-password?token=${token}`;
+    await transporter.sendMail({
+      from: process.env.MAIL_USER,
+      to: email,
+      subject: "DriveOn password reset",
+      html: `<p>Click <a href="${link}">here</a> to reset your password.</p>`,
+    });
+    res.status(200).json({ message: "Password reset email sent" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+const resetPassword = async (req, res) => {
+  const { token } = req.query;
+  const { newPassword } = req.body;
+  try {
+    if (!token) {
+      return res.status(400).json({ message: "Token is required" });
+    }
+    // giai ma token
+    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    // check token trong redis co ton tai k
+    const storedToken = await redis.get(payload.email);
+    if (!storedToken || storedToken !== token) return res.status(400).json({ message: "Invalid or expired token" });
+    // hash new pass
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    // update new pass
+    await User.findByIdAndUpdate(payload.id, { password: hashedPassword });
+    res.status(200).json({ message: "Password reset successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export { signup, verifyEmail, login, resetPassword, requestPasswordReset };
