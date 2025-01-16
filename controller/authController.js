@@ -94,10 +94,10 @@ const requestPasswordReset = async (req, res) => {
   const { email } = req.body;
   try {
     // find usre by email
-    const user = await User.findOne({email});
+    const user = await User.findOne({ email });
     if (!user) return res.status(400).json({ message: "User does not exist!" });
     // tao token reset pass
-    const token = jwt.sign({id: user._id, email: user.email}, process.env.JWT_SECRET, { expiresIn: "15m" });
+    const token = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: "15m" });
     // luu token vao redis (key: email, value: token)
     await redis.setex(email, 900, token); // 15'
     //gui mail reset
@@ -136,4 +136,20 @@ const resetPassword = async (req, res) => {
   }
 };
 
-export { signup, verifyEmail, login, resetPassword, requestPasswordReset };
+const logout = async (req, res) => {
+  const { token } = req.body;
+  try {
+    if (!token) {
+      return res.status(400).json({ message: "Token is required" });
+    }
+    // giai ma token
+    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    // xoa token trong redis
+    await redis.del(payload.email);
+    return res.status(200).json({ message: "Logout successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export { signup, verifyEmail, login, resetPassword, requestPasswordReset, logout };
