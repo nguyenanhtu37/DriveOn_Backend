@@ -2,8 +2,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import redis from '../config/redis.js';
 import transporter from '../config/mailer.js';
-import User from '../models/user.js';
-import Garage from '../models/garage.js';
+import User from '../models/User.js';
 
 const signup = async (req, res) => {
   const { email, password, name, phone, coinBalance, vehicles, roles, bankAccount } = req.body;
@@ -76,7 +75,7 @@ const login = async (req, res) => {
   const { email, password } = req.body;
   try {
     // find user by id
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).populate('roles');
     if (!user) return res.status(400).json({ message: "Invalid email or password" });
     // check pass
     const isMatch = await bcrypt.compare(password, user.password);
@@ -84,7 +83,7 @@ const login = async (req, res) => {
     // check status
     if (user.status !== "active") return res.status(400).json({ message: "Account is not active" });
     // tao jwt token
-    const token = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: "1h" });
+    const token = jwt.sign({ id: user._id, email: user.email, roles: user.roles.map(role => role.roleName) }, process.env.JWT_SECRET, { expiresIn: "1h" });
     res.status(200).json({ token });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -153,27 +152,6 @@ const logout = async (req, res) => {
   }
 };
 
-const registerGarage = async (req, res) => {
-  const { name, address, phone, description, workingHours, coinBalance, user } = req.body;
-  try {
-    // tao moi garage, default pending
-    const newGarage = new Garage({
-      name,
-      address,
-      phone,
-      description,
-      workingHours,
-      coinBalance,
-      user,
-      status: "pending",
-      createdAt: new Date(),
-      updatedAt: new Date()
-    });
-    await newGarage.save();
-    res.status(200).json({ message: "Garage registration submitted successfully", garage: newGarage });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-}
 
-export { signup, verifyEmail, login, resetPassword, requestPasswordReset, logout, registerGarage };
+
+export { signup, verifyEmail, login, resetPassword, requestPasswordReset, logout };

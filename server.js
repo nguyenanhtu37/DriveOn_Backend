@@ -3,6 +3,8 @@ import connectDB from './config/db.js';
 import dotenv from 'dotenv';
 import authRoutes from './routes/authRoutes.js';
 import roleRoutes from './routes/roleRoutes.js';
+import adminRoutes from './routes/adminRoutes.js';
+import managerRoutes from './routes/managerRoutes.js';
 
 dotenv.config();
 
@@ -18,6 +20,8 @@ connectDB();
 // routes
 app.use('/api/auth', authRoutes);
 app.use('/api/roles', roleRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/manager', managerRoutes);
 
 app.get('/', (req, res) => {
   res.send('Hello, DriveOn Backend!');
