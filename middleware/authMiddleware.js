@@ -1,23 +1,18 @@
-import { verify } from 'jsonwebtoken';
-import { findOne } from '../models/garageManager';
+import jwt from 'jsonwebtoken';
+const { verify } = jwt;
 
-const authenticateGarageManager = async (req, res, next) => {
-    const authHeader = req.header('Authorization');
-    if (!authHeader) {
-        return res.status(401).json({ message: 'Authorization header is missing' });
+const authMiddleware = (req, res, next) => {
+    const token = req.header('Authorization').replace('Bearer ', '');
+    if (!token) {
+        return res.status(401).json({ message: "No token, authorization denied!" });
     }
-    const token = authHeader.replace('Bearer ', '');
     try {
-        const decoded = verify(token, process.env.JWT_SECRET_KEY);
-        const user = await findOne({ _id: decoded._id, 'tokens.token': token });
-        if (!user) {
-            return res.status(401).json({ message: 'Not authorized to access this resource' });
-        }
-        req.user = user;
+        const decoded = verify(token, process.env.JWT_SECRET);
+        req.user = decoded;
         next();
-    } catch (error) {
-        res.status(401).json({ message: 'Invalid token' });
+    } catch (err) {
+        res.status(400).json({ message: "Token is not valid" });
     }
 };
 
-export default { authenticateGarageManager };
+export default authMiddleware;

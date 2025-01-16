@@ -1,5 +1,4 @@
-const mongoose = require("mongoose");
-const User = require("./user");
+import mongoose from "mongoose";
 
 const garageSchema = new mongoose.Schema({
   name: {
@@ -24,7 +23,8 @@ const garageSchema = new mongoose.Schema({
   },
   coinBalance: {
     type: Number,
-    required: true
+    required: true,
+    default : 0
   },
   createdAt: {
     type: Date,
@@ -42,7 +42,12 @@ const garageSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "User"
   }],
+  status: {
+    type: String,
+    enum: ["pending", "approved", "rejected"],
+    default: "pending"
+  },
 });
 
 const Garage = mongoose.model("Garage", garageSchema);
-module.exports = Garage;
+export default Garage;
