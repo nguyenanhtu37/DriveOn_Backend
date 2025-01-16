@@ -1,6 +1,7 @@
 import express from 'express';
-import { signup, verifyEmail, login, requestPasswordReset, resetPassword, logout, registerGarage } from "../controller/authController.js";
-import authMiddleware from '../middleware/authMiddleware.js';
+import { signup, verifyEmail, login, requestPasswordReset, resetPassword, logout } from "../controller/authController.js";
+import { authMiddleware } from '../middleware/authMiddleware.js';
+import { registerGarage } from '../controller/managerController.js';
 
 const router = express.Router();
 
