@@ -2,7 +2,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import redis from '../config/redis.js';
 import transporter from '../config/mailer.js';
-import User from '../models/User.js';
+import User from '../models/user.js';
 
 const signup = async (req, res) => {
   const { email, password, name, phone, coinBalance, vehicles, roles, bankAccount } = req.body;
@@ -151,7 +151,5 @@ const logout = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
-
-
 
 export { signup, verifyEmail, login, resetPassword, requestPasswordReset, logout };
