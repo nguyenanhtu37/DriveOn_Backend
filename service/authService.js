@@ -1,11 +1,14 @@
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
-const CarOwner = require('../models/carOwner');
-const GarageManager = require('../models/garageManager');
-const GarageStaff = require('../models/garageStaff');
-const Admin = require('../models/admin');
+// const CarOwner = require('../models/carOwner');
+// const GarageManager = require('../models/garageManager');
+// const GarageStaff = require('../models/garageStaff');
+// const Admin = require('../models/admin');
+const User = require('../models/user');
+const Role = require('../models/role');
 const sgMail = require('@sendgrid/mail');
+
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 const sendVerificationEmail = async (user, token) => {
@@ -22,29 +25,52 @@ const generateToken = (user) => {
     return jwt.sign({ _id: user._id, role: user.role }, process.env.JWT_SECRET_KEY, { expiresIn: '1h' });
 };
 
+// const registerCarOwner = async (userData) => {
+//     const { name, email, password, phone, role } = userData;
+
+//     if (role !== 'carOwner') {
+//         throw new Error('Invalid role for car owner registration');
+//     }
+
+//     const existingUser = await CarOwner.findOne({ email });
+//     if (existingUser) throw new Error('Email already exists');
+
+//     const hashedPassword = await bcrypt.hash(password, 10);
+//     const verificationToken = crypto.randomBytes(32).toString('hex');
+
+//     const newUser = new CarOwner({
+//         name,
+//         email,
+//         password: hashedPassword,
+//         phone,
+//         verificationToken,
+//     });
+
+//     await newUser.save();
+//     await sendVerificationEmail(newUser, verificationToken);
+//     return newUser;
+// };
+
 const registerCarOwner = async (userData) => {
-    const { name, email, password, phone, role } = userData;
+    const { name, email, password, phone } = userData;
 
-    if (role !== 'carOwner') {
-        throw new Error('Invalid role for car owner registration');
-    }
-
-    const existingUser = await CarOwner.findOne({ email });
+    const existingUser = await User.findOne({ email });
     if (existingUser) throw new Error('Email already exists');
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const verificationToken = crypto.randomBytes(32).toString('hex');
 
-    const newUser = new CarOwner({
+    const carOwnerRole = await Role.findOne({ roleName: 'carowner' });
+    if (!carOwnerRole) throw new Error('Car owner role not found');
+
+    const newUser = new User({
         name,
         email,
         password: hashedPassword,
         phone,
-        verificationToken,
+        roles: [carOwnerRole._id]
     });
 
     await newUser.save();
-    await sendVerificationEmail(newUser, verificationToken);
     return newUser;
 };
 
