@@ -2,6 +2,7 @@
   "name": "driveon_backend",
   "version": "1.0.0",
   "main": "server.js",
+  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js",
@@ -14,11 +15,14 @@
   "dependencies": {
     "@sendgrid/mail": "^8.1.4",
     "bcrypt": "^5.1.1",
+    "body-parser": "^1.20.3",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "ioredis": "^5.4.2",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.9.5",
-    "nodemailer": "^6.9.16"
+    "nodemailer": "^6.9.16",
+    "redis": "^4.7.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.9"
