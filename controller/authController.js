@@ -71,4 +71,23 @@ const verifyEmail = async (req, res) => {
   }
 };
 
-export { signup, verifyEmail };
+const login = async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    // find user by id
+    const user = await User.findOne({ email });
+    if (!user) return res.status(400).json({ message: "Invalid email or password" });
+    // check pass
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) return res.status(400).json({ message: "Invalid email or password" });
+    // check status
+    if (user.status !== "active") return res.status(400).json({ message: "Account is not active" });
+    // tao jwt token
+    const token = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: "1h" });
+    res.status(200).json({ token });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export { signup, verifyEmail, login };
