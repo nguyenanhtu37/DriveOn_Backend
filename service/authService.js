@@ -1,15 +1,7 @@
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
-// const CarOwner = require('../models/carOwner');
-// const GarageManager = require('../models/garageManager');
-// const GarageStaff = require('../models/garageStaff');
-// const Admin = require('../models/admin');
-const User = require('../models/user');
-const Role = require('../models/role');
 const sgMail = require('@sendgrid/mail');
-
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 const sendVerificationEmail = async (user, token) => {
     const msg = {
@@ -52,47 +44,23 @@ const generateToken = (user) => {
 // };
 
 const registerCarOwner = async (userData) => {
-    const { name, email, password, phone } = userData;
+    const { name, email, password, phone, role } = userData;
 
-    const existingUser = await User.findOne({ email });
-    if (existingUser) throw new Error('Email already exists');
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const carOwnerRole = await Role.findOne({ roleName: 'carowner' });
-    if (!carOwnerRole) throw new Error('Car owner role not found');
-
-    const newUser = new User({
-        name,
-        email,
-        password: hashedPassword,
-        phone,
-        roles: [carOwnerRole._id]
-    });
-
-    await newUser.save();
-    return newUser;
-};
-
-const registerGarageManager = async (userData) => {
-    const { name, email, password, phone, garageName, role } = userData;
-
-    if (role !== 'garageManager') {
-        throw new Error('Invalid role for garage manager registration');
+    if (role !== 'carOwner') {
+        throw new Error('Invalid role for car owner registration');
     }
 
-    const existingUser = await GarageManager.findOne({ email });
+    const existingUser = await CarOwner.findOne({ email });
     if (existingUser) throw new Error('Email already exists');
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const verificationToken = crypto.randomBytes(32).toString('hex');
 
-    const newUser = new GarageManager({
+    const newUser = new CarOwner({
         name,
         email,
         password: hashedPassword,
         phone,
-        garageName,
         verificationToken,
     });
 
@@ -101,55 +69,4 @@ const registerGarageManager = async (userData) => {
     return newUser;
 };
 
-const registerGarageStaff = async (userData, garageManagerId) => {
-    const { name, email, password, phone } = userData;
-
-    const garageManager = await GarageManager.findById(garageManagerId);
-    if (!garageManager) throw new Error('Only a garage manager can create garage staff');
-
-    const existingUser = await GarageStaff.findOne({ email });
-    if (existingUser) throw new Error('Email already exists');
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const newUser = new GarageStaff({
-        name,
-        email,
-        password: hashedPassword,
-        phone,
-    });
-
-    await newUser.save();
-    return newUser;
-};
-
-const login = async (email, password) => {
-    const user = await CarOwner.findOne({ email }) ||
-        await GarageManager.findOne({ email }) ||
-        await GarageStaff.findOne({ email }) ||
-        await Admin.findOne({ email });
-
-    if (!user) throw new Error('Invalid email or password');
-
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) throw new Error('Invalid email or password');
-
-    if (!user.isVerified) throw new Error('Please verify your email first');
-
-    const token = generateToken(user);
-    return { user, token };
-};
-
-const verifyEmail = async (token) => {
-    const user = await CarOwner.findOne({ verificationToken: token }) ||
-        await GarageManager.findOne({ verificationToken: token });
-
-    if (!user) throw new Error('Invalid or expired token');
-
-    user.isVerified = true;
-    user.verificationToken = undefined;
-    await user.save();
-    return user;
-};
-
-module.exports = { registerCarOwner, registerGarageManager, registerGarageStaff, login, verifyEmail };
+module.exports = { sendVerificationEmail, generateToken, registerCarOwner };

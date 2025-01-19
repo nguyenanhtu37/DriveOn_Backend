@@ -1,26 +1,46 @@
-const jwt = require('jsonwebtoken');
-const user = require('../models/user');
+import jwt from 'jsonwebtoken';
+const { verify } = jwt;
 
-const authenticateGarageManager = async (req, res, next) => {
-    const authHeader = req.header('Authorization');
-    if (!authHeader) {
-        return res.status(401).json({ message: 'Authorization header is missing' });
+const authMiddleware = (req, res, next) => {
+    const token = req.header('Authorization').replace('Bearer ', '');
+    if (!token) {
+        return res.status(401).json({ message: "No token, authorization denied!" });
     }
-
-    const token = authHeader.replace('Bearer ', '');
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
-        const user = await GarageManager.findOne({ _id: decoded._id, 'tokens.token': token });
-
-        if (!user) {
-            return res.status(401).json({ message: 'Not authorized to access this resource' });
-        }
-
-        req.user = user;
+        const decoded = verify(token, process.env.JWT_SECRET);
+        req.user = decoded;
         next();
-    } catch (error) {
-        res.status(401).json({ message: 'Invalid token' });
+    } catch (err) {
+        res.status(400).json({ message: "Token is not valid" });
     }
 };
 
-module.exports = { authenticateGarageManager };
+const adminMiddleware = (req, res, next) => {
+  console.log('User information:', req.user); 
+  if (!req.user.roles || !Array.isArray(req.user.roles)) {
+    return res.status(403).json({ message: "Access denied, admin only!" });
+  }
+
+  const roles = req.user.roles;
+  if (roles.includes('admin')) {
+    next();
+  } else {
+    res.status(403).json({ message: "Access denied, admin only!" });
+  }
+};
+
+//
+const managerMiddleware = (req, res, next) => {
+  if (!req.user.roles || !Array.isArray(req.user.roles)) {
+      return res.status(403).json({ message: "Access denied, manager only!" });
+  }
+
+  const roles = req.user.roles;
+  if (roles.includes('manager')) {
+      next();
+  } else {
+      res.status(403).json({ message: "Access denied, manager only!" });
+  }
+};
+
+export {authMiddleware, adminMiddleware, managerMiddleware};

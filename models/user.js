@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema({
   email: {
@@ -40,9 +40,14 @@ const userSchema = new mongoose.Schema({
   },
   bankAccount: {
     type: String,
-    unique: true
-  }
+    default: 0
+  },
+  status: {
+    type: String,
+    enum: ["active", "inactive"],
+    default: "active"
+  },
 });
 
 const User = mongoose.model("User", userSchema);
-module.exports = User;
+export default User;
