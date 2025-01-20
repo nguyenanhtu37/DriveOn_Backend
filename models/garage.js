@@ -47,6 +47,9 @@ const garageSchema = new mongoose.Schema({
     enum: ["pending", "approved", "rejected"],
     default: "pending"
   },
+  images: [{
+    type: String
+  }]
 });
 
 const Garage = mongoose.model("Garage", garageSchema);
