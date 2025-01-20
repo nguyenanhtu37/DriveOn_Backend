@@ -17,6 +17,32 @@ const generateToken = (user) => {
     return jwt.sign({ _id: user._id, role: user.role }, process.env.JWT_SECRET_KEY, { expiresIn: '1h' });
 };
 
+// const registerCarOwner = async (userData) => {
+//     const { name, email, password, phone, role } = userData;
+
+//     if (role !== 'carOwner') {
+//         throw new Error('Invalid role for car owner registration');
+//     }
+
+//     const existingUser = await CarOwner.findOne({ email });
+//     if (existingUser) throw new Error('Email already exists');
+
+//     const hashedPassword = await bcrypt.hash(password, 10);
+//     const verificationToken = crypto.randomBytes(32).toString('hex');
+
+//     const newUser = new CarOwner({
+//         name,
+//         email,
+//         password: hashedPassword,
+//         phone,
+//         verificationToken,
+//     });
+
+//     await newUser.save();
+//     await sendVerificationEmail(newUser, verificationToken);
+//     return newUser;
+// };
+
 const registerCarOwner = async (userData) => {
     const { name, email, password, phone, role } = userData;
 
