@@ -29,22 +29,4 @@ const adminMiddleware = (req, res, next) => {
   }
 };
 
-//
-const managerMiddleware = (req, res, next) => {
-  if (!req.user.roles || !Array.isArray(req.user.roles)) {
-    return res.status(403).json({ message: "Access denied, manager only!" });
-  }
-
-  const roles = req.user.roles;
-  if (roles.includes("manager")) {
-    next();
-  } else {
-    res.status(403).json({ message: "Access denied, manager only!" });
-  }
-};
-
-<<<<<<< HEAD
-export {authMiddleware, adminMiddleware, managerMiddleware};
-=======
-export { authMiddleware, adminMiddleware, managerMiddleware };
->>>>>>> 889a6ac27c0ec17914663090716014cca0110ae7
+export {authMiddleware, adminMiddleware};
