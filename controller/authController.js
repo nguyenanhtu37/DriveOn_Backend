@@ -12,7 +12,7 @@ const signup = async (req, res) => {
     if (existingUser) return res.status(400).json({ message: "Email already exists" });
     // hash pass
     const hashedPassword = await bcrypt.hash(password, 10);
-    // tao token verify
+    // tao token verify   
     const token = jwt.sign({ email, password: hashedPassword, name, phone, coinBalance, vehicles, roles, bankAccount }, process.env.JWT_SECRET, { expiresIn: "15m" });
     // luu token vao redis (key: email, value: token)
     await redis.setex(email, 900, token); // 15'
