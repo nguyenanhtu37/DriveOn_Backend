@@ -152,4 +152,36 @@ const logout = async (req, res) => {
   }
 };
 
-export { signup, verifyEmail, login, resetPassword, requestPasswordReset, logout };
+// thay đổi mật khẩu
+const changePassword = async (req, res) => {
+  const { oldPassword, newPassword } = req.body;
+  const userId = req.user.id;
+
+  try {
+    // tìm người dùng theo ID
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // check mật khẩu cũ
+    const isMatch = await bcrypt.compare(oldPassword, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Old password is incorrect" });
+    }
+
+    // hash mật khẩu mới
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // updatee mật khẩu mới
+    user.password = hashedPassword;
+    await user.save();
+
+    res.status(200).json({ message: "Password changed successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export { signup, verifyEmail, login, resetPassword, requestPasswordReset, logout, changePassword };
+
