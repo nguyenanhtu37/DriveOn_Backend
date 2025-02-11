@@ -2,10 +2,11 @@ const mongoose = require("mongoose");
 
 const vehicleSchema = new mongoose.Schema({
     carBrand: {
-        type: String,
+        type: mongoose.Mongoose.Types.ObjectId,
+        ref: "Brand",
         required: true,
     },
-    carModel: {
+    carName: {
         type: String,
         required: true,
     },
@@ -33,6 +34,18 @@ const vehicleSchema = new mongoose.Schema({
         type: Date,
         default: Date.now,
     },
+    maintenanceHistory: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Maintenance",
+        },
+    ],
+    appointment: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Appointment",
+        },
+    ],
 })
 
 const Vehicle = mongoose.model("Vehicle", vehicleSchema);

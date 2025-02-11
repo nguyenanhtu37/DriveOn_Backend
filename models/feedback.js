@@ -5,13 +5,17 @@ const feedbackSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
-  text: {
-    type: String,
-  },
-  garage: [{
+  garage: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Garage"
-  }],
+  },
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+  },
+  text: {
+    type: String,
+  }
 });
 
 const Feedback = mongoose.model("Feedback", feedbackSchema);

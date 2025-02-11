@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema({
-  email: {
+  email: { //=username cua staff
     type: String,
     required: true,
     unique: true
@@ -47,6 +47,10 @@ const userSchema = new mongoose.Schema({
     enum: ["active", "inactive"],
     default: "active"
   },
+  garageList: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Garage"
+  }],
 });
 
 const User = mongoose.model("User", userSchema);

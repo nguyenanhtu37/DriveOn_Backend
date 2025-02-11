@@ -1,0 +1,522 @@
+[33mcommit dc95eb3d82c58bcab51fa1d6e270b47ca202d58e[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m
+Merge: 23d661f 7079f5c
+Author: Nguyễn Anh Tú <128016013+nguyenanhtu37@users.noreply.github.com>
+Date:   Mon Feb 10 20:28:34 2025 +0700
+
+    Merge pull request #21 from nguyenanhtu37/feature/KhangNV/change-password
+    
+    Feature/KhangNV/change password
+
+[33mcommit 7079f5c413a24ffc8309ea1c0cc262c3dda749ab[m[33m ([m[1;31morigin/feature/KhangNV/change-password[m[33m, [m[1;32mfeature/KhangNV/change-password[m[33m)[m
+Author: Khang Nguyen <khangnvde170679@fpt.edu.vn>
+Date:   Tue Jan 21 21:33:02 2025 +0700
+
+    change password
+
+[33mcommit fee8da91d301e1e7cf91099c48f8a847784cb680[m
+Author: Nguyen Anh Tu <nguyenanhtu3703@gmail.com>
+Date:   Tue Jan 21 00:03:33 2025 +0700
+
+    Done checking code W1+Update garage infor
+
+[33mcommit b68a32b0116bad8d5bfe17b7888da5e273699941[m
+Merge: e9a51a9 7376c3b
+Author: Nguyễn Anh Tú <128016013+nguyenanhtu37@users.noreply.github.com>
+Date:   Mon Jan 20 23:17:39 2025 +0700
+
+    Merge pull request #20 from nguyenanhtu37/feature/KhangNV/crud-garage-bymanager
+    
+    Feature/khang nv/crud garage bymanager
+
+[33mcommit 7376c3b9389765000677ccf9c5885462946cf890[m[33m ([m[1;31morigin/feature/KhangNV/crud-garage-bymanager[m[33m)[m
+Merge: 4dbd2b2 889a6ac
+Author: Nguyen Anh Tu <nguyenanhtu3703@gmail.com>
+Date:   Mon Jan 20 23:15:07 2025 +0700
+
+    Fuck
+
+[33mcommit 4dbd2b266a386725926144e68dd6a7b1148d3f72[m
+Merge: 8fbd726 e9a51a9
+Author: Nguyen Anh Tu <nguyenanhtu3703@gmail.com>
+Date:   Mon Jan 20 23:11:55 2025 +0700
+
+    Merge code CRUD garage to dev
+
+[33mcommit 889a6ac27c0ec17914663090716014cca0110ae7[m
+Merge: 8fbd726 e9a51a9
+Author: Ngọc Tâm <ngoctamqb123@gmail.com>
+Date:   Mon Jan 20 23:08:55 2025 +0700
+
+    Merge branch 'dev' into feature/KhangNV/crud-garage-bymanager
+
+[33mcommit 8fbd7262f2c85194e2e4c59d3675af95a7424653[m
+Author: Nguyen Anh Tu <nguyenanhtu3703@gmail.com>
+Date:   Mon Jan 20 22:42:52 2025 +0700
+
+    Add package.json
+
+[33mcommit e9a51a961944e4fe49b8cff274f2c79e5153b05d[m
+Merge: 581ca41 7876592
+Author: Nguyễn Anh Tú <128016013+nguyenanhtu37@users.noreply.github.com>
+Date:   Mon Jan 20 15:53:08 2025 +0700
+
+    Merge pull request #18 from nguyenanhtu37/fix/TuNA/updateGarageModel
+    
+    Add 'images' fields into garage model
+
+[33mcommit 78765925788a11653677b318d9a911222163af86[m[33m ([m[1;31morigin/fix/TuNA/updateGarageModel[m[33m)[m
+Author: Nguyen Anh Tu <nguyenanhtu3703@gmail.com>
+Date:   Mon Jan 20 15:50:50 2025 +0700
+
+    Add 'images' fields into garage model
+
+[33mcommit 581ca4110e26709360116e2eeca8e853337d24f3[m
+Merge: 91edc2d dbd70a9
+Author: Nguyễn Anh Tú <128016013+nguyenanhtu37@users.noreply.github.com>
+Date:   Mon Jan 20 15:46:04 2025 +0700
+
+    Merge pull request #16 from nguyenanhtu37/fix/TamTVN/update-register-garage
+    
+    fix/TamTVN/update register garage
+
+[33mcommit 6df8982d88917ffa3a5309f00cc44093ca336be0[m
+Author: Khang Nguyen <khangnvde170679@fpt.edu.vn>
+Date:   Mon Jan 20 00:44:16 2025 +0700
+
+    crud garages by manager
+
+[33mcommit dbd70a9c0ccdf7554f4a1608fc93daca0d5d1696[m[33m ([m[1;31morigin/fix/TamTVN/update-register-garage[m[33m)[m
+Author: Ngọc Tâm <ngoctamqb123@gmail.com>
+Date:   Sun Jan 19 21:40:53 2025 +0700
+
+    fix/TamTVN/update register garage
+
+[33mcommit 91edc2df201a9790eaa6d899b8dd2d5ba58f94e1[m
+Merge: 145b20e 1a4af05
+Author: Nguyễn Anh Tú <128016013+nguyenanhtu37@users.noreply.github.com>
+Date:   Fri Jan 17 05:28:55 2025 +0700
+
+    Merge pull request #15 from nguyenanhtu37/feature/TuNA/deleteGarage
+    
+    Done delete garage for admin
+
+[33mcommit 1a4af053e1ad34341d2e6fb6bf3c0d5924c696a3[m[33m ([m[1;31morigin/feature/TuNA/deleteGarage[m[33m)[m
+Author: Nguyen Anh Tu <nguyenanhtu3703@gmail.com>
+Date:   Fri Jan 17 05:28:11 2025 +0700
+
+    Done delete garage for admin
+
+[33mcommit 145b20e309bc17117185b533a7cd554cf573300e[m
+Merge: a5c2cc0 e8e6060
+Author: Nguyễn Anh Tú <128016013+nguyenanhtu37@users.noreply.github.com>
+Date:   Fri Jan 17 05:24:00 2025 +0700
+
+    Merge pull request #14 from nguyenanhtu37/feature/TuNA/Accept-Reject-Garage-Registration
+    
+    Done accept/reject garage registration for ad
+
+[33mcommit e8e606087618e5c31f7961ee1f3e4abe2161ea37[m[33m ([m[1;31morigin/feature/TuNA/Accept-Reject-Garage-Registration[m[33m)[m
+Author: Nguyen Anh Tu <nguyenanhtu3703@gmail.com>
+Date:   Fri Jan 17 05:23:25 2025 +0700
+
+    Done accept/reject garage registration for ad
+
+[33mcommit a5c2cc0219fe4da81c62306d87c2404b52175a70[m
+Merge: 9275b4f fa7fafa
+Author: Nguyễn Anh Tú <128016013+nguyenanhtu37@users.noreply.github.com>
+Date:   Fri Jan 17 05:12:42 2025 +0700
+
+    Merge pull request #13 from nguyenanhtu37/feature/TuNA/viewGarageRegistration
+    
+    Done view garage registration for SA
+
+[33mcommit fa7fafa6bfedeb8ebcc6c3178d89857671af1b54[m[33m ([m[1;31morigin/feature/TuNA/viewGarageRegistration[m[33m)[m
+Author: Nguyen Anh Tu <nguyenanhtu3703@gmail.com>
+Date:   Fri Jan 17 05:12:08 2025 +0700
+
+    Done view garage registration for SA
+
+[33mcommit 9275b4fee3f5a55e4564cfaf19bac3d093af312e[m
+Merge: c63077f 3a63e79
+Author: Nguyễn Anh Tú <128016013+nguyenanhtu37@users.noreply.github.com>
+Date:   Fri Jan 17 04:06:52 2025 +0700
+
+    Merge pull request #12 from nguyenanhtu37/feature/TuNA/registerGarage
+    
+    Done register garage
+
+[33mcommit 3a63e79171e7958a63b2823fc300a10fa7032889[m[33m ([m[1;31morigin/feature/TuNA/registerGarage[m[33m)[m
+Author: Nguyen Anh Tu <nguyenanhtu3703@gmail.com>
+Date:   Fri Jan 17 04:06:03 2025 +0700
+
+    Done register garage
+
+[33mcommit c63077f4495b6efb8d3f9847b2c62eeccfb231ef[m
+Merge: df1160a 9bc9fd4
+Author: Nguyễn Anh Tú <128016013+nguyenanhtu37@users.noreply.github.com>
+Date:   Fri Jan 17 03:31:58 2025 +0700
+
+    Merge pull request #11 from nguyenanhtu37/feature/TuNA/logout
+    
+    Done log out
+
+[33mcommit 9bc9fd4d06a31e37895a1d705198ff33f4a9a9eb[m[33m ([m[1;31morigin/feature/TuNA/logout[m[33m)[m
+Author: Nguyen Anh Tu <nguyenanhtu3703@gmail.com>
+Date:   Fri Jan 17 03:31:23 2025 +0700
+
+    Done log out
+
+[33mcommit df1160adbfd41139f3ebdbfe0070af38023bda2a[m
+Merge: bad457d 5269ae4
+Author: Nguyễn Anh Tú <128016013+nguyenanhtu37@users.noreply.github.com>
+Date:   Fri Jan 17 03:24:00 2025 +0700
+
+    Merge pull request #10 from nguyenanhtu37/feature/TuNA/resetPassword
+    
+    Done reset password
+
+[33mcommit 5269ae4f81a3ca4bf7aa42029cf316004e2b1347[m[33m ([m[1;31morigin/feature/TuNA/resetPassword[m[33m)[m
+Author: Nguyen Anh Tu <nguyenanhtu3703@gmail.com>
+Date:   Fri Jan 17 03:23:21 2025 +0700
+
+    Done reset password
+
+[33mcommit bad457da5f4aa3878e2a1cd35fd7726ee82ffdfd[m
+Merge: 9b69948 c542e35
+Author: Nguyễn Anh Tú <128016013+nguyenanhtu37@users.noreply.github.com>
+Date:   Fri Jan 17 03:01:31 2025 +0700
+
+    Merge pull request #9 from nguyenanhtu37/feature/TuNA/login
+    
+    Done login
+
+[33mcommit c542e3518c3cb0f3656b6c60b9a32d41dfcec871[m[33m ([m[1;31morigin/feature/TuNA/login[m[33m)[m
+Author: Nguyen Anh Tu <nguyenanhtu3703@gmail.com>
+Date:   Fri Jan 17 02:59:57 2025 +0700
+
+    Done login
+
+[33mcommit 9b69948b08d111fa974f461bcd3e3f40e6fc1d0f[m
+Merge: eb4e0d0 f3067d0
+Author: Nguyễn Anh Tú <128016013+nguyenanhtu37@users.noreply.github.com>
+Date:   Fri Jan 17 02:52:58 2025 +0700
+
+    Merge pull request #7 from nguyenanhtu37/feature/TuNA/signUp-verifyEmail-addRoles
+    
+    Add signup with email verification and add system roles
+
+[33mcommit f3067d0767dd1bfe302147d8bae2de18913c896a[m[33m ([m[1;31morigin/feature/TuNA/signUp-verifyEmail-addRoles[m[33m)[m
+Author: Nguyen Anh Tu <nguyenanhtu3703@gmail.com>
+Date:   Fri Jan 17 02:32:10 2025 +0700
+
+    Add signup with email verification and add system roles
+
+[33mcommit 6acb9eb12c51ffc14d30d15608d2dd2030f5ad1f[m
+Author: Khang Nguyen <khangnvde170679@fpt.edu.vn>
+Date:   Thu Jan 16 23:16:35 2025 +0700
+
+    none
+
+[33mcommit eb4e0d0f854c8ac29a81268f7ee826ffa423b1d4[m
+Merge: c4e8ef2 f7f080e
+Author: Nguyễn Anh Tú <128016013+nguyenanhtu37@users.noreply.github.com>
+Date:   Thu Jan 16 22:01:4[33mcommit dc95eb3d82c58bcab51fa1d6e270b47ca202d58e[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m
+Merge: 23d661f 7079f5c
+Author: Nguyễn Anh Tú <128016013+nguyenanhtu37@users.noreply.github.com>
+Date:   Mon Feb 10 20:28:34 2025 +0700
+
+    Merge pull request #21 from nguyenanhtu37/feature/KhangNV/change-password
+    
+    Feature/KhangNV/change password
+
+[33mcommit 7079f5c413a24ffc8309ea1c0cc262c3dda749ab[m[33m ([m[1;31morigin/feature/KhangNV/change-password[m[33m, [m[1;32mfeature/KhangNV/change-password[m[33m)[m
+Author: Khang Nguyen <khangnvde170679@fpt.edu.vn>
+Date:   Tue Jan 21 21:33:02 2025 +0700
+
+    change password
+
+[33mcommit fee8da91d301e1e7cf91099c48f8a847784cb680[m
+Author: Nguyen Anh Tu <nguyenanhtu3703@gmail.com>
+Date:   Tue Jan 21 00:03:33 2025 +0700
+
+    Done checking code W1+Update garage infor
+
+[33mcommit b68a32b0116bad8d5bfe17b7888da5e273699941[m
+Merge: e9a51a9 7376c3b
+Author: Nguyễn Anh Tú <128016013+nguyenanhtu37@users.noreply.github.com>
+Date:   Mon Jan 20 23:17:39 2025 +0700
+
+    Merge pull request #20 from nguyenanhtu37/feature/KhangNV/crud-garage-bymanager
+    
+    Feature/khang nv/crud garage bymanager
+
+[33mcommit 7376c3b9389765000677ccf9c5885462946cf890[m[33m ([m[1;31morigin/feature/KhangNV/crud-garage-bymanager[m[33m)[m
+Merge: 4dbd2b2 889a6ac
+Author: Nguyen Anh Tu <nguyenanhtu3703@gmail.com>
+Date:   Mon Jan 20 23:15:07 2025 +0700
+
+    Fuck
+
+[33mcommit 4dbd2b266a386725926144e68dd6a7b1148d3f72[m
+Merge: 8fbd726 e9a51a9
+Author: Nguyen Anh Tu <nguyenanhtu3703@gmail.com>
+Date:   Mon Jan 20 23:11:55 2025 +0700
+
+    Merge code CRUD garage to dev
+
+[33mcommit 889a6ac27c0ec17914663090716014cca0110ae7[m
+Merge: 8fbd726 e9a51a9
+Author: Ngọc Tâm <ngoctamqb123@gmail.com>
+Date:   Mon Jan 20 23:08:55 2025 +0700
+
+    Merge branch 'dev' into feature/KhangNV/crud-garage-bymanager
+
+[33mcommit 8fbd7262f2c85194e2e4c59d3675af95a7424653[m
+Author: Nguyen Anh Tu <nguyenanhtu3703@gmail.com>
+Date:   Mon Jan 20 22:42:52 2025 +0700
+
+    Add package.json
+
+[33mcommit e9a51a961944e4fe49b8cff274f2c79e5153b05d[m
+Merge: 581ca41 7876592
+Author: Nguyễn Anh Tú <128016013+nguyenanhtu37@users.noreply.github.com>
+Date:   Mon Jan 20 15:53:08 2025 +0700
+
+    Merge pull request #18 from nguyenanhtu37/fix/TuNA/updateGarageModel
+    
+    Add 'images' fields into garage model
+
+[33mcommit 78765925788a11653677b318d9a911222163af86[m[33m ([m[1;31morigin/fix/TuNA/updateGarageModel[m[33m)[m
+Author: Nguyen Anh Tu <nguyenanhtu3703@gmail.com>
+Date:   Mon Jan 20 15:50:50 2025 +0700
+
+    Add 'images' fields into garage model
+
+[33mcommit 581ca4110e26709360116e2eeca8e853337d24f3[m
+Merge: 91edc2d dbd70a9
+Author: Nguyễn Anh Tú <128016013+nguyenanhtu37@users.noreply.github.com>
+Date:   Mon Jan 20 15:46:04 2025 +0700
+
+    Merge pull request #16 from nguyenanhtu37/fix/TamTVN/update-register-garage
+    
+    fix/TamTVN/update register garage
+
+[33mcommit 6df8982d88917ffa3a5309f00cc44093ca336be0[m
+Author: Khang Nguyen <khangnvde170679@fpt.edu.vn>
+Date:   Mon Jan 20 00:44:16 2025 +0700
+
+    crud garages by manager
+
+[33mcommit dbd70a9c0ccdf7554f4a1608fc93daca0d5d1696[m[33m ([m[1;31morigin/fix/TamTVN/update-register-garage[m[33m)[m
+Author: Ngọc Tâm <ngoctamqb123@gmail.com>
+Date:   Sun Jan 19 21:40:53 2025 +0700
+
+    fix/TamTVN/update register garage
+
+[33mcommit 91edc2df201a9790eaa6d899b8dd2d5ba58f94e1[m
+Merge: 145b20e 1a4af05
+Author: Nguyễn Anh Tú <128016013+nguyenanhtu37@users.noreply.github.com>
+Date:   Fri Jan 17 05:28:55 2025 +0700
+
+    Merge pull request #15 from nguyenanhtu37/feature/TuNA/deleteGarage
+    
+    Done delete garage for admin
+
+[33mcommit 1a4af053e1ad34341d2e6fb6bf3c0d5924c696a3[m[33m ([m[1;31morigin/feature/TuNA/deleteGarage[m[33m)[m
+Author: Nguyen Anh Tu <nguyenanhtu3703@gmail.com>
+Date:   Fri Jan 17 05:28:11 2025 +0700
+
+    Done delete garage for admin
+
+[33mcommit 145b20e309bc17117185b533a7cd554cf573300e[m
+Merge: a5c2cc0 e8e6060
+Author: Nguyễn Anh Tú <128016013+nguyenanhtu37@users.noreply.github.com>
+Date:   Fri Jan 17 05:24:00 2025 +0700
+
+    Merge pull request #14 from nguyenanhtu37/feature/TuNA/Accept-Reject-Garage-Registration
+    
+    Done accept/reject garage registration for ad
+
+[33mcommit e8e606087618e5c31f7961ee1f3e4abe2161ea37[m[33m ([m[1;31morigin/feature/TuNA/Accept-Reject-Garage-Registration[m[33m)[m
+Author: Nguyen Anh Tu <nguyenanhtu3703@gmail.com>
+Date:   Fri Jan 17 05:23:25 2025 +0700
+
+    Done accept/reject garage registration for ad
+
+[33mcommit a5c2cc0219fe4da81c62306d87c2404b52175a70[m
+Merge: 9275b4f fa7fafa
+Author: Nguyễn Anh Tú <128016013+nguyenanhtu37@users.noreply.github.com>
+Date:   Fri Jan 17 05:12:42 2025 +0700
+
+    Merge pull request #13 from nguyenanhtu37/feature/TuNA/viewGarageRegistration
+    
+    Done view garage registration for SA
+
+[33mcommit fa7fafa6bfedeb8ebcc6c3178d89857671af1b54[m[33m ([m[1;31morigin/feature/TuNA/viewGarageRegistration[m[33m)[m
+Author: Nguyen Anh Tu <nguyenanhtu3703@gmail.com>
+Date:   Fri Jan 17 05:12:08 2025 +0700
+
+    Done view garage registration for SA
+
+[33mcommit 9275b4fee3f5a55e4564cfaf19bac3d093af312e[m
+Merge: c63077f 3a63e79
+Author: Nguyễn Anh Tú <128016013+nguyenanhtu37@users.noreply.github.com>
+Date:   Fri Jan 17 04:06:52 2025 +0700
+
+    Merge pull request #12 from nguyenanhtu37/feature/TuNA/registerGarage
+    
+    Done register garage
+
+[33mcommit 3a63e79171e7958a63b2823fc300a10fa7032889[m[33m ([m[1;31morigin/feature/TuNA/registerGarage[m[33m)[m
+Author: Nguyen Anh Tu <nguyenanhtu3703@gmail.com>
+Date:   Fri Jan 17 04:06:03 2025 +0700
+
+    Done register garage
+
+[33mcommit c63077f4495b6efb8d3f9847b2c62eeccfb231ef[m
+Merge: df1160a 9bc9fd4
+Author: Nguyễn Anh Tú <128016013+nguyenanhtu37@users.noreply.github.com>
+Date:   Fri Jan 17 03:31:58 2025 +0700
+
+    Merge pull request #11 from nguyenanhtu37/feature/TuNA/logout
+    
+    Done log out
+
+[33mcommit 9bc9fd4d06a31e37895a1d705198ff33f4a9a9eb[m[33m ([m[1;31morigin/feature/TuNA/logout[m[33m)[m
+Author: Nguyen Anh Tu <nguyenanhtu3703@gmail.com>
+Date:   Fri Jan 17 03:31:23 2025 +0700
+
+    Done log out
+
+[33mcommit df1160adbfd41139f3ebdbfe0070af38023bda2a[m
+Merge: bad457d 5269ae4
+Author: Nguyễn Anh Tú <128016013+nguyenanhtu37@users.noreply.github.com>
+Date:   Fri Jan 17 03:24:00 2025 +0700
+
+    Merge pull request #10 from nguyenanhtu37/feature/TuNA/resetPassword
+    
+    Done reset password
+
+[33mcommit 5269ae4f81a3ca4bf7aa42029cf316004e2b1347[m[33m ([m[1;31morigin/feature/TuNA/resetPassword[m[33m)[m
+Author: Nguyen Anh Tu <nguyenanhtu3703@gmail.com>
+Date:   Fri Jan 17 03:23:21 2025 +0700
+
+    Done reset password
+
+[33mcommit bad457da5f4aa3878e2a1cd35fd7726ee82ffdfd[m
+Merge: 9b69948 c542e35
+Author: Nguyễn Anh Tú <128016013+nguyenanhtu37@users.noreply.github.com>
+Date:   Fri Jan 17 03:01:31 2025 +0700
+
+    Merge pull request #9 from nguyenanhtu37/feature/TuNA/login
+    
+    Done login
+
+[33mcommit c542e3518c3cb0f3656b6c60b9a32d41dfcec871[m[33m ([m[1;31morigin/feature/TuNA/login[m[33m)[m
+Author: Nguyen Anh Tu <nguyenanhtu3703@gmail.com>
+Date:   Fri Jan 17 02:59:57 2025 +0700
+
+    Done login
+
+[33mcommit 9b69948b08d111fa974f461bcd3e3f40e6fc1d0f[m
+Merge: eb4e0d0 f3067d0
+Author: Nguyễn Anh Tú <128016013+nguyenanhtu37@users.noreply.github.com>
+Date:   Fri Jan 17 02:52:58 2025 +0700
+
+    Merge pull request #7 from nguyenanhtu37/feature/TuNA/signUp-verifyEmail-addRoles
+    
+    Add signup with email verification and add system roles
+
+[33mcommit f3067d0767dd1bfe302147d8bae2de18913c896a[m[33m ([m[1;31morigin/feature/TuNA/signUp-verifyEmail-addRoles[m[33m)[m
+Author: Nguyen Anh Tu <nguyenanhtu3703@gmail.com>
+Date:   Fri Jan 17 02:32:10 2025 +0700
+
+    Add signup with email verification and add system roles
+
+[33mcommit 6acb9eb12c51ffc14d30d15608d2dd2030f5ad1f[m
+Author: Khang Nguyen <khangnvde170679@fpt.edu.vn>
+Date:   Thu Jan 16 23:16:35 2025 +0700
+
+    none
+
+[33mcommit eb4e0d0f854c8ac29a81268f7ee826ffa423b1d4[m
+Merge: c4e8ef2 f7f080e
+Author: Nguyễn Anh Tú <128016013+nguyenanhtu37@users.noreply.github.com>
+Date:   Thu Jan 16 22:01:43 2025 +0700
+
+    Merge pull request #4 from nguyenanhtu37/fix/TuNA/models
+    
+    fix/TuNA/models
+
+[33mcommit f7f080ed1b94422898f714eb9dbc309305890b03[m[33m ([m[1;31morigin/fix/TuNA/models[m[33m)[m
+Author: Nguyen Anh Tu <nguyenanhtu3703@gmail.com>
+Date:   Thu Jan 16 21:59:36 2025 +0700
+
+    fix/TuNA/models
+
+[33mcommit c4e8ef2c8250b4bdb4e07cd52e3aa565e08f9448[m
+Merge: b82c15d 2fe772a
+Author: Ngọc Tâm <117109168+Deku1712@users.noreply.github.com>
+Date:   Thu Jan 16 16:28:37 2025 +0700
+
+    Merge pull request #2 from nguyenanhtu37/fix/TamTVN/updateModel
+    
+    Fix/tam tvn/update model
+
+[33mcommit 2fe772aaea4cecbb2c2c357652e3fd1cc6ba4c66[m[33m ([m[1;31morigin/fix/TamTVN/updateModel[m[33m)[m
+Merge: ce25851 b82c15d
+Author: Ngọc Tâm <ngoctamqb123@gmail.com>
+Date:   Thu Jan 16 16:26:57 2025 +0700
+
+    Merge branch 'dev' into fix/TamTVN/updateModel
+
+[33mcommit ce258518451e210cf6fc4d5a7882f2f292c90979[m
+Author: Ngọc Tâm <ngoctamqb123@gmail.com>
+Date:   Thu Jan 16 15:55:21 2025 +0700
+
+    fix/TamTVN/updateModel
+
+[33mcommit b82c15d963c6f0f2a719ef3d869f46e41a1c3f2e[m
+Merge: 23d661f 49be96a
+Author: Ngọc Tâm <117109168+Deku1712@users.noreply.github.com>
+Date:   Thu Jan 16 15:53:32 2025 +0700
+
+    Merge pull request #1 from nguyenanhtu37/feature/TuNA/connectDB
+    
+    Update database connection
+
+[33mcommit c50281f425d2cd8bff259c4460d7bec475d254e3[m
+Author: Hoang Enzo <96958365+hoangenzo11@users.noreply.github.com>
+Date:   Wed Jan 15 15:00:20 2025 +0700
+
+     fix model
+
+[33mcommit ce757923bba5973a19097cc01a9001ef6a3fe0cd[m
+Author: Hoang Enzo <96958365+hoangenzo11@users.noreply.github.com>
+Date:   Wed Jan 15 11:10:28 2025 +0700
+
+     fix token
+
+[33mcommit 4321b26bc858003029942d602892466220f299da[m
+Author: Hoang Enzo <96958365+hoangenzo11@users.noreply.github.com>
+Date:   Wed Jan 15 10:58:50 2025 +0700
+
+     login with email
+
+[33mcommit 49be96a564906da0eb49c71f568926b06c8b2d2e[m
+Author: Nguyen Anh Tu <nguyenanhtu3703@gmail.com>
+Date:   Tue Jan 14 22:13:34 2025 +0700
+
+    Update database connection
+
+[33mcommit 8ce6cbd9876e415fe365e8056568f20ae4b12c89[m
+Author: Hoang Enzo <96958365+hoangenzo11@users.noreply.github.com>
+Date:   Tue Jan 14 20:53:55 2025 +0700
+
+     connect mongodb
+
+[33mcommit 23d661f02ea72cc5ed7fa99c91c674871eba152b[m
+Author: Nguyen Anh Tu <nguyenanhtu3703@gmail.com>
+Date:   Mon Jan 6 13:38:35 2025 +0700
+
+    Initial project
