@@ -5,12 +5,9 @@ const invoiceSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "Appointment"
   },
-  task: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Task"
-  },
-  serviceFee: {
-    type: Number
+  totalServiceFee: {
+    type: Number,
+    required: true
   },
   createdAt: {
     type: Date,

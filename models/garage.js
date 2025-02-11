@@ -5,7 +5,7 @@ const garageSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  address: {
+  address: { //địa chỉ text. Ví dụ: 123 Nguyễn Văn Linh, Quận 7, TP.HCM
     type: String,
     required: true,
   },
@@ -13,14 +13,35 @@ const garageSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  email: {
+    type: String,
+  },
   description: {
     type: String,
     required: true,
   },
-  workingHours: {
+  openTime: {
     type: String,
     required: true,
   },
+  closeTime: {
+    type: String,
+    required: true,
+  },
+  operating_days: [{
+    type: String,
+    enum: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+    required: true
+  }],
+  facadeImages: [{ //ảnh mặt tiền
+    type: String
+  }],
+  interiorImages: [{ //ảnh bên trong
+    type: String
+  }],
+  documentImages: [{ //ảnh giấy tờ chứng minh
+    type: String
+  }],
   coinBalance: {
     type: Number,
     required: true,
@@ -34,7 +55,7 @@ const garageSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
-  rating: {
+  ratingAverage: {
     type: Number,
     default: 0,
   },
@@ -51,7 +72,30 @@ const garageSchema = new mongoose.Schema({
   },
   images: [{
     type: String
-  }]
+  }],
+  location: { //lưu điểm tọa độ
+    type: {
+      type: String,
+      enum: ['Point'],
+      required: true
+    },
+    coordinates: { //tọa độ
+      type: [Number], //[kinh độ, vĩ độ]
+      required: true
+    }
+  },
+  tag: {
+    type: String,
+    enum: ["pro", "normal"],
+    default: "normal",
+    required: true,
+  },
+  appointment: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Appointment",
+    },
+  ],
 });
 
 const Garage = mongoose.model("Garage", garageSchema);

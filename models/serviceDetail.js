@@ -21,7 +21,10 @@ const serviceDetailSchema = new mongoose.Schema({
   price: {
     type: Number
   },
-  averageTime: {
+  duration: {
+    type: String
+  },
+  warranty: { //thoi gian bao hanh dich vu
     type: String
   },
   createdAt: {
