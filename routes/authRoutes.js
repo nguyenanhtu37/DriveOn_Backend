@@ -9,7 +9,7 @@ import {
   changePassword,
 } from "../controller/authController.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
-import { registerGarage } from "../controller/managerController.js";
+import { registerGarage } from "../controller/garageController.js";
 
 const router = express.Router();
 
