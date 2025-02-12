@@ -31,7 +31,7 @@ const getVehicleById = async (req, res) => {
     }
   };
 
-  const updateVehicle = async (req, res) => {
+const updateVehicle = async (req, res) => {
     const { id } = req.params;
     try {
       const updatedVehicle = await vehicleService.updateVehicle(req.user.id, id, req.body);
@@ -39,6 +39,16 @@ const getVehicleById = async (req, res) => {
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
-  };
+};
 
-export { addVehicle, viewVehicles, getVehicleById, updateVehicle };
+const deleteVehicle = async (req, res) => {
+    const { id } = req.params;
+    try {
+      const result = await vehicleService.deleteVehicle(req.user.id, id);
+      res.status(200).json(result);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+};
+
+export { addVehicle, viewVehicles, getVehicleById, updateVehicle, deleteVehicle };

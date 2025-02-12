@@ -8,6 +8,7 @@ import managerRoutes from "./routes/managerRoutes.js";
 import vehicleRoutes from "./routes/vehicleRoutes.js";
 
 import cors from "cors";
+import bodyParser from "body-parser";
 dotenv.config();
 
 const app = express();
@@ -15,6 +16,7 @@ const PORT = process.env.PORT || 5000;
 
 // middleware
 app.use(express.json());
+app.use(bodyParser.json());
 app.use(
   cors({
     origin: "http://localhost:5173", // Địa chỉ frontend

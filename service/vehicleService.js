@@ -48,4 +48,17 @@ const getVehicleById = async (vehicleId) => {
     return vehicle;
 };
 
-export { addVehicle, viewVehicles, getVehicleById, updateVehicle };
+const deleteVehicle = async (userId, vehicleId) => {
+    const vehicle = await Vehicle.findById(vehicleId);
+    if (!vehicle) {
+      throw new Error("Vehicle not found");
+    }
+    if (vehicle.carOwner.toString() !== userId) {
+      throw new Error("Unauthorized");
+    }
+    await Vehicle.findByIdAndDelete(vehicleId);
+    return { message: "Vehicle deleted successfully" };
+  };
+  
+
+export { addVehicle, viewVehicles, getVehicleById, updateVehicle, deleteVehicle };
