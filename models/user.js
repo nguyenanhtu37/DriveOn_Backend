@@ -8,7 +8,6 @@ const userSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: true
   },
   name: {
     type: String,
@@ -16,7 +15,6 @@ const userSchema = new mongoose.Schema({
   },
   phone: {
     type: String,
-    required: true
   },
   coinBalance: {
     type: Number,
@@ -51,6 +49,24 @@ const userSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "Garage"
   }],
+  googleId: {
+    type: String
+  },
+  avatar: {
+    type: String
+  },
+  emailVerified: {
+    type: Boolean,
+  },
+  locale: {
+    type: String
+  },
+  givenName: {
+    type: String
+  },
+  familyName: {
+    type: String
+  }
 });
 
 const User = mongoose.model("User", userSchema);

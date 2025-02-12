@@ -1,8 +1,11 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import { OAuth2Client } from 'google-auth-library';
 import redis from '../config/redis.js';
 import transporter from '../config/mailer.js';
 import User from '../models/user.js';
+
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const signup = async (userData) => {
   const { email, password, name, phone, coinBalance, vehicles, roles, bankAccount } = userData;
@@ -130,4 +133,58 @@ const changePassword = async (userId, oldPassword, newPassword) => {
   return { message: "Password changed successfully" };
 };
 
-export { signup, verifyEmail, login, requestPasswordReset, resetPassword, logout, changePassword };
+const googleLogin = async (token) => {
+  try {
+    // xac thuc token gg
+    const ticket = await client.verifyIdToken({
+      idToken: token,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+    const { email, name, sub, email_verified, picture, locale, given_name, family_name } = payload;
+
+    // tim nguoi dung theo email va googleId co ton tai trong db k
+    let user = await User.findOne({ email, googleId: sub });
+    if (!user) {
+      console.log("User not found, creating new user...");
+      // tao moi neu chua co
+      user = new User({
+        email,
+        name,
+        googleId: sub,
+        status: "active",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        emailVerified: email_verified,
+        avatar: picture,
+        locale,
+        givenName: given_name,
+        familyName: family_name
+      });
+      await user.save();
+      console.log("New user created:", user);
+    }
+
+    // tao jwt token
+    const jwtToken = jwt.sign(
+      { id: user._id, email: user.email, roles: user.roles.map(role => role.roleName) },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    return { token: jwtToken };
+  } catch (error) {
+    console.error("Error during Google login:", error);
+    throw new Error("Google login failed");
+  }
+};
+
+const viewPersonalProfile = async (userId) => {
+  if (!userId) {
+    throw new Error("User not found");
+  }
+  const user = await User.findById(userId);
+  return user;
+}
+
+export { signup, verifyEmail, login, requestPasswordReset, resetPassword, logout, changePassword, googleLogin, viewPersonalProfile };

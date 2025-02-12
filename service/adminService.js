@@ -1,66 +1,58 @@
-import * as authService from '../service/authService.js';
+import Garage from '../models/garage.js';
 
-const signup = async (req, res) => {
+const viewGarageRegistrations = async () => {
   try {
-    const result = await authService.signup(req.body);
-    res.status(200).json(result);
+    const garages = await Garage.find({ status: 'pending' }).populate('user', 'email name phone');
+    return garages;
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    throw new Error(err.message);
   }
 };
 
-const verifyEmail = async (req, res) => {
+const approveGarageRegistration = async (garageId) => {
   try {
-    const result = await authService.verifyEmail(req.query.token);
-    res.status(200).json(result);
+    const garage = await Garage.findById(garageId);
+    if (!garage) {
+      throw new Error("Garage not found");
+    }
+
+    garage.status = 'approved';
+    await garage.save();
+
+    return { message: "Garage registration approved successfully" };
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    throw new Error(err.message);
   }
 };
 
-const login = async (req, res) => {
+const rejectGarageRegistration = async (garageId) => {
   try {
-    const result = await authService.login(req.body.email, req.body.password);
-    res.status(200).json(result);
+    const garage = await Garage.findById(garageId);
+    if (!garage) {
+      throw new Error("Garage not found");
+    }
+
+    garage.status = 'rejected';
+    await garage.save();
+
+    return { message: "Garage registration rejected successfully" };
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    throw new Error(err.message);
   }
 };
 
-const requestPasswordReset = async (req, res) => {
+const deleteGarage = async (garageId) => {
   try {
-    const result = await authService.requestPasswordReset(req.body.email);
-    res.status(200).json(result);
+    const garage = await Garage.findById(garageId);
+    if (!garage) {
+      throw new Error("Garage not found");
+    }
+
+    await garage.deleteOne();
+    return { message: "Garage deleted successfully" };
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    throw new Error(err.message);
   }
 };
 
-const resetPassword = async (req, res) => {
-  try {
-    const result = await authService.resetPassword(req.query.token, req.body.newPassword);
-    res.status(200).json(result);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-const logout = async (req, res) => {
-  try {
-    const result = await authService.logout(req.body.token);
-    res.status(200).json(result);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-const changePassword = async (req, res) => {
-  try {
-    const result = await authService.changePassword(req.user.id, req.body.oldPassword, req.body.newPassword);
-    res.status(200).json(result);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-export { signup, verifyEmail, login, requestPasswordReset, resetPassword, logout, changePassword };
+export { viewGarageRegistrations, approveGarageRegistration, rejectGarageRegistration, deleteGarage };
