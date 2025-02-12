@@ -28,9 +28,6 @@ const getGarageById = async (userId, garageId) => {
   if (!garage) {
     throw new Error("Garage not found");
   }
-  if (garage.user.toString() !== userId) {
-    throw new Error("Unauthorized");
-  }
   return garage;
 };
 
