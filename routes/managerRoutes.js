@@ -1,6 +1,12 @@
-import express from 'express';
-import { authMiddleware } from '../middleware/authMiddleware.js';
-import { registerGarage, viewGarages, updateGarage, deleteGarage, getGarageById } from '../controller/managerController.js';
+import express from "express";
+import { authMiddleware } from "../middleware/authMiddleware.js";
+import {
+  registerGarage,
+  viewGarages,
+  updateGarage,
+  deleteGarage,
+  getGarageById,
+} from "../controller/managerController.js";
 
 const router = express.Router();
 
