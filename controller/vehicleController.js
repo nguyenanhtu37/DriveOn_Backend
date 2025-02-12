@@ -13,13 +13,13 @@ const addVehicle = async (req, res) => {
   }
 };
 
-// const viewVehicles = async (req, res) => {
-//   try {
-//     const vehicles = await vehicleService.viewVehicles(req.user.id);
-//     res.status(200).json(vehicles);
-//   } catch (err) {
-//     res.status(500).json({ error: err.message });
-//   }
-// };
+const viewVehicles = async (req, res) => {
+  try {
+    const vehicles = await vehicleService.viewVehicles(req.user.id);
+    res.status(200).json(vehicles);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
 
-export { addVehicle };
+export { addVehicle, viewVehicles };

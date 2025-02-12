@@ -16,9 +16,9 @@ const addVehicle = async (user, vehicleData) => {
   return newVehicle;
 };
 
-// const viewVehicles = async (userId) => {
-//   const vehicles = await Vehicle.find({ carOwner: userId });
-//   return vehicles;
-// };
+const viewVehicles = async (userId) => {
+  const vehicles = await Vehicle.find({ carOwner: userId });
+  return vehicles;
+};
 
-export { addVehicle };
+export { addVehicle, viewVehicles };
