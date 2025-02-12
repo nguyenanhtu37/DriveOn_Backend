@@ -4,7 +4,7 @@ import dotenv from "dotenv";
 import authRoutes from "./routes/authRoutes.js";
 import roleRoutes from "./routes/roleRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
-import managerRoutes from "./routes/managerRoutes.js";
+// import managerRoutes from "./routes/managerRoutes.js";
 import garageRoutes from "./routes/garageRoutes.js";
 import cors from "cors";
 dotenv.config();
@@ -29,7 +29,7 @@ connectDB();
 app.use("/api/auth", authRoutes);
 app.use("/api/roles", roleRoutes);
 app.use("/api/admin", adminRoutes);
-app.use("/api/manager", managerRoutes);
+// app.use("/api/manager", managerRoutes);
 app.use("/api/garage", garageRoutes);
 
 app.get("/", (req, res) => {
