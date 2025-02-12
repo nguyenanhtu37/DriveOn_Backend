@@ -19,7 +19,7 @@ const addVehicle = async (user, vehicleData) => {
 const viewVehicles = async (userId) => {
     const vehicles = await Vehicle.find({ carOwner: userId }).populate('carOwner');
     return vehicles;
-  };
+};
 
 const getVehicleById = async (vehicleId) => {
     const vehicle = await Vehicle.findById(vehicleId).populate('carOwner');
@@ -27,6 +27,25 @@ const getVehicleById = async (vehicleId) => {
       throw new Error("Vehicle not found");
     }
     return vehicle;
-  };
+};
 
-export { addVehicle, viewVehicles, getVehicleById };
+  const updateVehicle = async (userId, vehicleId, updateData) => {
+    const { carBrand, carName, carYear, carColor, carPlate } = updateData;
+    const vehicle = await Vehicle.findById(vehicleId);
+    if (!vehicle) {
+      throw new Error("Vehicle not found");
+    }
+    if (vehicle.carOwner.toString() !== userId) {
+      throw new Error("Unauthorized");
+    }
+    vehicle.carBrand = carBrand || vehicle.carBrand;
+    vehicle.carName = carName || vehicle.carName;
+    vehicle.carYear = carYear || vehicle.carYear;
+    vehicle.carColor = carColor || vehicle.carColor;
+    vehicle.carPlate = carPlate || vehicle.carPlate;
+    vehicle.updatedAt = new Date();
+    await vehicle.save();
+    return vehicle;
+};
+
+export { addVehicle, viewVehicles, getVehicleById, updateVehicle };
