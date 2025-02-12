@@ -17,8 +17,16 @@ const addVehicle = async (user, vehicleData) => {
 };
 
 const viewVehicles = async (userId) => {
-  const vehicles = await Vehicle.find({ carOwner: userId });
-  return vehicles;
-};
+    const vehicles = await Vehicle.find({ carOwner: userId }).populate('carOwner');
+    return vehicles;
+  };
 
-export { addVehicle, viewVehicles };
+const getVehicleById = async (vehicleId) => {
+    const vehicle = await Vehicle.findById(vehicleId).populate('carOwner');
+    if (!vehicle) {
+      throw new Error("Vehicle not found");
+    }
+    return vehicle;
+  };
+
+export { addVehicle, viewVehicles, getVehicleById };

@@ -29,18 +29,5 @@ const adminMiddleware = (req, res, next) => {
   }
 };
 
-const carOwnerMiddleware = (req, res, next) => {
-  console.log("User information:", req.user);
-  if (!req.user.roles || !Array.isArray(req.user.roles)) {
-    return res.status(403).json({ message: "Access denied, car owner only!" });
-  }
 
-  const roles = req.user.roles;
-  if (roles.includes("carowner")) {
-    next();
-  } else {
-    res.status(403).json({ message: "Access denied, car owner only!" });
-  }
-};
-
-export { authMiddleware, adminMiddleware, carOwnerMiddleware };
+export { authMiddleware, adminMiddleware };
