@@ -60,5 +60,4 @@ const deleteVehicle = async (userId, vehicleId) => {
     return { message: "Vehicle deleted successfully" };
   };
   
-
 export { addVehicle, viewVehicles, getVehicleById, updateVehicle, deleteVehicle };

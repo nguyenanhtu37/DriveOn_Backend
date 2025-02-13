@@ -33,7 +33,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/roles", roleRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/manager", managerRoutes);
-app.use("/api/vehicles", vehicleRoutes);
+app.use("/api/vehicle", vehicleRoutes);
 
 app.get("/", (req, res) => {
   res.send("Hello, DriveOn Backend!");
