@@ -5,7 +5,9 @@ import authRoutes from "./routes/authRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import garageRoutes from "./routes/garageRoutes.js";
 import roleRoutes from "./routes/roleRoutes.js";
+import vehicleRoutes from "./routes/vehicleRoutes.js";
 import cors from "cors";
+import bodyParser from "body-parser";
 dotenv.config();
 
 const app = express();
@@ -13,6 +15,7 @@ const PORT = process.env.PORT || 5000;
 
 // middleware
 app.use(express.json());
+app.use(bodyParser.json());
 app.use(
   cors({
     origin: "http://localhost:5173", // Địa chỉ frontend
@@ -29,6 +32,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/role", roleRoutes);
 app.use("/api/garage", garageRoutes);
 app.use("/api/user", userRoutes);
+app.use("/api/vehicle", vehicleRoutes);
 
 app.get("/", (req, res) => {
   res.send("Hello, DriveOn Backend!");
