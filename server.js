@@ -4,7 +4,7 @@ import dotenv from "dotenv";
 import authRoutes from "./routes/authRoutes.js";
 import roleRoutes from "./routes/roleRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
-import managerRoutes from "./routes/managerRoutes.js";
+import managerRoutes from "./routes/garageRoutes.js";
 import cors from "cors";
 dotenv.config();
 
