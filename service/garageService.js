@@ -93,13 +93,13 @@ const addStaff = async (userId, garageId, staffData) => {
   return newUser;
 };
 
-// const viewStaff = async (userId, garageId) => {
-//   const garage = await Garage.findById(garageId);
-//   if (!garage) {
-//     throw new Error("Garage not found");
-//   }
-//
-//   const staffList = await User.find({ garageList: garageId, roles: "67895c2e2e7333f925e9c0eb" });
-//   return staffList;
-// };
-export { registerGarage, viewGarages, getGarageById, updateGarage, deleteGarage,addStaff };
+const viewStaff = async (userId, garageId) => {
+  const garage = await Garage.findById(garageId);
+  if (!garage) {
+    throw new Error("Garage not found");
+  }
+
+  const staffList = await User.find({ garageList: garageId, roles: "67895c2e2e7333f925e9c0eb" });
+  return staffList;
+};
+export { registerGarage, viewGarages, getGarageById, updateGarage, deleteGarage,addStaff,viewStaff };
