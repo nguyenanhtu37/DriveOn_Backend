@@ -51,5 +51,26 @@ const deleteGarage = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+const addStaff = async (req, res) => {
+  const { id } = req.params; // garage id
+  try {
+    const newStaff = await garageService.addStaff(req.user.id, id, req.body);
+    res.status(201).json({
+      message: "Staff added successfully",
+      staff: newStaff,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+// const viewStaff = async (req, res) => {
+//   const { id } = req.params; // garage id
+//   try {
+//     const staffList = await garageService.viewStaff(req.user.id, id);
+//     res.status(200).json(staffList);
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// };
 
-export { registerGarage, viewGarages, updateGarage, deleteGarage, getGarageById };
+export { registerGarage, viewGarages, updateGarage, deleteGarage, getGarageById,addStaff };
