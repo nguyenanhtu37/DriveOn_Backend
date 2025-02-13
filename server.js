@@ -2,9 +2,9 @@ import express from "express";
 import connectDB from "./config/db.js";
 import dotenv from "dotenv";
 import authRoutes from "./routes/authRoutes.js";
+import userRoutes from "./routes/userRoutes.js";
+import garageRoutes from "./routes/garageRoutes.js";
 import roleRoutes from "./routes/roleRoutes.js";
-import adminRoutes from "./routes/adminRoutes.js";
-import managerRoutes from "./routes/managerRoutes.js";
 import cors from "cors";
 dotenv.config();
 
@@ -26,9 +26,9 @@ connectDB();
 
 // routes
 app.use("/api/auth", authRoutes);
-app.use("/api/roles", roleRoutes);
-app.use("/api/admin", adminRoutes);
-app.use("/api/manager", managerRoutes);
+app.use("/api/role", roleRoutes);
+app.use("/api/garage", garageRoutes);
+app.use("/api/user", userRoutes);
 
 app.get("/", (req, res) => {
   res.send("Hello, DriveOn Backend!");

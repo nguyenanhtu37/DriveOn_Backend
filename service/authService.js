@@ -86,7 +86,7 @@ const requestPasswordReset = async (email) => {
   const token = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: "15m" });
   // luu token vao redis (key: email, value: token)
   await redis.setex(email, 900, token); // 15'
-  //gui mail reset
+  // gui mail reset
   const link = `http://localhost:${process.env.PORT}/api/auth/reset-password?token=${token}`;
   await transporter.sendMail({
     from: process.env.MAIL_USER,
@@ -118,29 +118,14 @@ const logout = async (token) => {
   return { message: "Logout successfully" };
 };
 
-const changePassword = async (userId, oldPassword, newPassword) => {
-  // tìm người dùng theo ID
-  const user = await User.findById(userId);
-  if (!user) throw new Error("User not found");
-  // check mật khẩu cũ
-  const isMatch = await bcrypt.compare(oldPassword, user.password);
-  if (!isMatch) throw new Error("Old password is incorrect");
-  // hash mật khẩu mới
-  const hashedPassword = await bcrypt.hash(newPassword, 10);
-  // updatee mật khẩu mới
-  user.password = hashedPassword;
-  await user.save();
-  return { message: "Password changed successfully" };
-};
-
 const googleLogin = async (token) => {
   try {
     // xac thuc token gg
-    const ticket = await client.verifyIdToken({
+    const ticket = await client.verifyIdToken({ // google-auth-library xac thuc token gg
       idToken: token,
       audience: process.env.GOOGLE_CLIENT_ID,
     });
-    const payload = ticket.getPayload();
+    const payload = ticket.getPayload(); // lay thong tin nguoi dung tu token da xac thuc
     const { email, name, sub, email_verified, picture, locale, given_name, family_name } = payload;
 
     // tim nguoi dung theo email va googleId co ton tai trong db k
@@ -169,7 +154,7 @@ const googleLogin = async (token) => {
     const jwtToken = jwt.sign(
       { id: user._id, email: user.email, roles: user.roles.map(role => role.roleName) },
       process.env.JWT_SECRET,
-      { expiresIn: "1h" }
+      { algorithm: 'HS256', expiresIn: "1h" } 
     );
 
     return { token: jwtToken };
@@ -179,12 +164,4 @@ const googleLogin = async (token) => {
   }
 };
 
-const viewPersonalProfile = async (userId) => {
-  if (!userId) {
-    throw new Error("User not found");
-  }
-  const user = await User.findById(userId);
-  return user;
-}
-
-export { signup, verifyEmail, login, requestPasswordReset, resetPassword, logout, changePassword, googleLogin, viewPersonalProfile };
+export { signup, verifyEmail, login, requestPasswordReset, resetPassword, logout, googleLogin };
