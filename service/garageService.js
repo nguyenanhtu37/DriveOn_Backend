@@ -1,5 +1,6 @@
 import Garage from "../models/garage.js";
-
+import User from '../models/user.js';
+import bcrypt from 'bcrypt';
 const registerGarage = async (user, garageData) => {
   const { name, address, phone, description, workingHours, coinBalance } = garageData;
   const newGarage = new Garage({
@@ -104,5 +105,39 @@ const rejectGarageRegistration = async (garageId) => {
     throw new Error(err.message);
   }
 };
+const addStaff = async (userId, garageId, staffData) => {
+  try {
+    const garage = await Garage.findById(garageId);
+    if (!garage) {
+      throw new Error("Garage not found");
+    }
+    if (!garage.user.includes(userId)) {
+      throw new Error("Unauthorized");
+    }
 
-export { registerGarage, viewGarages, getGarageById, updateGarage, deleteGarage, viewGarageRegistrations, approveGarageRegistration, rejectGarageRegistration };
+    const { name, email, phone, password } = staffData;
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const staffRoleId = "67895c2e2e7333f925e9c0eb"; // Default staff role ID
+
+    const newUser = new User({
+      name,
+      email,
+      phone,
+      password: hashedPassword,
+      roles: [staffRoleId],
+      status: "active",
+      garageList: [garageId],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    await newUser.save();
+    return newUser;
+  } catch (err) {
+    console.error("Error adding staff:", err.message);
+    throw new Error(err.message);
+  }
+};
+
+export { registerGarage, viewGarages, getGarageById, updateGarage, deleteGarage, viewGarageRegistrations, approveGarageRegistration, rejectGarageRegistration, addStaff };

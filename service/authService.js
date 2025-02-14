@@ -74,6 +74,7 @@ const login = async (email, password) => {
   // check status
   if (user.status !== "active") throw new Error("Account is not active");
   // tao jwt token
+
   const token = jwt.sign({ id: user._id, email: user.email, roles: user.roles.map(role => role.roleName) }, process.env.JWT_SECRET, { expiresIn: "1h" });
   return { token };
 };
