@@ -1,7 +1,7 @@
 import express from 'express';
 import { authMiddleware } from '../middleware/authMiddleware.js';
 import { adminMiddleware } from '../middleware/adminMiddleware.js';
-import { registerGarage, viewGarages, updateGarage, deleteGarage, getGarageById, viewGarageRegistrations, approveGarageRegistration, rejectGarageRegistration, addStaff, viewStaff, disableStaff } from '../controller/garageController.js';
+import { registerGarage, viewGarages, updateGarage, deleteGarage, getGarageById, viewGarageRegistrations, approveGarageRegistration, rejectGarageRegistration, addStaff, viewStaff, disableStaff, enableStaff } from '../controller/garageController.js';
 import {checkManagerRole} from '../middleware/managerMiddleware.js';
 
 const router = express.Router();
@@ -17,6 +17,7 @@ router.put("/garages/:id", updateGarage);
 router.post("/garages/:id/add-staff", addStaff);
 router.get("/garages/:id/staff", viewStaff);
 router.put("/garages/:id/disable-staff", disableStaff);
+router.put("/garages/:id/enable-staff", enableStaff);
 // system administator routes
 router.use(adminMiddleware);
 router.get('/garage-registrations', viewGarageRegistrations);

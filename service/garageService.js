@@ -176,4 +176,28 @@ const disableStaff = async (userId, garageId, staffId) => {
     throw new Error(err.message);
   }
 };
-export { registerGarage, viewGarages, getGarageById, updateGarage, deleteGarage, viewGarageRegistrations, approveGarageRegistration, rejectGarageRegistration, addStaff, viewStaff, disableStaff };
+const enableStaff = async (userId, garageId, staffId) => {
+  try {
+    const garage = await Garage.findById(garageId);
+    if (!garage) {
+      throw new Error("Garage not found");
+    }
+    if (!garage.user.includes(userId)) {
+      throw new Error("Unauthorized");
+    }
+
+    const user = await User.findById(staffId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    user.status = "active";
+    user.updatedAt = new Date();
+    await user.save();
+    return user;
+  } catch (err) {
+    console.error("Error enabling staff:", err.message);
+    throw new Error(err.message);
+  }
+};
+export { registerGarage, viewGarages, getGarageById, updateGarage, deleteGarage, viewGarageRegistrations, approveGarageRegistration, rejectGarageRegistration, addStaff, viewStaff, disableStaff, enableStaff };
