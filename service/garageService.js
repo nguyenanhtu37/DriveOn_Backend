@@ -139,5 +139,17 @@ const addStaff = async (userId, garageId, staffData) => {
     throw new Error(err.message);
   }
 };
+const viewStaff = async (userId, garageId) => {
+  const garage = await Garage.findById(garageId);
 
-export { registerGarage, viewGarages, getGarageById, updateGarage, deleteGarage, viewGarageRegistrations, approveGarageRegistration, rejectGarageRegistration, addStaff };
+  if (!garage.user.includes(userId)) {
+    throw new Error("Unauthorized");
+  }
+  if (!garage) {
+    throw new Error("Garage not found");
+  }
+
+  const staffList = await User.find({ garageList: garageId, roles: "67895c2e2e7333f925e9c0eb" });
+  return staffList;
+};
+export { registerGarage, viewGarages, getGarageById, updateGarage, deleteGarage, viewGarageRegistrations, approveGarageRegistration, rejectGarageRegistration, addStaff, viewStaff };
