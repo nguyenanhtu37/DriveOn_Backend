@@ -152,4 +152,28 @@ const viewStaff = async (userId, garageId) => {
   const staffList = await User.find({ garageList: garageId, roles: "67895c2e2e7333f925e9c0eb" });
   return staffList;
 };
-export { registerGarage, viewGarages, getGarageById, updateGarage, deleteGarage, viewGarageRegistrations, approveGarageRegistration, rejectGarageRegistration, addStaff, viewStaff };
+const disableStaff = async (userId, garageId, staffId) => {
+  try {
+    const garage = await Garage.findById(garageId);
+    if (!garage) {
+      throw new Error("Garage not found");
+    }
+    if (!garage.user.includes(userId)) {
+      throw new Error("Unauthorized");
+    }
+
+    const user = await User.findById(staffId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    user.status = "inactive";
+    user.updatedAt = new Date();
+    await user.save();
+    return user;
+  } catch (err) {
+    console.error("Error disabling staff:", err.message);
+    throw new Error(err.message);
+  }
+};
+export { registerGarage, viewGarages, getGarageById, updateGarage, deleteGarage, viewGarageRegistrations, approveGarageRegistration, rejectGarageRegistration, addStaff, viewStaff, disableStaff };
