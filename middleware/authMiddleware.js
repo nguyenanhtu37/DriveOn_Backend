@@ -1,18 +1,28 @@
-import jwt from "jsonwebtoken";
-const { verify } = jwt;
+import jwt from 'jsonwebtoken';
+import User from '../models/user.js';
 
-const authMiddleware = (req, res, next) => {
-  const token = req.header("Authorization").replace("Bearer ", "");
-  if (!token) {
-    return res.status(401).json({ message: "No token, authorization denied!" });
-  }
+const authMiddleware = async (req, res, next) => {
   try {
-    const decoded = verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] }); 
-    req.user = decoded;
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({ message: 'Authorization header is missing' });
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    if (!token) {
+      return res.status(401).json({ message: 'Token is missing' });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id);
+    if (!user) {
+      return res.status(401).json({ message: 'User not found' });
+    }
+
+    req.user = user;
     next();
   } catch (err) {
-    res.status(400).json({ message: "Token is not valid" });
-    console.log("Error: ", err);
+    res.status(401).json({ message: 'Unauthorized', error: err.message });
   }
 };
 

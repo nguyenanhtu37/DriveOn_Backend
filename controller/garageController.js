@@ -127,4 +127,13 @@ const enableStaff = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
-export { registerGarage, viewGarages, updateGarage, deleteGarage, getGarageById, viewGarageRegistrations, approveGarageRegistration, rejectGarageRegistration, addStaff, viewStaff, disableStaff, enableStaff };
+const getStaffById = async (req, res) => {
+  const { id, staffId } = req.params; // garage id and staff id
+  try {
+    const staff = await garageService.getStaffById(id, staffId);
+    res.status(200).json(staff);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+export { registerGarage, viewGarages, updateGarage, deleteGarage, getGarageById, viewGarageRegistrations, approveGarageRegistration, rejectGarageRegistration, addStaff, viewStaff, disableStaff, enableStaff, getStaffById };

@@ -200,4 +200,22 @@ const enableStaff = async (userId, garageId, staffId) => {
     throw new Error(err.message);
   }
 };
-export { registerGarage, viewGarages, getGarageById, updateGarage, deleteGarage, viewGarageRegistrations, approveGarageRegistration, rejectGarageRegistration, addStaff, viewStaff, disableStaff, enableStaff };
+const getStaffById = async (garageId, staffId) => {
+  try {
+    const garage = await Garage.findById(garageId);
+    if (!garage) {
+      throw new Error("Garage not found");
+    }
+
+    const staff = await User.findById(staffId);
+    if (!staff || !staff.garageList.includes(garageId)) {
+      throw new Error("Staff not found");
+    }
+
+    return staff;
+  } catch (err) {
+    console.error("Error getting staff by ID:", err.message);
+    throw new Error(err.message);
+  }
+};
+export { registerGarage, viewGarages, getGarageById, updateGarage, deleteGarage, viewGarageRegistrations, approveGarageRegistration, rejectGarageRegistration, addStaff, viewStaff, disableStaff, enableStaff,getStaffById };
