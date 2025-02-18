@@ -26,7 +26,7 @@ const userSchema = new mongoose.Schema({
   }],
   roles: [{
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Role"
+    ref: "Role",
   }],
   createdAt: {
     type: Date,
@@ -39,6 +39,9 @@ const userSchema = new mongoose.Schema({
   bankAccount: {
     type: String,
     default: 0
+  },
+  bankName: {
+    type: String
   },
   status: {
     type: String,

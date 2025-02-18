@@ -1,25 +1,32 @@
 import Garage from "../models/garage.js";
-
+import User from "../models/user.js";
+import { validateGarageRegistration } from "../validator/garageValidator.js";
 const registerGarage = async (user, garageData) => {
-  const { name, address, phone, description, workingHours, coinBalance } = garageData;
+  // Validate garageData
+  validateGarageRegistration(garageData);
+  const { name, address, phone, email, description, openTime, closeTime, operating_days, facadeImages, interiorImages, documentImages, } = garageData;
   const newGarage = new Garage({
     name,
     address,
     phone,
+    email,
     description,
-    workingHours,
-    coinBalance,
+    openTime,
+    closeTime,
+    operating_days,
+    facadeImages,
+    interiorImages,
+    documentImages,
     user: [user.id],
-    status: "pending",
-    createdAt: new Date(),
-    updatedAt: new Date(),
   });
   await newGarage.save();
+  await User.findByIdAndUpdate(user.id, { $push: { garageList: newGarage._id } });
   return newGarage;
 };
 
 const viewGarages = async (userId) => {
   const garages = await Garage.find({ user: userId });
+  console.log("userId: ", userId);
   return garages;
 };
 
@@ -73,6 +80,14 @@ const viewGarageRegistrations = async () => {
   }
 };
 
+const getGarageRegistrationById = async (garageId) => {
+  const garage = await Garage.findById(garageId);
+  if (!garage) {
+    throw new Error("Garage not found");
+  }
+  return garage;
+};
+
 const approveGarageRegistration = async (garageId) => {
   try {
     const garage = await Garage.findById(garageId);
@@ -105,4 +120,4 @@ const rejectGarageRegistration = async (garageId) => {
   }
 };
 
-export { registerGarage, viewGarages, getGarageById, updateGarage, deleteGarage, viewGarageRegistrations, approveGarageRegistration, rejectGarageRegistration };
+export { registerGarage, viewGarages, getGarageById, updateGarage, deleteGarage, viewGarageRegistrations, approveGarageRegistration, rejectGarageRegistration, getGarageRegistrationById };
