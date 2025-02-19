@@ -218,4 +218,38 @@ const getStaffById = async (garageId, staffId) => {
     throw new Error(err.message);
   }
 };
-export { registerGarage, viewGarages, getGarageById, updateGarage, deleteGarage, viewGarageRegistrations, approveGarageRegistration, rejectGarageRegistration, addStaff, viewStaff, disableStaff, enableStaff,getStaffById };
+
+const enableGarage = async (garageId) => {
+  try {
+    const garage = await Garage.findById(garageId);
+    if (!garage) {
+      throw new Error("Garage not found");
+    }
+
+    garage.isActive = true;
+    garage.updatedAt = new Date();
+    await garage.save();
+    return garage;
+  } catch (err) {
+    console.error("Error enabling garage:", err.message);
+    throw new Error(err.message);
+  }
+};
+
+const disableGarage = async (garageId) => {
+  try {
+    const garage = await Garage.findById(garageId);
+    if (!garage) {
+      throw new Error("Garage not found");
+    }
+
+    garage.isActive = false;
+    garage.updatedAt = new Date();
+    await garage.save();
+    return garage;
+  } catch (err) {
+    console.error("Error disabling garage:", err.message);
+    throw new Error(err.message);
+  }
+};
+export { registerGarage, viewGarages, getGarageById, updateGarage, deleteGarage, viewGarageRegistrations, approveGarageRegistration, rejectGarageRegistration, addStaff, viewStaff, disableStaff, enableStaff,getStaffById,disableGarage,enableGarage };
