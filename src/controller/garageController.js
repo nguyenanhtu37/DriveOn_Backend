@@ -1,3 +1,4 @@
+import User from '../models/user.js';
 import * as garageService from '../service/garageService.js';
 
 const registerGarage = async (req, res) => {
@@ -52,4 +53,43 @@ const deleteGarage = async (req, res) => {
   }
 };
 
-export { registerGarage, viewGarages, updateGarage, deleteGarage, getGarageById };
+const viewGarageRegistrations = async (req, res) => {
+  try {
+    const garages = await garageService.viewGarageRegistrations();
+    res.status(200).json(garages);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+const getGarageRegistrationById = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const garage = await garageService.getGarageRegistrationById(id);
+    res.status(200).json(garage);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+const approveGarageRegistration = async (req, res) => {
+  try {
+    const garageId = req.params.id;
+    const result = await garageService.approveGarageRegistration(garageId);
+    res.status(200).json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+const rejectGarageRegistration = async (req, res) => {
+  try {
+    const garageId = req.params.id;
+    const result = await garageService.rejectGarageRegistration(garageId);
+    res.status(200).json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export { registerGarage, viewGarages, updateGarage, deleteGarage, getGarageById, viewGarageRegistrations, approveGarageRegistration, rejectGarageRegistration, getGarageRegistrationById };

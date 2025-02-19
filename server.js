@@ -1,12 +1,12 @@
 import express from "express";
-import connectDB from "./config/db.js";
+import connectDB from "./src/config/db.js";
 import dotenv from "dotenv";
-import authRoutes from "./routes/authRoutes.js";
-import roleRoutes from "./routes/roleRoutes.js";
-import adminRoutes from "./routes/adminRoutes.js";
-import managerRoutes from "./routes/managerRoutes.js";
-import vehicleRoutes from "./routes/vehicleRoutes.js";
-
+import authRoutes from "./src/routes/authRoutes.js";
+import userRoutes from "./src/routes/userRoutes.js";
+import garageRoutes from "./src/routes/garageRoutes.js";
+import roleRoutes from "./src/routes/roleRoutes.js";
+import vehicleRoutes from "./src/routes/vehicleRoutes.js";
+import brandRoutes from "./src/routes/brandRoutes.js";
 import cors from "cors";
 import bodyParser from "body-parser";
 dotenv.config();
@@ -30,10 +30,11 @@ connectDB();
 
 // routes
 app.use("/api/auth", authRoutes);
-app.use("/api/roles", roleRoutes);
-app.use("/api/admin", adminRoutes);
-app.use("/api/manager", managerRoutes);
-app.use("/api/vehicles", vehicleRoutes);
+app.use("/api/role", roleRoutes);
+app.use("/api/garage", garageRoutes);
+app.use("/api/user", userRoutes);
+app.use("/api/vehicle", vehicleRoutes);
+app.use("/api/brand", brandRoutes);
 
 app.get("/", (req, res) => {
   res.send("Hello, DriveOn Backend!");

@@ -54,13 +54,14 @@ const logout = async (req, res) => {
   }
 };
 
-const changePassword = async (req, res) => {
+const googleLogin = async (req, res) => {
   try {
-    const result = await authService.changePassword(req.user.id, req.body.oldPassword, req.body.newPassword);
+    console.log(req.body);
+    const result = await authService.googleLogin(req.body.token);
     res.status(200).json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-export { signup, verifyEmail, login, requestPasswordReset, resetPassword, logout, changePassword };
+export { signup, verifyEmail, login, requestPasswordReset, resetPassword, logout, googleLogin };

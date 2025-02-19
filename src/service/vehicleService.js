@@ -1,4 +1,5 @@
 import Vehicle from "../models/vehicle.js";
+import User from "../models/user.js";
 
 const addVehicle = async (user, vehicleData) => {
   const { carBrand, carName, carYear, carColor, carPlate } = vehicleData;
@@ -13,6 +14,9 @@ const addVehicle = async (user, vehicleData) => {
     updatedAt: new Date(),
   });
   await newVehicle.save();
+  // Lưu vô Vehicle chưa đồng nghĩa là bên User cũng có nha. 
+  // Phải có dòng ni thì hắn mới update thuộc tính vehicles bên đó chứ @KhangNV?
+  await User.findByIdAndUpdate(user.id, { $push: { vehicles: newVehicle._id } });
   return newVehicle;
 };
 
@@ -57,8 +61,10 @@ const deleteVehicle = async (userId, vehicleId) => {
       throw new Error("Unauthorized");
     }
     await Vehicle.findByIdAndDelete(vehicleId);
+    // Xóa vehicleId trong mảng vehicles của User luôn nhé @KhangNV ơi :))
+    // Ko có hàng ni thì chỉ xóa trong Vehicle thôi, User ko bị ảnh hưởng
+    await User.findByIdAndUpdate(userId, { $pull: { vehicles: vehicleId } });
     return { message: "Vehicle deleted successfully" };
   };
   
-
 export { addVehicle, viewVehicles, getVehicleById, updateVehicle, deleteVehicle };
