@@ -28,7 +28,7 @@ router.get('/garage-registrations/:id', getGarageRegistrationById);
 router.post('/garage-registrations/:id/approve', approveGarageRegistration);
 router.post('/garage-registrations/:id/reject', rejectGarageRegistration);
 router.delete('/garage/:id', deleteGarage);
-=======
+
 router.post("/register-garage", authMiddleware, registerGarage); // register new garage
 router.get("/garages/:id", getGarageById); // view garage details  
 router.get('/garage-registrations', adminMiddleware, viewGarageRegistrations); // view garage registration list
