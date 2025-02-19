@@ -91,5 +91,87 @@ const rejectGarageRegistration = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+const addStaff = async (req, res) => {
+  const { id } = req.params; // garage id
+  try {
+    const newStaff = await garageService.addStaff(req.user.id, id, req.body);
+    res.status(201).json({
+      message: "Staff added successfully",
+      staff: newStaff,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+const viewStaff = async (req, res) => {
+  const { id } = req.params; // garage id
+  try {
+    const staffList = await garageService.viewStaff(req.user.id, id);
+    res.status(200).json(staffList);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+const disableStaff = async (req, res) => {
+  const { id } = req.params; // garage id
+  const { staffId } = req.body;
+  try {
+    const updatedStaff = await garageService.disableStaff(req.user.id, id, staffId);
+    res.status(200).json({
+      message: "Staff disabled successfully",
+      staff: updatedStaff,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+const enableStaff = async (req, res) => {
+  const { id } = req.params; // garage id
+  const { staffId } = req.body;
+  try {
+    const updatedStaff = await garageService.enableStaff(req.user.id, id, staffId);
+    res.status(200).json({
+      message: "Staff enabled successfully",
+      staff: updatedStaff,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+const getStaffById = async (req, res) => {
+  const { id, staffId } = req.params; // garage id and staff id
+  try {
+    const staff = await garageService.getStaffById(id, staffId);
+    res.status(200).json(staff);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
 
-export { registerGarage, viewGarages, updateGarage, deleteGarage, getGarageById, viewGarageRegistrations, approveGarageRegistration, rejectGarageRegistration, getGarageRegistrationById };
+const enableGarage = async (req, res) => {
+  const { id } = req.params; // garage id
+  try {
+    const garage = await garageService.enableGarage(id);
+    res.status(200).json({
+      message: "Garage enabled successfully",
+      garage: garage,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+const disableGarage = async (req, res) => {
+  const { id } = req.params; // garage id
+  try {
+    const garage = await garageService.disableGarage(id);
+    res.status(200).json({
+      message: "Garage disabled successfully",
+      garage: garage,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export { registerGarage, viewGarages, updateGarage, deleteGarage, getGarageById, viewGarageRegistrations, approveGarageRegistration, rejectGarageRegistration, getGarageRegistrationById, addStaff, viewStaff, disableStaff, enableStaff, getStaffById, enableGarage, disableGarage };
