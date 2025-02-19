@@ -19,4 +19,12 @@ const viewPersonalProfile = async (req, res) => {
     };
 };
 
-export { changePassword, viewPersonalProfile };
+const updatePersonalProfile = async (req, res) => {
+    try {
+        const result = await userService.updatePersonalProfile(req.user.id, req.body);
+        res.status(200).json(result);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    };
+};
+export { changePassword, viewPersonalProfile, updatePersonalProfile };

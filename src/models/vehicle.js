@@ -2,7 +2,8 @@ import mongoose from "mongoose";
 
 const vehicleSchema = new mongoose.Schema({
   carBrand: {
-    type: String, // sửa lại sau nếu làm qua admin, carbrand sau này sẽ là 1 object id
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Brand",
     required: true,
   },
   carName: {
