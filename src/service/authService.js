@@ -71,7 +71,7 @@ const login = async (email, password) => {
   // validate input
   validateLogin(email, password);
   // find user by id
-  const user = await User.findOne({ email }).populate('roles');
+  const user = await User.findOne({ email });
   if (!user) throw new Error("Invalid email or password");
   // check status
   if (user.status !== "active") throw new Error("Account is not active");
