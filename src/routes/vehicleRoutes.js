@@ -4,6 +4,14 @@ import { addVehicle, viewVehicles, getVehicleById, updateVehicle, deleteVehicle 
 
 const router = express.Router();
 
+router.use(authMiddleware);
+// router.use(carOwnerMiddleware);
+
+router.post('/add',addVehicle);
+router.get('/', viewVehicles);
+router.get('/:id', getVehicleById); // Tất cả các role đều có thể xem chi tiết một vehicle
+router.put('/:id', updateVehicle); 
+router.delete('/:id', deleteVehicle);
 // router.post('/add', authMiddleware, addVehicle); // add new vehicle
 // router.get('/', authMiddleware, viewVehicles); // view all car owner vehicles
 // router.get('/:id', authMiddleware, getVehicleById); // view vehicle details
