@@ -5,20 +5,15 @@ import { registerGarage, viewGarages, updateGarage, deleteGarage, getGarageById,
 
 const router = express.Router();
 
-router.use(authMiddleware);
-
-// garage manager - protected routes
-router.post("/register-garage", authMiddleware, registerGarage);
-router.get("/garages", viewGarages);
-router.get("/garages/:id", getGarageById);
-router.put("/garages/:id", updateGarage);
-
-// system administrator - protected routes
-router.use(adminMiddleware);
-router.get('/garage-registrations', viewGarageRegistrations);
-router.get('/garage-registrations/:id', getGarageRegistrationById);
-router.post('/garage-registrations/:id/approve', approveGarageRegistration);
-router.post('/garage-registrations/:id/reject', rejectGarageRegistration);
-router.delete('/garage/:id', deleteGarage);
+router.post("/register-garage", authMiddleware, registerGarage); // register new garage
+router.get("/garages/:id", getGarageById); // view garage details  
+router.get('/garage-registrations', adminMiddleware, viewGarageRegistrations); // view garage registration list
+router.get('/garage-registrations/:id', adminMiddleware, getGarageRegistrationById); // view garage registration details
+router.post('/garage-registrations/:id/approve', adminMiddleware, approveGarageRegistration); // approve garage registration
+router.post('/garage-registrations/:id/reject', adminMiddleware, rejectGarageRegistration); // reject garage registration
+// router.get("/garages", viewGarages); 
+// router.put("/garages/:id", updateGarage);
+// router.use(adminMiddleware);
+// router.delete('/garage/:id', deleteGarage);
 
 export default router;
