@@ -3,6 +3,8 @@ import User from "../models/user.js";
 import bcrypt from "bcrypt";
 import { validateGarageRegistration } from "../validator/garageValidator.js";
 import { validateSignup } from "../validator/authValidator.js";
+import Role from "../models/role.js";
+
 const registerGarage = async (user, garageData) => {
   // Validate garageData
   validateGarageRegistration(garageData);
@@ -137,16 +139,17 @@ const addStaff = async (userId, garageId, staffData) => {
     const { name, email, phone, password } = staffData;
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const staffRoleId = "67895c2e2e7333f925e9c0eb"; // Default staff role ID
+    const defaultRole = await Role.findOne({ roleName: "staff" });
+    console.log("defaultRole: ", defaultRole._id);
 
     const newUser = new User({
       name,
       email,
       phone,
       password: hashedPassword,
-      roles: [staffRoleId],
+      roles: [defaultRole._id],
       status: "active",
-      garageList: [garageId],
+      garageList: garageId,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -158,6 +161,7 @@ const addStaff = async (userId, garageId, staffData) => {
     throw new Error(err.message);
   }
 };
+
 const viewStaff = async (userId, garageId) => {
   const garage = await Garage.findById(garageId);
 
