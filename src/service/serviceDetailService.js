@@ -22,4 +22,9 @@ const addServiceDetail = async (serviceDetailData) => {
   return newServiceDetail;
 };
 
-export { addServiceDetail };
+const getServiceDetailsByGarage = async (garageId) => {
+    const serviceDetails = await ServiceDetail.find({ garage: garageId }).populate("service").populate("garage");
+    return serviceDetails;
+  };
+  
+  export { addServiceDetail, getServiceDetailsByGarage };

@@ -12,4 +12,14 @@ const addServiceDetail = async (req, res) => {
   }
 };
 
-export { addServiceDetail };
+const getServiceDetailsByGarage = async (req, res) => {
+    const { garageId } = req.params;
+    try {
+      const serviceDetails = await serviceDetailService.getServiceDetailsByGarage(garageId);
+      res.status(200).json(serviceDetails);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  };
+  
+  export { addServiceDetail, getServiceDetailsByGarage };
