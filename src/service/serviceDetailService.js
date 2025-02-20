@@ -44,6 +44,15 @@ const updateServiceDetail = async (serviceDetailId, updateData) => {
     serviceDetail.updatedAt = new Date();
     await serviceDetail.save();
     return serviceDetail;
-  };
+};
 
-export { addServiceDetail, getServiceDetailsByGarage, updateServiceDetail };
+const deleteServiceDetail = async (serviceDetailId) => {
+    const serviceDetail = await ServiceDetail.findById(serviceDetailId);
+    if (!serviceDetail) {
+      throw new Error("Service detail not found");
+    }
+    await serviceDetail.deleteOne();
+    return { message: "Service detail deleted successfully" };
+};
+
+export { addServiceDetail, getServiceDetailsByGarage, updateServiceDetail, deleteServiceDetail };

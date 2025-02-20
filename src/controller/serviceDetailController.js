@@ -35,4 +35,14 @@ const updateServiceDetail = async (req, res) => {
     }
 };
 
-export { addServiceDetail, getServiceDetailsByGarage, updateServiceDetail };
+const deleteServiceDetail = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await serviceDetailService.deleteServiceDetail(id);
+    res.status(200).json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export { addServiceDetail, getServiceDetailsByGarage, updateServiceDetail, deleteServiceDetail };
