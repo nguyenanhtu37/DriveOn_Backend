@@ -1,6 +1,10 @@
 import Service from "../models/service.js";
+import { validateAddService, validateUpdateService } from "../validator/serviceValidator.js";
 
 const addService = async (serviceData) => {
+    // hàm validate chức năng add service
+    validateAddService(serviceData);
+
   const { name, description, image } = serviceData;
   const newService = new Service({
     name,
@@ -19,6 +23,9 @@ const getAllServices = async () => {
 };
 
 const updateService = async (serviceId, updateData) => {
+  // Validate update service
+  validateUpdateService(updateData);
+
   const service = await Service.findById(serviceId);
   if (!service) {
     throw new Error("Service not found");
