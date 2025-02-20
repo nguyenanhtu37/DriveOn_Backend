@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const serviceDetailSchema = new mongoose.Schema({
   service: {
@@ -38,4 +38,4 @@ const serviceDetailSchema = new mongoose.Schema({
 });
 
 const ServiceDetail = mongoose.model("ServiceDetail", serviceDetailSchema);
-module.exports = ServiceDetail;
+export default ServiceDetail;

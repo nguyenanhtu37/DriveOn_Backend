@@ -8,6 +8,7 @@ import roleRoutes from "./src/routes/roleRoutes.js";
 import vehicleRoutes from "./src/routes/vehicleRoutes.js";
 import brandRoutes from "./src/routes/brandRoutes.js";
 import serviceRoutes from "./src/routes/serviceRoutes.js";
+import serviceDetailRoutes from "./src/routes/serviceDetailRoutes.js";
 import cors from "cors";
 import bodyParser from "body-parser";
 dotenv.config();
@@ -36,7 +37,8 @@ app.use("/api/garage", garageRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/vehicle", vehicleRoutes);
 app.use("/api/brand", brandRoutes);
-app.use("/api/service", serviceRoutes); 
+app.use("/api/service", serviceRoutes);
+app.use("/api/service-detail", serviceDetailRoutes); 
 
 app.get("/", (req, res) => {
   res.send("Hello, DriveOn Backend!");
