@@ -18,5 +18,18 @@ const getAllServices = async () => {
   return services;
 };
 
-export { addService , getAllServices };
+const updateService = async (serviceId, updateData) => {
+  const service = await Service.findById(serviceId);
+  if (!service) {
+    throw new Error("Service not found");
+  }
+  service.name = updateData.name || service.name;
+  service.description = updateData.description || service.description;
+  service.image = updateData.image || service.image;
+  service.updatedAt = new Date();
+  await service.save();
+  return service;
+};
+
+export { addService, getAllServices, updateService };
 
