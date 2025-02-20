@@ -1,5 +1,5 @@
 import ServiceDetail from "../models/serviceDetail.js";
-import { validateAddServiceDetail } from "../validator/serviceDetailValidator.js";
+import { validateAddServiceDetail, validateUpdateServiceDetail } from "../validator/serviceDetailValidator.js";
 
 const addServiceDetail = async (serviceDetailData) => {
   // Validate service detail data
@@ -25,6 +25,25 @@ const addServiceDetail = async (serviceDetailData) => {
 const getServiceDetailsByGarage = async (garageId) => {
     const serviceDetails = await ServiceDetail.find({ garage: garageId }).populate("service").populate("garage");
     return serviceDetails;
-  };
+};
+
+const updateServiceDetail = async (serviceDetailId, updateData) => {
+    // Validate update service detail
+    validateUpdateServiceDetail(updateData);
   
-  export { addServiceDetail, getServiceDetailsByGarage };
+    const serviceDetail = await ServiceDetail.findById(serviceDetailId);
+    if (!serviceDetail) {
+      throw new Error("Service detail not found");
+    }
+    serviceDetail.name = updateData.name || serviceDetail.name;
+    serviceDetail.description = updateData.description || serviceDetail.description;
+    serviceDetail.images = updateData.images || serviceDetail.images;
+    serviceDetail.price = updateData.price || serviceDetail.price;
+    serviceDetail.duration = updateData.duration || serviceDetail.duration;
+    serviceDetail.warranty = updateData.warranty || serviceDetail.warranty;
+    serviceDetail.updatedAt = new Date();
+    await serviceDetail.save();
+    return serviceDetail;
+  };
+
+export { addServiceDetail, getServiceDetailsByGarage, updateServiceDetail };
