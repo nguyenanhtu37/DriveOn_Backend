@@ -12,4 +12,13 @@ const addService = async (req, res) => {
   }
 };
 
-export { addService };
+const getAllServices = async (req, res) => {
+  try {
+    const services = await serviceService.getAllServices();
+    res.status(200).json(services);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export { addService, getAllServices };

@@ -13,4 +13,10 @@ const addService = async (serviceData) => {
   return newService;
 };
 
-export { addService };
+const getAllServices = async () => {
+  const services = await Service.find();
+  return services;
+};
+
+export { addService , getAllServices };
+
