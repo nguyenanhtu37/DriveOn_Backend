@@ -31,5 +31,14 @@ const updateService = async (serviceId, updateData) => {
   return service;
 };
 
-export { addService, getAllServices, updateService };
+const deleteService = async (serviceId) => {
+  const service = await Service.findById(serviceId);
+  if (!service) {
+    throw new Error("Service not found");
+  }
+  await service.deleteOne();
+  return { message: "Service deleted successfully" };
+};
+
+export { addService, getAllServices, updateService, deleteService };
 
