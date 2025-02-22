@@ -1,6 +1,10 @@
 import Garage from "../models/garage.js";
 import User from "../models/user.js";
+import bcrypt from "bcrypt";
 import { validateGarageRegistration, validateUpdateGarage } from "../validator/garageValidator.js";
+import { validateSignup } from "../validator/authValidator.js";
+import Role from "../models/role.js";
+
 const registerGarage = async (user, garageData) => {
   // Validate garageData
   validateGarageRegistration(garageData);
@@ -161,5 +165,157 @@ const rejectGarageRegistration = async (garageId) => {
     throw new Error(err.message);
   }
 };
+const addStaff = async (userId, garageId, staffData) => {
+  try {
+    // Validate staff data
+    validateSignup(staffData);
 
-export { registerGarage, viewGarages, getGarageById, updateGarage, deleteGarage, viewGarageRegistrations, approveGarageRegistration, rejectGarageRegistration, getGarageRegistrationById };
+    const garage = await Garage.findById(garageId);
+    if (!garage) {
+      throw new Error("Garage not found");
+    }
+    if (!garage.user.includes(userId)) {
+      throw new Error("Unauthorized");
+    }
+
+    const { name, email, phone, password } = staffData;
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const defaultRole = await Role.findOne({ roleName: "staff" });
+    console.log("defaultRole: ", defaultRole._id);
+
+    const newUser = new User({
+      name,
+      email,
+      phone,
+      password: hashedPassword,
+      roles: [defaultRole._id],
+      status: "active",
+      garageList: garageId,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    await newUser.save();
+    return newUser;
+  } catch (err) {
+    console.error("Error adding staff:", err.message);
+    throw new Error(err.message);
+  }
+};
+
+const viewStaff = async (userId, garageId) => {
+  const garage = await Garage.findById(garageId);
+
+  if (!garage.user.includes(userId)) {
+    throw new Error("Unauthorized");
+  }
+  if (!garage) {
+    throw new Error("Garage not found");
+  }
+
+  const staffList = await User.find({ garageList: garageId, roles: "67895c2e2e7333f925e9c0eb" });
+  return staffList;
+};
+const disableStaff = async (userId, garageId, staffId) => {
+  try {
+    const garage = await Garage.findById(garageId);
+    if (!garage) {
+      throw new Error("Garage not found");
+    }
+    if (!garage.user.includes(userId)) {
+      throw new Error("Unauthorized");
+    }
+
+    const user = await User.findById(staffId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    user.status = "inactive";
+    user.updatedAt = new Date();
+    await user.save();
+    return user;
+  } catch (err) {
+    console.error("Error disabling staff:", err.message);
+    throw new Error(err.message);
+  }
+};
+const enableStaff = async (userId, garageId, staffId) => {
+  try {
+    const garage = await Garage.findById(garageId);
+    if (!garage) {
+      throw new Error("Garage not found");
+    }
+    if (!garage.user.includes(userId)) {
+      throw new Error("Unauthorized");
+    }
+
+    const user = await User.findById(staffId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    user.status = "active";
+    user.updatedAt = new Date();
+    await user.save();
+    return user;
+  } catch (err) {
+    console.error("Error enabling staff:", err.message);
+    throw new Error(err.message);
+  }
+};
+const getStaffById = async (garageId, staffId) => {
+  try {
+    const garage = await Garage.findById(garageId);
+    if (!garage) {
+      throw new Error("Garage not found");
+    }
+
+    const staff = await User.findById(staffId);
+    if (!staff || !staff.garageList.includes(garageId)) {
+      throw new Error("Staff not found");
+    }
+
+    return staff;
+  } catch (err) {
+    console.error("Error getting staff by ID:", err.message);
+    throw new Error(err.message);
+  }
+};
+
+const enableGarage = async (garageId) => {
+  try {
+    const garage = await Garage.findById(garageId);
+    if (!garage) {
+      throw new Error("Garage not found");
+    }
+
+    garage.isActive = true;
+    garage.updatedAt = new Date();
+    await garage.save();
+    return garage;
+  } catch (err) {
+    console.error("Error enabling garage:", err.message);
+    throw new Error(err.message);
+  }
+};
+
+const disableGarage = async (garageId) => {
+  try {
+    const garage = await Garage.findById(garageId);
+    if (!garage) {
+      throw new Error("Garage not found");
+    }
+
+    garage.isActive = false;
+    garage.updatedAt = new Date();
+    await garage.save();
+    return garage;
+  } catch (err) {
+    console.error("Error disabling garage:", err.message);
+    throw new Error(err.message);
+  }
+};
+
+export { registerGarage, viewGarages, getGarageById, updateGarage, deleteGarage, viewGarageRegistrations, approveGarageRegistration, rejectGarageRegistration, getGarageRegistrationById, addStaff, viewStaff, disableStaff, enableStaff, getStaffById, enableGarage, disableGarage };
