@@ -1,7 +1,7 @@
 import Garage from "../models/garage.js";
 import User from "../models/user.js";
 import bcrypt from "bcrypt";
-import { validateGarageRegistration } from "../validator/garageValidator.js";
+import { validateGarageRegistration, validateUpdateGarage } from "../validator/garageValidator.js";
 import { validateSignup } from "../validator/authValidator.js";
 import Role from "../models/role.js";
 
@@ -42,8 +42,44 @@ const getGarageById = async (userId, garageId) => {
   return garage;
 };
 
+// const updateGarage = async (userId, garageId, updateData) => {
+//   const { name, address, phone, description, workingHours, coinBalance, status } = updateData;
+//   const garage = await Garage.findById(garageId);
+//   if (!garage) {
+//     throw new Error("Garage not found");
+//   }
+//   if (garage.user.toString() !== userId) {
+//     throw new Error("Unauthorized");
+//   }
+//   garage.name = name || garage.name;
+//   garage.address = address || garage.address;
+//   garage.phone = phone || garage.phone;
+//   garage.description = description || garage.description;
+//   garage.workingHours = workingHours || garage.workingHours;
+//   garage.coinBalance = coinBalance || garage.coinBalance;
+//   garage.status = status || garage.status;
+//   garage.updatedAt = new Date();
+//   await garage.save();
+//   return garage;
+// };
+
 const updateGarage = async (userId, garageId, updateData) => {
-  const { name, address, phone, description, workingHours, coinBalance, status } = updateData;
+  // Validate updateData
+  validateUpdateGarage(updateData);
+  const {
+    name,
+    address,
+    phone,
+    email,
+    description,
+    openTime,
+    closeTime,
+    operating_days,
+    facadeImages,
+    interiorImages,
+    documentImages,
+  } = updateData;
+
   const garage = await Garage.findById(garageId);
   if (!garage) {
     throw new Error("Garage not found");
@@ -51,14 +87,20 @@ const updateGarage = async (userId, garageId, updateData) => {
   if (garage.user.toString() !== userId) {
     throw new Error("Unauthorized");
   }
+
   garage.name = name || garage.name;
   garage.address = address || garage.address;
   garage.phone = phone || garage.phone;
+  garage.email = email || garage.email;
   garage.description = description || garage.description;
-  garage.workingHours = workingHours || garage.workingHours;
-  garage.coinBalance = coinBalance || garage.coinBalance;
-  garage.status = status || garage.status;
+  garage.openTime = openTime || garage.openTime;
+  garage.closeTime = closeTime || garage.closeTime;
+  garage.operating_days = operating_days || garage.operating_days;
+  garage.facadeImages = facadeImages || garage.facadeImages;
+  garage.interiorImages = interiorImages || garage.interiorImages;
+  garage.documentImages = documentImages || garage.documentImages;
   garage.updatedAt = new Date();
+
   await garage.save();
   return garage;
 };

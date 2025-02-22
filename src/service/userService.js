@@ -1,8 +1,10 @@
 import bcrypt from 'bcrypt';
 import User from '../models/user.js';
-import { validateUserData, validateUpdateProfile } from '../validator/userValidator.js';
+import { validateUserData, validateUpdateProfile, validateChangePassword } from '../validator/userValidator.js';
 
 const changePassword = async (userId, oldPassword, newPassword) => {
+  // Validate dữ liệu
+  validateChangePassword(oldPassword, newPassword);
   // tìm người dùng theo ID
   const user = await User.findById(userId);
   if (!user) throw new Error("User not found");
