@@ -11,9 +11,8 @@ router.get('/garage-registrations', adminMiddleware, viewGarageRegistrations); /
 router.get('/garage-registrations/:id', adminMiddleware, getGarageRegistrationById); // view garage registration details
 router.post('/garage-registrations/:id/approve', adminMiddleware, approveGarageRegistration); // approve garage registration
 router.post('/garage-registrations/:id/reject', adminMiddleware, rejectGarageRegistration); // reject garage registration
-// router.get("/garages", viewGarages); 
+router.get("/garages", authMiddleware, viewGarages); // view all garages that are managed by the garage manager
 // router.put("/garages/:id", updateGarage);
-// router.use(adminMiddleware);
 // router.delete('/garage/:id', deleteGarage);
 
 export default router;
