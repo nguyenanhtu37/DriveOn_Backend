@@ -1,4 +1,3 @@
-import User from '../models/user.js';
 import * as garageService from '../service/garageService.js';
 
 const registerGarage = async (req, res) => {
@@ -91,6 +90,7 @@ const rejectGarageRegistration = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 const addStaff = async (req, res) => {
   const { id } = req.params; // garage id
   try {
@@ -103,6 +103,7 @@ const addStaff = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 const viewStaff = async (req, res) => {
   const { id } = req.params; // garage id
   try {
@@ -112,6 +113,7 @@ const viewStaff = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 const disableStaff = async (req, res) => {
   const { id } = req.params; // garage id
   const { staffId } = req.body;
@@ -125,6 +127,7 @@ const disableStaff = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 const enableStaff = async (req, res) => {
   const { id } = req.params; // garage id
   const { staffId } = req.body;
@@ -138,6 +141,7 @@ const enableStaff = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 const getStaffById = async (req, res) => {
   const { id, staffId } = req.params; // garage id and staff id
   try {
@@ -147,6 +151,7 @@ const getStaffById = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 const viewGarageExisting = async (req, res) => {
   try {
     const garages = await garageService.viewGarageExisting();
@@ -155,6 +160,7 @@ const viewGarageExisting = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 const enableGarage = async (req, res) => {
   const { id } = req.params; // garage id
   try {
@@ -181,4 +187,4 @@ const disableGarage = async (req, res) => {
   }
 };
 
-export { registerGarage, viewGarages, updateGarage, deleteGarage, getGarageById, viewGarageRegistrations, approveGarageRegistration, rejectGarageRegistration, getGarageRegistrationById, addStaff, viewStaff, disableStaff, enableStaff, getStaffById, enableGarage, disableGarage,viewGarageExisting };
+export { registerGarage, viewGarages, updateGarage, deleteGarage, getGarageById, viewGarageRegistrations, approveGarageRegistration, rejectGarageRegistration, getGarageRegistrationById, addStaff, viewStaff, disableStaff, enableStaff, getStaffById, enableGarage, disableGarage, viewGarageExisting };

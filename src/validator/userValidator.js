@@ -53,3 +53,24 @@ export const validateUpdateProfile = (userData) => {
   return true;
 };
 
+export const validateChangePassword = (oldPassword, newPassword) => {
+  const errors = [];
+  // Validate mat khau cu
+  if (!oldPassword) {
+    errors.push("Mật khẩu cũ không được để trống");
+  } else if (typeof oldPassword !== 'string') {
+    errors.push("Mật khẩu cũ phải là chuỗi ký tự");
+  }
+  // Validate mat khau moi
+  if (!newPassword) {
+    errors.push("Mật khẩu mới không được để trống");
+  } else if (typeof newPassword !== 'string') {
+    errors.push("Mật khẩu mới phải là chuỗi ký tự");
+  } else if (newPassword.length < 6 || newPassword.length > 50) {
+    errors.push("Mật khẩu mới phải từ 6-50 ký tự");
+  }
+  if (errors.length > 0) {
+    throw new Error(errors.join(", "));
+  }
+  return true;
+};

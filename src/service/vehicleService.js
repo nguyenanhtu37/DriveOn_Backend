@@ -1,7 +1,10 @@
 import Vehicle from "../models/vehicle.js";
 import User from "../models/user.js";
+import { validateAddVehicle, validateUpdateVehicle } from "../validator/vehicleValidator.js";
 
 const addVehicle = async (user, vehicleData) => {
+  // hàm validate dữ liệu
+  validateAddVehicle(vehicleData);
   const { carBrand, carName, carYear, carColor, carPlate } = vehicleData;
   const newVehicle = new Vehicle({
     carBrand,
@@ -34,6 +37,8 @@ const getVehicleById = async (vehicleId) => {
 };
 
   const updateVehicle = async (userId, vehicleId, updateData) => {
+    // validate update data
+    validateUpdateVehicle(updateData);
     const { carBrand, carName, carYear, carColor, carPlate } = updateData;
     const vehicle = await Vehicle.findById(vehicleId);
     if (!vehicle) {
