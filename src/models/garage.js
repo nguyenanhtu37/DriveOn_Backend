@@ -67,12 +67,8 @@ const garageSchema = new mongoose.Schema({
   ],
   status: {
     type: String,
-    enum: ["pending", "approved", "rejected"],
+    enum: ["pending", "approved", "rejected"], // dùng chung cho cả enable/disable garage và approve/reject garage
     default: "pending",
-  },
-  isActive: {
-    type: Boolean, // 1=active, 0 = unactive
-    default: true
   },
   location: { //lưu điểm tọa độ
     type: {

@@ -103,6 +103,7 @@ const addStaff = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 const viewStaff = async (req, res) => {
   const { id } = req.params; // garage id
   try {
@@ -138,6 +139,7 @@ const enableStaff = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 const getStaffById = async (req, res) => {
   const { id, staffId } = req.params; // garage id and staff id
   try {

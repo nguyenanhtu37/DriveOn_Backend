@@ -71,7 +71,7 @@ const login = async (email, password) => {
   // validate input
   validateLogin(email, password);
   // find user by id
-  const user = await User.findOne({ email });
+  const user = await User.findOne({ email }).populate('roles').populate('garageList');
   if (!user) throw new Error("Invalid email or password");
   // check status
   if (user.status !== "active") throw new Error("Account is not active");
@@ -173,7 +173,7 @@ const googleLogin = async (token) => {
     console.log("Google login payload:", payload);
     const { email, name, sub, email_verified, picture, locale, given_name, family_name } = payload;
     // tim user theo email va googleId
-    let user = await User.findOne({ email, googleId: sub }).populate('roles');
+    let user = await User.findOne({ email, googleId: sub }).populate('roles').populate('garageList');
     // neu k ton tai thi tao moi
     if (!user) {
       console.log("User not found, creating new user...");
@@ -202,7 +202,7 @@ const googleLogin = async (token) => {
     }
     // tao jwt token
     const jwtToken = jwt.sign(
-      { id: user._id, email: user.email, roles: user.roles.map(role => role.roleName) },
+      { id: user._id, email: user.email, roles: user.roles.map(role => role.roleName), },
       process.env.JWT_SECRET,
       { algorithm: 'HS256', expiresIn: "1h" }
     );
