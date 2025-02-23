@@ -33,7 +33,6 @@ const updatePersonalProfile = async (userId, userData) => {
   try {
     // Validate userData
     validateUpdateProfile(userData);
-
     const user = await User.findById(userId);
     if (!user) throw new Error("User not found");
     // Update thông tin người dùng

@@ -1,7 +1,7 @@
 import express from 'express';
 import { authMiddleware } from '../middleware/authMiddleware.js';
 import { adminMiddleware } from '../middleware/adminMiddleware.js';
-import { registerGarage, viewGarages, updateGarage, deleteGarage, getGarageById, viewGarageRegistrations, approveGarageRegistration, rejectGarageRegistration, getGarageRegistrationById,addStaff, viewStaff, disableStaff, enableStaff, getStaffById, enableGarage, disableGarage } from '../controller/garageController.js';
+import { registerGarage, viewGarages, updateGarage, deleteGarage, getGarageById, viewGarageRegistrations, approveGarageRegistration, rejectGarageRegistration, getGarageRegistrationById, addStaff, viewStaff, disableStaff, enableStaff, getStaffById, enableGarage, disableGarage, viewGarageExisting } from '../controller/garageController.js';
 
 const router = express.Router();
 
@@ -22,7 +22,8 @@ router.get("/garages", authMiddleware, viewGarages); // view all garages that ar
 // router.put("/garages/:id", updateGarage);
 // router.delete('/garage/:id', deleteGarage);
 
-router.put('/:id/enable', adminMiddleware, enableGarage);
-router.put('/:id/disable', adminMiddleware, disableGarage);
+router.get('/existing', viewGarageExisting);
+router.put('/:id/enable', enableGarage);
+router.put('/:id/disable', disableGarage);
 
 export default router;

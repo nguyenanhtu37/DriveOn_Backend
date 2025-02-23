@@ -53,7 +53,6 @@ export const validateUpdateProfile = (userData) => {
   return true;
 };
 
-
 export const validateChangePassword = (oldPassword, newPassword) => {
   const errors = [];
   // Validate mat khau cu

@@ -1,4 +1,3 @@
-import User from '../models/user.js';
 import * as garageService from '../service/garageService.js';
 
 const registerGarage = async (req, res) => {
@@ -91,6 +90,7 @@ const rejectGarageRegistration = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 const addStaff = async (req, res) => {
   const { id } = req.params; // garage id
   try {
@@ -113,6 +113,7 @@ const viewStaff = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 const disableStaff = async (req, res) => {
   const { id } = req.params; // garage id
   const { staffId } = req.body;
@@ -126,6 +127,7 @@ const disableStaff = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 const enableStaff = async (req, res) => {
   const { id } = req.params; // garage id
   const { staffId } = req.body;
@@ -145,6 +147,15 @@ const getStaffById = async (req, res) => {
   try {
     const staff = await garageService.getStaffById(id, staffId);
     res.status(200).json(staff);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+const viewGarageExisting = async (req, res) => {
+  try {
+    const garages = await garageService.viewGarageExisting();
+    res.status(200).json(garages);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -176,4 +187,4 @@ const disableGarage = async (req, res) => {
   }
 };
 
-export { registerGarage, viewGarages, updateGarage, deleteGarage, getGarageById, viewGarageRegistrations, approveGarageRegistration, rejectGarageRegistration, getGarageRegistrationById, addStaff, viewStaff, disableStaff, enableStaff, getStaffById, enableGarage, disableGarage };
+export { registerGarage, viewGarages, updateGarage, deleteGarage, getGarageById, viewGarageRegistrations, approveGarageRegistration, rejectGarageRegistration, getGarageRegistrationById, addStaff, viewStaff, disableStaff, enableStaff, getStaffById, enableGarage, disableGarage, viewGarageExisting };
