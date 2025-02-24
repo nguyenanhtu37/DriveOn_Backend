@@ -23,4 +23,11 @@ export const getFavoriteGarages = async (userId) => {
         throw new Error(err.message);
     }
 };
+export const removeFavoriteGarage = async (userId, garageId) => {
+    try {
+        await Favorite.findOneAndDelete({ user: userId, garage: garageId });
+    } catch (err) {
+        throw new Error(err.message);
+    }
+};
 

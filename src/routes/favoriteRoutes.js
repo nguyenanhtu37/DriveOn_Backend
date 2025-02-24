@@ -1,11 +1,14 @@
 import express from 'express';
-import { addFavoriteGarage,viewFavoriteGarages } from '../controller/favoriteController.js';
+import { addFavoriteGarage,viewFavoriteGarages,removeFavoriteGarage } from '../controller/favoriteController.js';
 import { authMiddleware } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-router.post('/addFavorites/:garageId', authMiddleware, addFavoriteGarage);
-router.get('/viewFavorites', authMiddleware, viewFavoriteGarages);
+router.use(authMiddleware);
+
+router.post('/addFavorites/:garageId', addFavoriteGarage);
+router.get('/viewFavorites', viewFavoriteGarages);
+router.delete('/removeFavorite/:garageId', removeFavoriteGarage);
 
 
 export default router;
