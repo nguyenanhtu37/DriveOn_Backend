@@ -8,10 +8,16 @@ export const addFavoriteGarage = async (req, res) => {
         const { garageId } = req.params;
         const userId = req.user.id;
 
-        // Thêm garage vào danh sách yêu thích
+        // Check if the garage is already in the favorites list
+        const existingFavorite = await Favorite.findOne({ user: userId, garage: garageId });
+        if (existingFavorite) {
+            return res.status(400).json({ message: "Garage is already in your favorites list!" });
+        }
+
+        // Add garage to the favorites list
         await favoriteService.addFavoriteGarage(userId, garageId);
 
-        // Lấy thông tin garage để hiển thị tên
+        // Get garage information to display the name
         const garage = await Garage.findById(garageId).select("name");
 
         res.status(201).json({
