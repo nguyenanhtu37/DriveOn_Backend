@@ -1,7 +1,7 @@
 import * as favoriteService from '../service/favoriteService.js';
 import Garage from '../models/garage.js';
 
-const addFavoriteGarage = async (req, res) => {
+export const addFavoriteGarage = async (req, res) => {
     try {
         const { garageId } = req.params;
         const userId = req.user.id;
@@ -14,11 +14,18 @@ const addFavoriteGarage = async (req, res) => {
 
         res.status(201).json({
             message: `Favorite garage ${garage.name} added successfully!`
-
         });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 };
 
-export { addFavoriteGarage };
+export const viewFavoriteGarages = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const favoriteGarages = await favoriteService.getFavoriteGarages(userId);
+        res.status(200).json(favoriteGarages);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};

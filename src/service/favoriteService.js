@@ -1,6 +1,6 @@
 import Favorite from '../models/favorite.js';
 
-const addFavoriteGarage = async (userId, garageId) => {
+export const addFavoriteGarage = async (userId, garageId) => {
     try {
         const newFavorite = new Favorite({
             user: userId,
@@ -15,5 +15,12 @@ const addFavoriteGarage = async (userId, garageId) => {
         throw new Error(err.message);
     }
 };
+export const getFavoriteGarages = async (userId) => {
+    try {
+        const favorites = await Favorite.find({ user: userId }).populate('garage', 'name address phone');
+        return favorites.map(favorite => favorite.garage);
+    } catch (err) {
+        throw new Error(err.message);
+    }
+};
 
-export { addFavoriteGarage };
