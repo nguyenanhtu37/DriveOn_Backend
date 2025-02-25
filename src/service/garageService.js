@@ -265,7 +265,7 @@ const enableGarage = async (garageId) => {
     if (!garage) {
       throw new Error("Garage not found");
     }
-    garage.status = "approved";
+    garage.isActive = true;
     garage.updatedAt = new Date();
     await garage.save();
     return garage;
@@ -281,7 +281,7 @@ const disableGarage = async (garageId) => {
     if (!garage) {
       throw new Error("Garage not found");
     }
-    garage.status = "rejected";
+    garage.isActive = false;
     garage.updatedAt = new Date();
     await garage.save();
     return garage;

@@ -91,6 +91,7 @@ const garageSchema = new mongoose.Schema({
       ref: "Appointment",
     },
   ],
+  isActive: { type: Boolean, default: true, required: true }
 });
 
 const Garage = mongoose.model("Garage", garageSchema);
