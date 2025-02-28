@@ -7,7 +7,7 @@ const feedbackSchema = new mongoose.Schema({
   },
   garage: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Garage" 
+    ref: "Garage"
   },
   user: {
     type: mongoose.Schema.Types.ObjectId,

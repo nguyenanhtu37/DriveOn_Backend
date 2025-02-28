@@ -24,7 +24,7 @@ const maintenanceSchema = new mongoose.Schema({
         type: Date,
         default: Date.now,
     },
-    nextMaintenance: { //thac mac thi hoi Anh Tu
+    nextMaintenance: { 
         type: Date,
         required: true,
     },

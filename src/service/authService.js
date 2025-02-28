@@ -71,7 +71,7 @@ const login = async (email, password) => {
   // validate input
   validateLogin(email, password);
   // find user by id
-  const user = await User.findOne({ email });
+  const user = await User.findOne({ email }).populate('roles').populate('garageList');
   if (!user) throw new Error("Invalid email or password");
   // check status
   if (user.status !== "active") throw new Error("Account is not active");
@@ -115,28 +115,22 @@ const resetPassword = async (token, newPassword) => {
   try {
     // Validate input
     validateResetPassword(token, newPassword);
-    
     // Verify token
     const payload = jwt.verify(token, process.env.JWT_SECRET);
-    
     // Check token trong redis
     const storedToken = await redis.get(payload.email);
     if (!storedToken || storedToken !== token) {
       throw new Error("Invalid or expired token");
     }
-    
     // Hash password mới
     const hashedPassword = await bcrypt.hash(newPassword, 10);
-    
     // Update password
-    await User.findByIdAndUpdate(payload.id, { 
+    await User.findByIdAndUpdate(payload.id, {
       password: hashedPassword,
       updatedAt: new Date()
     });
-
     // Xóa token trong redis sau khi reset thành công
     await redis.del(payload.email);
-    
     return { message: "Password reset successfully" };
   } catch (error) {
     throw new Error(error.message);
@@ -146,17 +140,14 @@ const resetPassword = async (token, newPassword) => {
 const logout = async (token) => {
   // giai ma token
   const payload = jwt.verify(token, process.env.JWT_SECRET);
-
   console.log("Before delete token:", payload);
   // xoa token trong redis
   await redis.del(payload.email);
-
   const tokenAfterDelete = await redis.get(payload.email);
   console.log("After delete token:", tokenAfterDelete);
   if (tokenAfterDelete) {
     throw new Error("Failed to delete token");
   }
-
   return { message: "Logout successfully" };
 };
 
@@ -173,7 +164,7 @@ const googleLogin = async (token) => {
     console.log("Google login payload:", payload);
     const { email, name, sub, email_verified, picture, locale, given_name, family_name } = payload;
     // tim user theo email va googleId
-    let user = await User.findOne({ email, googleId: sub }).populate('roles');
+    let user = await User.findOne({ email, googleId: sub }).populate('roles').populate('garageList');
     // neu k ton tai thi tao moi
     if (!user) {
       console.log("User not found, creating new user...");
@@ -182,7 +173,6 @@ const googleLogin = async (token) => {
       if (!defaultRole || defaultRole.length < 2) {
         throw new Error("Default role not found");
       }
-
       user = new User({
         email,
         name,
@@ -202,7 +192,7 @@ const googleLogin = async (token) => {
     }
     // tao jwt token
     const jwtToken = jwt.sign(
-      { id: user._id, email: user.email, roles: user.roles.map(role => role.roleName) },
+      { id: user._id, email: user.email, roles: user.roles.map(role => role.roleName), },
       process.env.JWT_SECRET,
       { algorithm: 'HS256', expiresIn: "1h" }
     );

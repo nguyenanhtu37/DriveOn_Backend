@@ -5,7 +5,6 @@ import { validateAddVehicle, validateUpdateVehicle } from "../validator/vehicleV
 const addVehicle = async (user, vehicleData) => {
   // hàm validate dữ liệu
   validateAddVehicle(vehicleData);
-
   const { carBrand, carName, carYear, carColor, carPlate } = vehicleData;
   const newVehicle = new Vehicle({
     carBrand,
