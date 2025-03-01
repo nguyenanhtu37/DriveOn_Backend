@@ -4,6 +4,7 @@ import bcrypt from "bcrypt";
 import { validateGarageRegistration, validateUpdateGarage } from "../validator/garageValidator.js";
 import { validateSignup } from "../validator/authValidator.js";
 import Role from "../models/role.js";
+import Feedback from "../models/feedback.js";
 
 const registerGarage = async (user, garageData) => {
   // Validate garageData
@@ -293,6 +294,26 @@ const disableGarage = async (garageId) => {
     return garage;
   } catch (err) {
     console.error("Error disabling garage:", err.message);
+    throw new Error(err.message);
+  }
+};
+export const calculateAverageRating = async (garageId) => {
+  const feedbacks = await Feedback.find({ garage: garageId });
+
+  const averageRating = feedbacks.reduce((acc, feedback) => acc + feedback.rating, 0) / feedbacks.length || 0;
+  return averageRating;
+};
+
+export const filterGaragesByRating = async (minRating = 0) => {
+  try {
+    const garages = await Garage.find().select('name address phone email ratingAverage');
+    const filteredGarages = garages.filter(garage => garage.ratingAverage >= minRating);
+
+    // Sort garages by ratingAverage in descending order
+    filteredGarages.sort((a, b) => b.ratingAverage - a.ratingAverage);
+
+    return filteredGarages;
+  } catch (err) {
     throw new Error(err.message);
   }
 };
