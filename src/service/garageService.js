@@ -189,7 +189,7 @@ const viewStaff = async (userId, garageId) => {
 
 const viewGarageExisting = async () => {
   try {
-    const garages = await Garage.find({ isActive: true });
+    const garages = await Garage.find({ status: "enabled" });
     return garages;
   } catch (err) {
     throw new Error(err.message);
@@ -265,7 +265,10 @@ const enableGarage = async (garageId) => {
     if (!garage) {
       throw new Error("Garage not found");
     }
-    garage.status = "approved";
+    if (!garage.status.includes("enabled")) {
+      garage.status = garage.status.filter(status => status !== "disabled");
+      garage.status.push("enabled");
+    }
     garage.updatedAt = new Date();
     await garage.save();
     return garage;
@@ -281,7 +284,10 @@ const disableGarage = async (garageId) => {
     if (!garage) {
       throw new Error("Garage not found");
     }
-    garage.status = "rejected";
+    if (!garage.status.includes("disabled")) {
+      garage.status = garage.status.filter(status => status !== "enabled");
+      garage.status.push("disabled");
+    }
     garage.updatedAt = new Date();
     await garage.save();
     return garage;
@@ -290,5 +296,4 @@ const disableGarage = async (garageId) => {
     throw new Error(err.message);
   }
 };
-
 export { registerGarage, viewGarages, getGarageById, updateGarage, deleteGarage, viewGarageRegistrations, approveGarageRegistration, rejectGarageRegistration, getGarageRegistrationById, addStaff, viewStaff, disableStaff, enableStaff, getStaffById, enableGarage, disableGarage,viewGarageExisting };
