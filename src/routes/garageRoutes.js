@@ -1,7 +1,26 @@
 import express from 'express';
 import { authMiddleware } from '../middleware/authMiddleware.js';
 import { adminMiddleware } from '../middleware/adminMiddleware.js';
-import { registerGarage, viewGarages, updateGarage, deleteGarage, getGarageById, viewGarageRegistrations, approveGarageRegistration, rejectGarageRegistration, getGarageRegistrationById, addStaff, viewStaff, disableStaff, enableStaff, getStaffById, enableGarage, disableGarage, viewGarageExisting } from '../controller/garageController.js';
+import {
+    registerGarage,
+    viewGarages,
+    updateGarage,
+    deleteGarage,
+    getGarageById,
+    viewGarageRegistrations,
+    approveGarageRegistration,
+    rejectGarageRegistration,
+    getGarageRegistrationById,
+    addStaff,
+    viewStaff,
+    disableStaff,
+    enableStaff,
+    getStaffById,
+    enableGarage,
+    disableGarage,
+    viewGarageExisting,
+    filterGaragesByRating
+} from '../controller/garageController.js';
 
 const router = express.Router();
 
@@ -11,6 +30,10 @@ router.get("/:id/staff", authMiddleware, viewStaff);
 router.get("/:id/staff/:staffId", authMiddleware, getStaffById);
 router.put("/:id/staff/disable", authMiddleware, disableStaff);
 router.put("/:id/staff/enable", authMiddleware, enableStaff);
+//filter
+router.get('/filter-by-rating', filterGaragesByRating);
+
+
 
 router.post("/register-garage", authMiddleware, registerGarage); // register new garage
 router.get("/garages/:id", getGarageById); // view garage details  

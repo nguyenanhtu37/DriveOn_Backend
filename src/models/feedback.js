@@ -1,4 +1,6 @@
-const mongoose = require("mongoose");
+
+
+import mongoose from "mongoose";
 
 const feedbackSchema = new mongoose.Schema({
   rating: {
@@ -19,4 +21,4 @@ const feedbackSchema = new mongoose.Schema({
 });
 
 const Feedback = mongoose.model("Feedback", feedbackSchema);
-module.exports = Feedback;
+export default Feedback;

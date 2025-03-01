@@ -4,6 +4,7 @@ import bcrypt from "bcrypt";
 import { validateGarageRegistration, validateUpdateGarage } from "../validator/garageValidator.js";
 import { validateSignup } from "../validator/authValidator.js";
 import Role from "../models/role.js";
+import Feedback from "../models/feedback.js";
 
 const registerGarage = async (user, garageData) => {
   // Validate garageData
@@ -189,7 +190,7 @@ const viewStaff = async (userId, garageId) => {
 
 const viewGarageExisting = async () => {
   try {
-    const garages = await Garage.find({ isActive: true });
+    const garages = await Garage.find({ status: "enabled" });
     return garages;
   } catch (err) {
     throw new Error(err.message);
@@ -265,7 +266,10 @@ const enableGarage = async (garageId) => {
     if (!garage) {
       throw new Error("Garage not found");
     }
-    garage.status = "approved";
+    if (!garage.status.includes("enabled")) {
+      garage.status = garage.status.filter(status => status !== "disabled");
+      garage.status.push("enabled");
+    }
     garage.updatedAt = new Date();
     await garage.save();
     return garage;
@@ -281,7 +285,10 @@ const disableGarage = async (garageId) => {
     if (!garage) {
       throw new Error("Garage not found");
     }
-    garage.status = "rejected";
+    if (!garage.status.includes("disabled")) {
+      garage.status = garage.status.filter(status => status !== "enabled");
+      garage.status.push("disabled");
+    }
     garage.updatedAt = new Date();
     await garage.save();
     return garage;
@@ -290,5 +297,42 @@ const disableGarage = async (garageId) => {
     throw new Error(err.message);
   }
 };
+export const calculateAverageRating = async (garageId) => {
+  const feedbacks = await Feedback.find({ garage: garageId });
 
+  const averageRating = feedbacks.reduce((acc, feedback) => acc + feedback.rating, 0) / feedbacks.length || 0;
+  return averageRating;
+};
+
+// export const filterGaragesByRating = async (minRating = 0) => {
+//   try {
+//     const garages = await Garage.find().select('name address phone email ratingAverage');
+//     const filteredGarages = garages.filter(garage => garage.ratingAverage >= minRating);
+//
+//     // Sort garages by ratingAverage in descending order
+//     filteredGarages.sort((a, b) => b.ratingAverage - a.ratingAverage);
+//
+//     return filteredGarages;
+//   } catch (err) {
+//     throw new Error(err.message);
+//   }
+// };
+export const filterGaragesByRating = async (minRating = 0) => {
+  try {
+    const garages = await Garage.find().select('name address phone email ratingAverage');
+    const filteredGarages = garages.filter(garage => garage.ratingAverage >= minRating);
+    for (const garage of garages) {
+      const averageRating = await calculateAverageRating(garage._id) ||
+          0;
+      garage.ratingAverage =
+          averageRating;
+      await garage.save();
+    }
+    filteredGarages.sort((a, b) => b.ratingAverage - a.ratingAverage);
+
+    return filteredGarages;
+  } catch (err) {
+    throw new Error(err.message);
+  }
+};
 export { registerGarage, viewGarages, getGarageById, updateGarage, deleteGarage, viewGarageRegistrations, approveGarageRegistration, rejectGarageRegistration, getGarageRegistrationById, addStaff, viewStaff, disableStaff, enableStaff, getStaffById, enableGarage, disableGarage,viewGarageExisting };

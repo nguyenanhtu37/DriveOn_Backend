@@ -161,6 +161,31 @@ const viewGarageExisting = async (req, res) => {
   }
 };
 
+// const enableGarage = async (req, res) => {
+//   const { id } = req.params; // garage id
+//   try {
+//     const garage = await garageService.enableGarage(id);
+//     res.status(200).json({
+//       message: "Garage enabled successfully",
+//       garage: garage,
+//     });
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// };
+//
+// const disableGarage = async (req, res) => {
+//   const { id } = req.params; // garage id
+//   try {
+//     const garage = await garageService.disableGarage(id);
+//     res.status(200).json({
+//       message: "Garage disabled successfully",
+//       garage: garage,
+//     });
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// };
 const enableGarage = async (req, res) => {
   const { id } = req.params; // garage id
   try {
@@ -186,5 +211,19 @@ const disableGarage = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+export const filterGaragesByRating = async (req, res) => {
+  const { rating } = req.query;
+  const minRating = rating ? parseFloat(rating) : 0;
 
+  if (rating && (isNaN(minRating) || !/^\d+(\.\d+)?$/.test(rating) || minRating < 0 || minRating > 5)) {
+    return res.status(400).json({ error: "Invalid rating parameter. Rating must be a number between 0 and 5." });
+  }
+
+  try {
+    const garages = await garageService.filterGaragesByRating(minRating);
+    res.status(200).json(garages);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
 export { registerGarage, viewGarages, updateGarage, deleteGarage, getGarageById, viewGarageRegistrations, approveGarageRegistration, rejectGarageRegistration, getGarageRegistrationById, addStaff, viewStaff, disableStaff, enableStaff, getStaffById, enableGarage, disableGarage, viewGarageExisting };
