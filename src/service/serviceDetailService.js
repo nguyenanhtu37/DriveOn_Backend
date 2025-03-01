@@ -54,5 +54,19 @@ const deleteServiceDetail = async (serviceDetailId) => {
     await serviceDetail.deleteOne();
     return { message: "Service detail deleted successfully" };
 };
+ export const getServiceDetailById = async (serviceDetailId) => {
+     const serviceDetail = await ServiceDetail.findById(serviceDetailId)
+         .populate("service")
+         .populate("garage",'name address phone');
+
+     if (!serviceDetail) {
+         console.log("Service detail not found");
+     } else {
+         console.log("Service detail found:", serviceDetail);
+     }
+
+     return serviceDetail;
+ };
+
 
 export { addServiceDetail, getServiceDetailsByGarage, updateServiceDetail, deleteServiceDetail };

@@ -48,7 +48,6 @@ app.use("/api/brand", brandRoutes);
 app.use("/api/favorite", favoriteRoutes);
 app.use('/api/feedback', feedbackRoutes);
 
-=======
 app.use("/api/service", serviceRoutes);
 app.use("/api/service-detail", serviceDetailRoutes); 
 
