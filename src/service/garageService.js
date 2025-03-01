@@ -304,12 +304,30 @@ export const calculateAverageRating = async (garageId) => {
   return averageRating;
 };
 
+// export const filterGaragesByRating = async (minRating = 0) => {
+//   try {
+//     const garages = await Garage.find().select('name address phone email ratingAverage');
+//     const filteredGarages = garages.filter(garage => garage.ratingAverage >= minRating);
+//
+//     // Sort garages by ratingAverage in descending order
+//     filteredGarages.sort((a, b) => b.ratingAverage - a.ratingAverage);
+//
+//     return filteredGarages;
+//   } catch (err) {
+//     throw new Error(err.message);
+//   }
+// };
 export const filterGaragesByRating = async (minRating = 0) => {
   try {
     const garages = await Garage.find().select('name address phone email ratingAverage');
     const filteredGarages = garages.filter(garage => garage.ratingAverage >= minRating);
-
-    // Sort garages by ratingAverage in descending order
+    for (const garage of garages) {
+      const averageRating = await calculateAverageRating(garage._id) ||
+          0;
+      garage.ratingAverage =
+          averageRating;
+      await garage.save();
+    }
     filteredGarages.sort((a, b) => b.ratingAverage - a.ratingAverage);
 
     return filteredGarages;
