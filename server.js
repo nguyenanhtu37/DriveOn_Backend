@@ -1,11 +1,23 @@
 import express from "express";
-import connectDB from "./config/db.js";
+import connectDB from "./src/config/db.js";
 import dotenv from "dotenv";
-import authRoutes from "./routes/authRoutes.js";
-import roleRoutes from "./routes/roleRoutes.js";
-import adminRoutes from "./routes/adminRoutes.js";
-import managerRoutes from "./routes/managerRoutes.js";
+import authRoutes from "./src/routes/authRoutes.js";
+import userRoutes from "./src/routes/userRoutes.js";
+import garageRoutes from "./src/routes/garageRoutes.js";
+import roleRoutes from "./src/routes/roleRoutes.js";
+import vehicleRoutes from "./src/routes/vehicleRoutes.js";
+import brandRoutes from "./src/routes/brandRoutes.js";
+
+import favoriteRoutes from "./src/routes/favoriteRoutes.js";
+import feedbackRoutes from './src/routes/feedbackRoutes.js';
+
+
+
+import serviceRoutes from "./src/routes/serviceRoutes.js";
+import serviceDetailRoutes from "./src/routes/serviceDetailRoutes.js";
+
 import cors from "cors";
+import bodyParser from "body-parser";
 dotenv.config();
 
 const app = express();
@@ -13,6 +25,7 @@ const PORT = process.env.PORT || 5000;
 
 // middleware
 app.use(express.json());
+app.use(bodyParser.json());
 app.use(
   cors({
     origin: "http://localhost:5173", // Địa chỉ frontend
@@ -26,9 +39,19 @@ connectDB();
 
 // routes
 app.use("/api/auth", authRoutes);
-app.use("/api/roles", roleRoutes);
-app.use("/api/admin", adminRoutes);
-app.use("/api/manager", managerRoutes);
+app.use("/api/role", roleRoutes);
+app.use("/api/garage", garageRoutes);
+app.use("/api/user", userRoutes);
+app.use("/api/vehicle", vehicleRoutes);
+app.use("/api/brand", brandRoutes);
+
+app.use("/api/favorite", favoriteRoutes);
+app.use('/api/feedback', feedbackRoutes);
+
+=======
+app.use("/api/service", serviceRoutes);
+app.use("/api/service-detail", serviceDetailRoutes); 
+
 
 app.get("/", (req, res) => {
   res.send("Hello, DriveOn Backend!");
