@@ -1,5 +1,5 @@
 import express from "express";
-import { addServiceDetail, getServiceDetailsByGarage, updateServiceDetail, deleteServiceDetail } from "../controller/serviceDetailController.js";
+import { addServiceDetail, getServiceDetailsByGarage, updateServiceDetail, deleteServiceDetail,getServiceDetailById } from "../controller/serviceDetailController.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
@@ -9,4 +9,5 @@ router.get("/garage/:garageId", authMiddleware, getServiceDetailsByGarage); // G
 router.put("/:id", authMiddleware, updateServiceDetail); // Update service detail by ID
 router.delete("/:id", authMiddleware, deleteServiceDetail); // Delete service detail by ID
 
+router.get("/:id", authMiddleware, getServiceDetailById); // Get service detail by ID
 export default router;
