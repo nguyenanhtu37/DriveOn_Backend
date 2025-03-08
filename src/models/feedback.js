@@ -17,7 +17,11 @@ const feedbackSchema = new mongoose.Schema({
   },
   text: {
     type: String,
-  }
+  },
+  service: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Service"
+  },
 });
 
 const Feedback = mongoose.model("Feedback", feedbackSchema);

@@ -44,5 +44,16 @@ const deleteServiceDetail = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
-
+export const getServiceDetailById = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const serviceDetail = await serviceDetailService.getServiceDetailById(id);
+        if (!serviceDetail) {
+            return res.status(404).json({ message: "Service detail not found" });
+        }
+        res.status(200).json(serviceDetail);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
 export { addServiceDetail, getServiceDetailsByGarage, updateServiceDetail, deleteServiceDetail };

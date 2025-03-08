@@ -34,17 +34,11 @@ const appointmentSchema = new mongoose.Schema({
     enum: ["Pending", "Accepted", "Rejected", "Completed", "Cancelled"],
     default: "Pending",
   },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now,
-  },
-  paymentStatus: {
-    type: Boolean,
-    default: false,
+  tag: {
+    type: String,
+    enum: ["Normal", "Emergency"],
+    default: "Normal",
+    required: true,
   }
 });
 

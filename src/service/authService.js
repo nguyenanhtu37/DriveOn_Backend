@@ -101,7 +101,7 @@ const requestPasswordReset = async (email) => {
   // luu token vao redis (key: email, value: token)
   await redis.setex(email, 900, token); // 15'
   // gui mail reset
-  const link = `http://localhost:5173/reset-password?token=${token}`; 
+  const link = `http://localhost:${process.env.PORT}/api/auth/reset-password?token=${token}`;
   await transporter.sendMail({
     from: process.env.MAIL_USER,
     to: email,

@@ -6,11 +6,6 @@ const maintenanceSchema = new mongoose.Schema({
         ref: "ServiceDetail",
         required: true,
     },
-    invoice: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Invoice",
-        required: true,
-    },
     vehicle: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Vehicle",
