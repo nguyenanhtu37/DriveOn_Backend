@@ -1,0 +1,52 @@
+@startuml
+
+title Sequence diagram for Garage registration
+
+actor GarageManager
+boundary GarageRegistrationForm
+control AuthMiddleware
+control GarageController
+participant GarageService
+participant Database as "GarageDB"
+
+GarageManager -> GarageRegistrationForm: (1) Enter garage informations
+activate GarageRegistrationForm
+GarageRegistrationForm -> AuthMiddleware: (2) Attach authorization token
+activate AuthMiddleware
+AuthMiddleware -> AuthMiddleware: (3) Validate token & roles
+alt Invalid Token or Unauthorized
+    AuthMiddleware --> GarageManager: (4) Return error "Access Denied"
+    deactivate AuthMiddleware
+else Valid Token
+    AuthMiddleware -> GarageController: (4) Forward request
+    deactivate AuthMiddleware
+end
+
+GarageController -> GarageService: (5) Validate garage data
+activate GarageService
+GarageService -> GarageService: (6) Check required fields & formats
+alt Invalid Data
+    GarageService --> GarageController: (7) Return error "Invalid Garage Data"
+    deactivate GarageService
+    GarageController --> GarageRegistrationForm: (8) Show error message
+    deactivate GarageController
+    GarageRegistrationForm --> GarageManager: (9) Display error message
+    deactivate GarageRegistrationForm
+else Valid Data
+    GarageService -> Database: (7) Save garage details in DB
+    activate Database
+    Database --> GarageService: (8) Confirm garage saved
+    deactivate Database
+    GarageService -> Database: (9) Update user garage list
+    activate Database
+    Database --> GarageService: (10) Confirm update success
+    deactivate Database
+    GarageService --> GarageController: (11) Return success
+    deactivate GarageService
+    GarageController --> GarageRegistrationForm: (12) Return success
+    deactivate GarageController
+    GarageRegistrationForm --> GarageManager: (13) Display "Registration submitted for approval"
+    deactivate GarageRegistrationForm
+end
+
+@enduml

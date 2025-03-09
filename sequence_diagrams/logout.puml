@@ -1,0 +1,45 @@
+@startuml
+
+title Sequence diagram for Logout
+
+actor User
+boundary UI
+control AuthController
+participant AuthService
+participant Redis
+
+User -> UI: (1) Click logout button
+activate UI
+UI -> AuthController: (2) Send logout request with token
+activate AuthController
+AuthController -> AuthService: (3) Process logout request
+activate AuthService
+
+AuthService -> AuthService: (4) Decode token
+AuthService -> Redis: (5) Delete token from Redis
+activate Redis
+Redis --> AuthService: (6) Confirm deletion
+
+deactivate Redis
+AuthService -> Redis: (7) Verify token deletion
+activate Redis
+Redis --> AuthService: (8) Return null (if deleted successfully)
+deactivate Redis
+
+alt Token still exists
+    AuthService --> AuthController: (9) Return error "Failed to delete token"
+    deactivate AuthService
+    AuthController --> UI: (10) Show error message
+    deactivate AuthController
+    UI --> User: (11) Display error message
+    deactivate UI
+else Token deleted successfully
+    AuthService --> AuthController: (9) Return success "Logout successfully"
+    deactivate AuthService
+    AuthController --> UI: (10) Notify user of successful logout
+    deactivate AuthController
+    UI --> User: (11) Display success message
+    deactivate UI
+end
+
+@enduml
