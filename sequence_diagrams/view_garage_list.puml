@@ -1,0 +1,41 @@
+@startuml
+
+title Sequence diagram for View Garage List
+
+actor GarageManager
+boundary GarageListUI
+control AuthMiddleware
+control GarageController
+participant GarageService
+participant Database as "GarageDB"
+
+== View Garage List Process ==
+User -> GarageListUI: (1) Click "View Garage List"
+activate GarageListUI
+GarageListUI -> AuthMiddleware: (2) Attach authorization token
+activate AuthMiddleware
+AuthMiddleware -> AuthMiddleware: (3) Validate token
+alt Invalid Token
+    AuthMiddleware --> GarageListUI: (4) Return error "Unauthorized"
+    deactivate AuthMiddleware
+    GarageListUI --> User: (5) Display error message
+    deactivate GarageListUI
+else Valid Token
+    AuthMiddleware -> GarageController: (4) Forward request with user data
+    deactivate AuthMiddleware
+end
+
+GarageController -> GarageService: (5) Process view garage list request
+activate GarageService
+GarageService -> GarageDB: (6) Retrieve garage list by userId
+activate GarageDB
+GarageDB --> GarageService: (7) Return garage list
+deactivate GarageDB
+GarageService --> GarageController: (8) Return garage list
+deactivate GarageService
+GarageController --> GarageListUI: (9) Return garage list
+deactivate GarageController
+GarageListUI --> User: (10) Display garage list
+deactivate GarageListUI
+
+@enduml

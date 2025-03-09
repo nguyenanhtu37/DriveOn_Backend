@@ -1,0 +1,75 @@
+@startuml
+
+title Sequence diagram for Update Vehicle
+
+actor User
+boundary UpdateVehicleForm
+control AuthMiddleware
+control VehicleController
+participant VehicleService
+participant Database as "VehicleDB"
+
+== Update Vehicle Process ==
+User -> UpdateVehicleForm: (1) Enter updated vehicle details
+activate UpdateVehicleForm
+UpdateVehicleForm -> AuthMiddleware: (2) Attach authorization token
+activate AuthMiddleware
+AuthMiddleware -> AuthMiddleware: (3) Validate token
+alt Invalid Token
+    AuthMiddleware --> UpdateVehicleForm: (4) Return error "Unauthorized"
+    deactivate AuthMiddleware
+    UpdateVehicleForm --> User: (5) Display error message
+    deactivate UpdateVehicleForm
+else Valid Token
+    AuthMiddleware -> VehicleController: (4) Forward request with user data
+    deactivate AuthMiddleware
+end
+
+VehicleController -> VehicleService: (5) Process update vehicle request
+activate VehicleService
+VehicleService -> VehicleService: (6) Validate update data
+alt Invalid Update Data
+    VehicleService --> VehicleController: (7) Return error "Invalid update data"
+    deactivate VehicleService
+    VehicleController --> UpdateVehicleForm: (8) Show error message
+    deactivate VehicleController
+    UpdateVehicleForm --> User: (9) Display error message
+    deactivate UpdateVehicleForm
+else Valid Update Data
+    VehicleService -> VehicleDB: (7) Retrieve vehicle by vehicleId
+    activate VehicleDB
+    VehicleDB --> VehicleService: (8) Return vehicle data
+    deactivate VehicleDB
+
+    alt Vehicle not found
+        VehicleService --> VehicleController: (9) Return error "Vehicle not found"
+        deactivate VehicleService
+        VehicleController --> UpdateVehicleForm: (10) Show error message
+        deactivate VehicleController
+        UpdateVehicleForm --> User: (11) Display error message
+        deactivate UpdateVehicleForm
+    else Vehicle found
+        VehicleService -> VehicleService: (9) Check ownership
+        alt Unauthorized
+            VehicleService --> VehicleController: (10) Return error "Unauthorized"
+            deactivate VehicleService
+            VehicleController --> UpdateVehicleForm: (11) Show error message
+            deactivate VehicleController
+            UpdateVehicleForm --> User: (12) Display error message
+            deactivate UpdateVehicleForm
+        else Authorized
+            VehicleService -> VehicleDB: (10) Update vehicle details
+            activate VehicleDB
+            VehicleDB --> VehicleService: (11) Confirm update success
+            deactivate VehicleDB
+            VehicleService --> VehicleController: (12) Return success
+            deactivate VehicleService
+            VehicleController --> UpdateVehicleForm: (13) Return success
+            deactivate VehicleController
+            UpdateVehicleForm --> User: (14) Display success message
+            deactivate UpdateVehicleForm
+        end
+    end
+end
+
+@enduml

@@ -1,0 +1,70 @@
+@startuml
+
+title Sequence diagram for Remove Vehicle
+
+actor User
+boundary RemoveVehicleUI
+control AuthMiddleware
+control VehicleController
+participant VehicleService
+participant Database as "VehicleDB"
+participant Database as "UserDB"
+
+== Remove Vehicle Process ==
+User -> RemoveVehicleUI: (1) Click "Remove Vehicle"
+activate RemoveVehicleUI
+RemoveVehicleUI -> AuthMiddleware: (2) Attach authorization token
+activate AuthMiddleware
+AuthMiddleware -> AuthMiddleware: (3) Validate token
+alt Invalid Token
+    AuthMiddleware --> RemoveVehicleUI: (4) Return error "Unauthorized"
+    deactivate AuthMiddleware
+    RemoveVehicleUI --> User: (5) Display error message
+    deactivate RemoveVehicleUI
+else Valid Token
+    AuthMiddleware -> VehicleController: (4) Forward request with user data
+    deactivate AuthMiddleware
+end
+
+VehicleController -> VehicleService: (5) Process remove vehicle request
+activate VehicleService
+VehicleService -> VehicleDB: (6) Retrieve vehicle by vehicleId
+activate VehicleDB
+VehicleDB --> VehicleService: (7) Return vehicle data
+deactivate VehicleDB
+
+alt Vehicle not found
+    VehicleService --> VehicleController: (8) Return error "Vehicle not found"
+    deactivate VehicleService
+    VehicleController --> RemoveVehicleUI: (9) Show error message
+    deactivate VehicleController
+    RemoveVehicleUI --> User: (10) Display error message
+    deactivate RemoveVehicleUI
+else Vehicle found
+    VehicleService -> VehicleService: (8) Check ownership
+    alt Unauthorized
+        VehicleService --> VehicleController: (9) Return error "Unauthorized"
+        deactivate VehicleService
+        VehicleController --> RemoveVehicleUI: (10) Show error message
+        deactivate VehicleController
+        RemoveVehicleUI --> User: (11) Display error message
+        deactivate RemoveVehicleUI
+    else Authorized
+        VehicleService -> VehicleDB: (9) Delete vehicle
+        activate VehicleDB
+        VehicleDB --> VehicleService: (10) Confirm deletion
+        deactivate VehicleDB
+        VehicleService -> UserDB: (11) Update user's vehicle list
+        activate UserDB
+        UserDB --> VehicleService: (12) Confirm update success
+        deactivate UserDB
+        VehicleService --> VehicleController: (13) Return success
+        deactivate VehicleService
+        VehicleController --> RemoveVehicleUI: (14) Return success
+        deactivate VehicleController
+        RemoveVehicleUI --> User: (15) Display success message
+        deactivate RemoveVehicleUI
+    end
+end
+
+@enduml
