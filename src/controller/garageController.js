@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import * as garageService from '../service/garageService.js';
 
 const registerGarage = async (req, res) => {
@@ -24,10 +25,14 @@ const viewGarages = async (req, res) => {
 
 const getGarageById = async (req, res) => {
   const { id } = req.params;
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ error: "Invalid garage id format" });
+  }
   try {
-    const garage = await garageService.getGarageById(req.user.id, id);
+    const garage = await garageService.getGarageById(id);
     res.status(200).json(garage);
   } catch (err) {
+    console.log(err);
     res.status(500).json({ error: err.message });
   }
 };
@@ -211,6 +216,7 @@ const disableGarage = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 export const filterGaragesByRating = async (req, res) => {
   const { rating } = req.query;
   const minRating = rating ? parseFloat(rating) : 0;
