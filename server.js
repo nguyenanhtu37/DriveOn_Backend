@@ -24,7 +24,7 @@ const PORT = process.env.PORT || 5000;
 // Allowed origins
 const allowedOrigins = [
   "https://driveon-deploy.vercel.app",
-  "http://localhost:5173"
+  "http://localhost:5173",
 ];
 
 // Middleware
@@ -37,6 +37,18 @@ app.use(
     credentials: true,
   })
 );
+
+// Set security headers
+defaultHeaders = (req, res, next) => {
+  res.setHeader("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
+  res.setHeader("Cross-Origin-Embedder-Policy", "credentialless");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  next();
+};
+
+app.use(defaultHeaders);
 
 // Connect to Database
 connectDB();
