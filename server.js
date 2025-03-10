@@ -38,10 +38,8 @@ app.use(
 );
 
 app.use((req, res, next) => {
-  res.removeHeader("Cross-Origin-Opener-Policy");
-  res.removeHeader("Cross-Origin-Embedder-Policy");
-  res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
-  res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
+  res.setHeader("Cross-Origin-Opener-Policy", "unsafe-none");
+  res.setHeader("Cross-Origin-Embedder-Policy", "credentialless");
   res.setHeader("Content-Security-Policy", "frame-ancestors 'self' https://accounts.google.com");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
