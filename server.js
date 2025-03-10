@@ -28,9 +28,7 @@ app.use(express.json());
 app.use(bodyParser.json());
 app.use(
   cors({
-    origin: ["http://localhost:5173", // Địa chỉ frontend
-      "https://driveon-deploy.vercel.app",
-    ],
+    origin: "*",
     methods: ["GET", "POST", "PUT", "DELETE"], // Các phương thức cho phép
     credentials: true, // Nếu cần gửi cookie
   })
