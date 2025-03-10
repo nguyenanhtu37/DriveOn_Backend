@@ -21,7 +21,6 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Allowed origins
 const allowedOrigins = [
   "https://driveon-deploy.vercel.app",
   "http://localhost:5173"
@@ -38,7 +37,6 @@ app.use(
   })
 );
 
-// Remove Cross-Origin-Opener-Policy and Cross-Origin-Embedder-Policy headers to fix Google OAuth issue
 app.use((req, res, next) => {
   res.removeHeader("Cross-Origin-Opener-Policy");
   res.removeHeader("Cross-Origin-Embedder-Policy");
