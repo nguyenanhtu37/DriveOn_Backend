@@ -28,7 +28,9 @@ app.use(express.json());
 app.use(bodyParser.json());
 app.use(
   cors({
-    origin: "http://localhost:5173", // Địa chỉ frontend
+    origin: ["http://localhost:5173", // Địa chỉ frontend
+      "https://driveon-deploy.vercel.app",
+    ],
     methods: ["GET", "POST", "PUT", "DELETE"], // Các phương thức cho phép
     credentials: true, // Nếu cần gửi cookie
   })
@@ -49,7 +51,7 @@ app.use("/api/favorite", favoriteRoutes);
 app.use('/api/feedback', feedbackRoutes);
 
 app.use("/api/service", serviceRoutes);
-app.use("/api/service-detail", serviceDetailRoutes); 
+app.use("/api/service-detail", serviceDetailRoutes);
 
 
 app.get("/", (req, res) => {
