@@ -25,6 +25,7 @@ const PORT = process.env.PORT || 5000;
 // Allowed origins
 const allowedOrigins = [
   "https://driveon-deploy.vercel.app",
+  "https://drive-on-frontend-1tcaq008x-nguyen-anh-tus-projects.vercel.app/",
   "http://localhost:5173",
 ];
 
