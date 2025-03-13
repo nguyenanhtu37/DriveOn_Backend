@@ -10,18 +10,19 @@ import { validateLogin, validateResetPassword, validateSignup } from '../validat
 const signup = async (userData) => {
   // Validate userData
   validateSignup(userData);
-  const { email, password, name, phone, roles, bankAccount, bankName } = userData;
+  const { email, password, name, phone, roles } = userData;
   // check email da ton tai chua
   const existingUser = await User.findOne({ email });
   if (existingUser) throw new Error("Email already exists");
   // hash pass
   const hashedPassword = await bcrypt.hash(password, 10);
   // tao token verify   
-  const token = jwt.sign({ email, password: hashedPassword, name, phone, roles, bankAccount, bankName }, process.env.JWT_SECRET, { expiresIn: "15m" });
+  const token = jwt.sign({ email, password: hashedPassword, name, phone, roles }, process.env.JWT_SECRET, { expiresIn: "15m" });
   // luu token vao redis (key: email, value: token)
   await redis.setex(email, 900, token); // 15'
   // gui mail xminh
   const link = `http://localhost:${process.env.PORT}/api/auth/verify?token=${token}`;
+  // const link = `http://localhost:5173?token=${token}`;
   await transporter.sendMail({
     from: process.env.MAIL_USER,
     to: email,
@@ -60,8 +61,6 @@ const verifyEmail = async (token) => {
     name: payload.name,
     phone: payload.phone,
     roles: defaultRole.map(role => role._id),
-    bankAccount: payload.bankAccount || 0,
-    bankName: payload.bankName || "",
   });
   await user.save();
   return { message: "Email verified successfully" };
@@ -70,7 +69,7 @@ const verifyEmail = async (token) => {
 const login = async (email, password) => {
   // validate input
   validateLogin(email, password);
-  // find user by id
+  // find user by email
   const user = await User.findOne({ email }).populate('roles').populate('garageList');
   if (!user) throw new Error("Invalid email or password");
   // check status
@@ -100,6 +99,8 @@ const requestPasswordReset = async (email) => {
   const token = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: "15m" });
   // luu token vao redis (key: email, value: token)
   await redis.setex(email, 900, token); // 15'
+  const checkToken = await redis.get(email);
+  console.log("Token saved in Redis:", checkToken);
   // gui mail reset
   const link = `http://localhost:${process.env.PORT}/api/auth/reset-password?token=${token}`;
   await transporter.sendMail({
@@ -119,6 +120,8 @@ const resetPassword = async (token, newPassword) => {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
     // Check token trong redis
     const storedToken = await redis.get(payload.email);
+    console.log("Stored token:", storedToken);
+    console.log("Payload:", payload);
     if (!storedToken || storedToken !== token) {
       throw new Error("Invalid or expired token");
     }

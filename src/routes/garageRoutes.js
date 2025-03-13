@@ -46,7 +46,7 @@ router.get("/garages", authMiddleware, viewGarages); // view all garages that ar
 // router.delete('/garage/:id', deleteGarage);
 
 router.get('/existing', viewGarageExisting);
-router.put('/:id/enable', enableGarage);
-router.put('/:id/disable', disableGarage);
+router.put('/:id/enable', adminMiddleware, enableGarage);
+router.put('/:id/disable', adminMiddleware, disableGarage);
 
 export default router;
