@@ -10,6 +10,8 @@ import brandRoutes from "./src/routes/brandRoutes.js";
 
 import favoriteRoutes from "./src/routes/favoriteRoutes.js";
 import feedbackRoutes from './src/routes/feedbackRoutes.js';
+import appointmentRoutes from "./src/routes/appointmentRoutes.js"; // Import appointment routes
+
 
 
 
@@ -49,8 +51,9 @@ app.use("/api/favorite", favoriteRoutes);
 app.use('/api/feedback', feedbackRoutes);
 
 app.use("/api/service", serviceRoutes);
-app.use("/api/service-detail", serviceDetailRoutes); 
+app.use("/api/service-detail", serviceDetailRoutes);
 
+app.use("/api/appointment", appointmentRoutes);
 
 app.get("/", (req, res) => {
   res.send("Hello, DriveOn Backend!");

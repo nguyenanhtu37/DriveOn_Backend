@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const appointmentSchema = new mongoose.Schema({
   user: {
@@ -11,11 +11,13 @@ const appointmentSchema = new mongoose.Schema({
     ref: "Garage",
     required: true,
   },
-  service: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "ServiceDetail",
-    required: true,
-  }],
+  service: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "ServiceDetail",
+      required: true,
+    },
+  ],
   vehicle: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Vehicle",
@@ -25,7 +27,11 @@ const appointmentSchema = new mongoose.Schema({
     type: Date,
     required: true,
   },
-  time: {
+  start: {
+    type: String,
+    required: true,
+  },
+  end: {
     type: String,
     required: true,
   },
@@ -39,8 +45,12 @@ const appointmentSchema = new mongoose.Schema({
     enum: ["Normal", "Emergency"],
     default: "Normal",
     required: true,
-  }
+  },
+  note: {
+    type: String,
+    default: "",
+  },
 });
 
 const Appointment = mongoose.model("Appointment", appointmentSchema);
-module.exports = Appointment;
+export default Appointment;
