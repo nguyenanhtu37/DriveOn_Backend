@@ -60,7 +60,7 @@ const verifyEmail = async (token) => {
     password: payload.password,
     name: payload.name,
     phone: payload.phone,
-    roles: defaultRole.map(role => role._id)
+    roles: defaultRole.map(role => role._id),
   });
   await user.save();
   return { message: "Email verified successfully" };
