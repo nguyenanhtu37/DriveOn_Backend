@@ -102,3 +102,19 @@ export const completeAppointmentService = async (appointmentId, userId) => {
     await appointment.save();
     return appointment;
 };
+export const getAcceptedAppointmentsService = async (userId, garageId) => {
+    const user = await User.findById(userId);
+    if (!user) {
+        throw new Error("User not found");
+    }
+
+    if (!user.garageList.includes(garageId)) {
+        throw new Error("Unauthorized");
+    }
+
+    return await Appointment.find({ status: "Accepted", garage: garageId })
+        .populate('user', 'name email') // Select basic user information
+        .populate('garage', 'name address') // Select basic garage information
+        .populate('vehicle', 'carBrand carName carPlate') // Select basic vehicle information
+        .populate('service'); // Populate service details
+};

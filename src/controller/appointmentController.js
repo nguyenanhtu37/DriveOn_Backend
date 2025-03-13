@@ -105,3 +105,14 @@ export const completeAppointment = async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 };
+export const getAcceptedAppointments = async (req, res) => {
+    const userId = req.user.id;
+    const { garageId } = req.params;
+
+    try {
+        const appointments = await appointmentService.getAcceptedAppointmentsService(userId, garageId);
+        res.status(200).json(appointments);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
