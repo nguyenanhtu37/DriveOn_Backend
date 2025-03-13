@@ -116,3 +116,19 @@ export const getAcceptedAppointments = async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 };
+export const cancelAppointment = async (req, res) => {
+    const { appointmentId } = req.params;
+    const userId = req.user.id;
+    try {
+        const appointment = await appointmentService.cancelAppointmentService(appointmentId, userId);
+        if (!appointment) {
+            return res.status(404).json({ message: "Appointment not found" });
+        }
+        res.status(200).json({ message: "Appointment cancelled successfully", appointment });
+    } catch (err) {
+        if (err.message === "Unauthorized") {
+            return res.status(403).json({ message: "You are not authorized to cancel this appointment" });
+        }
+        res.status(500).json({ error: err.message });
+    }
+};

@@ -118,3 +118,17 @@ export const getAcceptedAppointmentsService = async (userId, garageId) => {
         .populate('vehicle', 'carBrand carName carPlate') // Select basic vehicle information
         .populate('service'); // Populate service details
 };
+export const cancelAppointmentService = async (appointmentId, userId) => {
+    const appointment = await Appointment.findById(appointmentId);
+    if (!appointment) {
+        throw new Error("Appointment not found");
+    }
+
+    if (appointment.user.toString() !== userId) {
+        throw new Error("Unauthorized");
+    }
+
+    appointment.status = "Cancelled";
+    await appointment.save();
+    return appointment;
+};
