@@ -18,7 +18,7 @@ const authMiddleware = async (req, res, next) => {
       return res.status(403).json({ message: "Access denied. No valid roles found." });
     }
     // Kiểm tra xem user có role được phép không (carowner hoặc manager)
-    const allowedRoles = ["carowner", "manager"];
+    const allowedRoles = ["carowner", "manager","staff"];
     const hasValidRole = validRoles.some(role => allowedRoles.includes(role));
     if (!hasValidRole) {
       return res.status(403).json({ message: "Access denied. Insufficient permissions." });

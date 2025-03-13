@@ -1,5 +1,7 @@
 import Appointment from "../models/appointment.js";
 import ServiceDetail from "../models/serviceDetail.js";
+import Garage from "../models/garage.js";
+import User from "../models/user.js";
 
 export const createAppointmentService = async ({ userId, serviceDetailId, vehicleId, date, start, end, tag, note }) => {
     // Fetch garageId from ServiceDetail
@@ -38,4 +40,31 @@ export const getAppointmentByIdService = async (appointmentId) => {
         .populate('garage', 'name address') // Select basic garage information
         .populate('vehicle', 'carBrand carName carPlate') // Select basic vehicle information
         .populate('service'); // Populate service details
+};
+
+export const getAppointmentsByGarageService = async (garageId) => {
+    const garage = await Garage.findById(garageId);
+    if (!garage) {
+        throw new Error("Garage not found");
+    }
+    return await Appointment.find({ garage: garageId })
+        .populate('user', 'name email') // Select basic user information
+        .populate('garage', 'name address') // Select basic garage information
+        .populate('vehicle', 'carBrand carName carPlate') // Select basic vehicle information
+        .populate('service'); // Populate service details
+};
+export const confirmAppointmentService = async (appointmentId, userId) => {
+    const appointment = await Appointment.findById(appointmentId);
+    if (!appointment) {
+        throw new Error("Appointment not found");
+    }
+
+    const user = await User.findById(userId);
+    if (!user || !user.garageList.includes(appointment.garage.toString())) {
+        throw new Error("Unauthorized");
+    }
+
+    appointment.status = "Accepted";
+    await appointment.save();
+    return appointment;
 };

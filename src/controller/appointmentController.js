@@ -45,3 +45,31 @@ export const getAppointmentById = async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 };
+export const getAppointmentsByGarage = async (req, res) => {
+    const { garageId } = req.params;
+    try {
+        const appointments = await appointmentService.getAppointmentsByGarageService(garageId);
+        res.status(200).json(appointments);
+    } catch (err) {
+        if (err.message === "Garage not found") {
+            return res.status(404).json({ message: "Garage not found" });
+        }
+        res.status(500).json({ error: err.message });
+    }
+};
+export const confirmAppointment = async (req, res) => {
+    const { appointmentId } = req.params;
+    const userId = req.user.id;
+    try {
+        const appointment = await appointmentService.confirmAppointmentService(appointmentId, userId);
+        if (!appointment) {
+            return res.status(404).json({ message: "Appointment not found" });
+        }
+        res.status(200).json({ message: "Appointment confirmed successfully", appointment });
+    } catch (err) {
+        if (err.message === "Unauthorized") {
+            return res.status(403).json({ message: "You are not authorized to confirm this appointment" });
+        }
+        res.status(500).json({ error: err.message });
+    }
+};
