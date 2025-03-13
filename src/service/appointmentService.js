@@ -68,3 +68,37 @@ export const confirmAppointmentService = async (appointmentId, userId) => {
     await appointment.save();
     return appointment;
 };
+export const denyAppointmentService = async (appointmentId, userId) => {
+    const appointment = await Appointment.findById(appointmentId);
+    if (!appointment) {
+        throw new Error("Appointment not found");
+    }
+
+    const user = await User.findById(userId);
+    if (!user || !user.garageList.includes(appointment.garage.toString())) {
+        throw new Error("Unauthorized");
+    }
+
+    appointment.status = "Rejected";
+    await appointment.save();
+    return appointment;
+};
+export const completeAppointmentService = async (appointmentId, userId) => {
+    const appointment = await Appointment.findById(appointmentId);
+    if (!appointment) {
+        throw new Error("Appointment not found");
+    }
+
+    const user = await User.findById(userId);
+    if (!user || !user.garageList.includes(appointment.garage.toString())) {
+        throw new Error("Unauthorized");
+    }
+
+    if (appointment.status !== "Accepted") {
+        throw new Error("Only accepted appointments can be completed");
+    }
+
+    appointment.status = "Completed";
+    await appointment.save();
+    return appointment;
+};

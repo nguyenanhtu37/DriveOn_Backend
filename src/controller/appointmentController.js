@@ -73,3 +73,35 @@ export const confirmAppointment = async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 };
+export const denyAppointment = async (req, res) => {
+    const { appointmentId } = req.params;
+    const userId = req.user.id;
+    try {
+        const appointment = await appointmentService.denyAppointmentService(appointmentId, userId);
+        if (!appointment) {
+            return res.status(404).json({ message: "Appointment not found" });
+        }
+        res.status(200).json({ message: "Appointment denied successfully", appointment });
+    } catch (err) {
+        if (err.message === "Unauthorized") {
+            return res.status(403).json({ message: "You are not authorized to deny this appointment" });
+        }
+        res.status(500).json({ error: err.message });
+    }
+};
+export const completeAppointment = async (req, res) => {
+    const { appointmentId } = req.params;
+    const userId = req.user.id;
+    try {
+        const appointment = await appointmentService.completeAppointmentService(appointmentId, userId);
+        if (!appointment) {
+            return res.status(404).json({ message: "Appointment not found" });
+        }
+        res.status(200).json({ message: "Appointment completed successfully", appointment });
+    } catch (err) {
+        if (err.message === "Unauthorized") {
+            return res.status(403).json({ message: "You are not authorized to complete this appointment" });
+        }
+        res.status(500).json({ error: err.message });
+    }
+};

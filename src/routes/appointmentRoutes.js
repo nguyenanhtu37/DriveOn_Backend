@@ -1,5 +1,5 @@
 import express from "express";
-import { createAppointment,getAppointmentsByUser,getAppointmentById,getAppointmentsByGarage,confirmAppointment } from "../controller/appointmentController.js";
+import { createAppointment,getAppointmentsByUser,getAppointmentById,denyAppointment,completeAppointment,getAppointmentsByGarage,confirmAppointment } from "../controller/appointmentController.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import {
     garageMiddleware
@@ -12,5 +12,7 @@ router.get("/view-list-user-appointment", authMiddleware, getAppointmentsByUser)
 router.get("/:appointmentId", authMiddleware, getAppointmentById); // Get specific appointment by ID
 router.get("/garage/:garageId", authMiddleware, getAppointmentsByGarage); // Get appointments by garage
 router.put("/:appointmentId/confirm", garageMiddleware, confirmAppointment); // Confirm appointment
+router.put("/:appointmentId/deny", garageMiddleware, denyAppointment); // Deny appointment
+router.put("/:appointmentId/complete", garageMiddleware, completeAppointment); // Complete appointment
 
 export default router;
