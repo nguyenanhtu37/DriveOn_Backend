@@ -16,10 +16,6 @@ const userSchema = new mongoose.Schema({
   phone: {
     type: String,
   },
-  coinBalance: {
-    type: Number,
-    default: 0
-  },
   vehicles: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: "Vehicle"
@@ -35,13 +31,6 @@ const userSchema = new mongoose.Schema({
   updatedAt: {
     type: Date,
     default: Date.now
-  },
-  bankAccount: {
-    type: String,
-    default: 0
-  },
-  bankName: {
-    type: String
   },
   status: {
     type: String,

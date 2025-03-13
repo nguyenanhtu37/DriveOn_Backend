@@ -38,7 +38,9 @@ const requestPasswordReset = async (req, res) => {
 
 const resetPassword = async (req, res) => {
   try {
-    const result = await authService.resetPassword(req.query.token, req.body.newPassword);
+    console.log(req.body.password);
+    console.log(req.body.token);
+    const result = await authService.resetPassword(req.body.token, req.body.password);
     res.status(200).json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });

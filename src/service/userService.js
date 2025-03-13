@@ -38,9 +38,6 @@ const updatePersonalProfile = async (userId, userData) => {
     // Update thông tin người dùng
     user.name = userData.name;
     user.phone = userData.phone;
-    user.address = userData.address;
-    user.bankAccount = userData.bankAccount;
-    user.bankName = userData.bankName;
     user.avatar = userData.avatar;
     await user.save();
     return { message: "Personal profile updated successfully" };
