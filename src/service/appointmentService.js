@@ -132,3 +132,22 @@ export const cancelAppointmentService = async (appointmentId, userId) => {
     await appointment.save();
     return appointment;
 };
+
+export const updateAppointmentService = async (appointmentId, userId, updateData) => {
+    const appointment = await Appointment.findById(appointmentId);
+    if (!appointment) {
+        throw new Error("Appointment not found");
+    }
+
+    if (appointment.user.toString() !== userId) {
+        throw new Error("Unauthorized");
+    }
+
+    if (appointment.status !== "Pending") {
+        throw new Error("Only pending appointments can be updated");
+    }
+
+    Object.assign(appointment, updateData);
+    await appointment.save();
+    return appointment;
+};

@@ -1,5 +1,5 @@
 import express from "express";
-import { createAppointment,getAcceptedAppointments,cancelAppointment,getAppointmentsByUser,getAppointmentById,denyAppointment,completeAppointment,getAppointmentsByGarage,confirmAppointment } from "../controller/appointmentController.js";
+import { createAppointment,getAcceptedAppointments,updateAppointment,cancelAppointment,getAppointmentsByUser,getAppointmentById,denyAppointment,completeAppointment,getAppointmentsByGarage,confirmAppointment } from "../controller/appointmentController.js";
 import {authorizeRoles} from "../middleware/authorizeRoles.js";
 
 const router = express.Router();
@@ -13,4 +13,7 @@ router.put("/:appointmentId/deny", authorizeRoles([ "staff"]), denyAppointment);
 router.put("/:appointmentId/complete", authorizeRoles([ "staff"]), completeAppointment); // Complete appointment
 router.get("/:garageId/accepted", authorizeRoles(["manager", "staff"]), getAcceptedAppointments); // Get accepted appointments by garage
 router.put("/:appointmentId/cancel", authorizeRoles(["carowner"]), cancelAppointment); // Cancel appointment
+router.put("/:appointmentId/update", authorizeRoles(["carowner"]), updateAppointment); // Update appointment
+
+
 export default router;
