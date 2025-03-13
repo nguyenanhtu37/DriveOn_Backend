@@ -26,5 +26,16 @@ export const createAppointmentService = async ({ userId, serviceDetailId, vehicl
 };
 
 export const getAppointmentsByUserService = async (userId) => {
-    return await Appointment.find({ user: userId }).populate('garage service vehicle');
+    return await Appointment.find({ user: userId })
+        .populate('user', 'name email') // Select basic user information
+        .populate('garage', 'name address') // Select basic garage information
+        .populate('vehicle', 'carBrand carName carPlate') // Select basic vehicle information
+        .populate('service'); // Populate service details
+};
+export const getAppointmentByIdService = async (appointmentId) => {
+    return await Appointment.findById(appointmentId)
+        .populate('user', 'name email') // Select basic user information
+        .populate('garage', 'name address') // Select basic garage information
+        .populate('vehicle', 'carBrand carName carPlate') // Select basic vehicle information
+        .populate('service'); // Populate service details
 };

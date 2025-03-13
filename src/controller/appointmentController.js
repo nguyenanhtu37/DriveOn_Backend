@@ -33,3 +33,15 @@ export const getAppointmentsByUser = async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 };
+export const getAppointmentById = async (req, res) => {
+    const { appointmentId } = req.params;
+    try {
+        const appointment = await appointmentService.getAppointmentByIdService(appointmentId);
+        if (!appointment) {
+            return res.status(404).json({ message: "Appointment not found" });
+        }
+        res.status(200).json(appointment);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
