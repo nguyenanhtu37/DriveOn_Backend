@@ -1,34 +1,34 @@
 import * as appointmentService from "../service/appointmentService.js";
-import ServiceDetail from "../models/serviceDetail.js";
 
 export const createAppointment = async (req, res) => {
     const userId = req.user.id;
-    const { serviceDetailId } = req.params; // Lấy từ URL
+    const { serviceDetailId } = req.params; // Extract from URL
     const { vehicleId, date, start, end, note } = req.body;
 
     try {
-        // 📌 Lấy garageId từ ServiceDetail
-        const serviceDetail = await ServiceDetail.findById(serviceDetailId);
-        if (!serviceDetail) {
-            return res.status(404).json({ error: "Service Detail not found" });
-        }
-        const garageId = serviceDetail.garage;
-
-        // 📌 Tạo appointment
+        // Create appointment
         const appointment = await appointmentService.createAppointmentService({
             userId,
-            garageId,
             serviceDetailId,
             vehicleId,
             date,
-            status: "Pending",
             start,
             end,
-            tag: "Normal",
-            note: note || "",
+            tag: "Normal", // Default tag value
+            note: note || "", // Default note value if not provided
         });
 
         res.status(201).json(appointment);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+export const getAppointmentsByUser = async (req, res) => {
+    const userId = req.user.id; // Get userId from token
+    try {
+        const appointments = await appointmentService.getAppointmentsByUserService(userId);
+        res.status(200).json(appointments);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
