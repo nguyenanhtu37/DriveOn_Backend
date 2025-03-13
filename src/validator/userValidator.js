@@ -24,22 +24,6 @@ export const validateUpdateProfile = (userData) => {
       errors.push("Số điện thoại không hợp lệ");
     }
   }
-  // Validate bankAccount
-  if (userData.bankAccount !== undefined) {
-    if (typeof userData.bankAccount !== 'string') {
-      errors.push("Số tài khoản phải là chuỗi số");
-    } else if (!/^\d+$/.test(userData.bankAccount)) {
-      errors.push("Số tài khoản chỉ được chứa số");
-    }
-  }
-  // Validate bankName
-  if (userData.bankName !== undefined) {
-    if (typeof userData.bankName !== 'string') {
-      errors.push("Tên ngân hàng phải là chuỗi ký tự");
-    } else if (userData.bankName.trim().length < 2) {
-      errors.push("Tên ngân hàng không hợp lệ");
-    }
-  }
   // Validate avatar URL
   if (userData.avatar !== undefined) {
     const urlRegex = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/;
