@@ -42,11 +42,6 @@ const garageSchema = new mongoose.Schema({
   documentImages: [{ //ảnh giấy tờ chứng minh
     type: String
   }],
-  coinBalance: {
-    type: Number,
-    required: true,
-    default: 0,
-  },
   createdAt: {
     type: Date,
     default: Date.now,

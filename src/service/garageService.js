@@ -9,7 +9,7 @@ import Feedback from "../models/feedback.js";
 const registerGarage = async (user, garageData) => {
   // Validate garageData
   validateGarageRegistration(garageData);
-  const { name, address, phone, email, description, openTime, closeTime, operating_days, facadeImages, interiorImages, documentImages, } = garageData;
+  const { name, address, phone, email, description, openTime, closeTime, operating_days, facadeImages, interiorImages, documentImages, status } = garageData;
   const newGarage = new Garage({
     name,
     address,
@@ -23,6 +23,7 @@ const registerGarage = async (user, garageData) => {
     interiorImages,
     documentImages,
     user: [user.id],
+    status
   });
   await newGarage.save();
   await User.findByIdAndUpdate(user.id, { $push: { garageList: newGarage._id } });
@@ -36,7 +37,7 @@ const viewGarages = async (userId) => {
   return garages;
 };
 
-const getGarageById = async (userId, garageId) => {
+const getGarageById = async (garageId) => {
   const garage = await Garage.findById(garageId);
   if (!garage) {
     throw new Error("Garage not found");
@@ -297,6 +298,7 @@ const disableGarage = async (garageId) => {
     throw new Error(err.message);
   }
 };
+
 export const calculateAverageRating = async (garageId) => {
   const feedbacks = await Feedback.find({ garage: garageId });
 
