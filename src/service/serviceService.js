@@ -47,5 +47,23 @@ const deleteService = async (serviceId) => {
   return { message: "Service deleted successfully" };
 };
 
-export { addService, getAllServices, updateService, deleteService };
+const escapeRegex = (text) => {
+  return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+};
+
+const searchServiceByName = async (name, limit = 10) => {
+  try {
+    const safeName = escapeRegex(name);
+    const services = await Service.find({
+      name: { $regex: safeName, $options: "i" }
+    }).limit(limit);
+    
+    return services;
+  } catch (error) {
+    console.error("Error while searching for services:", error);
+    throw new Error("Service search failed");
+  }
+};
+
+export { addService, getAllServices, updateService, deleteService, searchServiceByName };
 
