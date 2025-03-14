@@ -11,3 +11,11 @@ const addBrand = async (brandName, logo) => {
 };
 
 export { addBrand };
+const getBrands = async (req, res) => {
+  try {
+    const brandList = await Brand.find();
+    return brandList;
+  } catch (err) {
+    res.status(500).json({ error: err.message});
+  }
+};

@@ -70,16 +70,10 @@ app.use("/api/user", userRoutes);
 app.use("/api/vehicle", vehicleRoutes);
 app.use("/api/brand", brandRoutes);
 app.use("/api/favorite", favoriteRoutes);
-<<<<<<< HEAD
-app.use('/api/feedback', feedbackRoutes);
-
-
-=======
 app.use("/api/feedback", feedbackRoutes);
->>>>>>> ad96b9e71343e02c6863a949f1c439e7ff379c96
 app.use("/api/service", serviceRoutes);
 app.use("/api/service-detail", serviceDetailRoutes);
-
+app.use("/api/brand", brandRoutes);
 // Test Route
 app.get("/", (req, res) => {
   res.send("Hello, DriveOn Backend!");
