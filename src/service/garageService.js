@@ -1,7 +1,10 @@
 import Garage from "../models/garage.js";
 import User from "../models/user.js";
 import bcrypt from "bcrypt";
-import { validateGarageRegistration, validateUpdateGarage } from "../validator/garageValidator.js";
+import {
+  validateGarageRegistration,
+  validateUpdateGarage,
+} from "../validator/garageValidator.js";
 import { validateSignup } from "../validator/authValidator.js";
 import Role from "../models/role.js";
 import Feedback from "../models/feedback.js";
@@ -9,7 +12,20 @@ import Feedback from "../models/feedback.js";
 const registerGarage = async (user, garageData) => {
   // Validate garageData
   validateGarageRegistration(garageData);
-  const { name, address, phone, email, description, openTime, closeTime, operating_days, facadeImages, interiorImages, documentImages, status } = garageData;
+  const {
+    name,
+    address,
+    phone,
+    email,
+    description,
+    openTime,
+    closeTime,
+    operating_days,
+    facadeImages,
+    interiorImages,
+    documentImages,
+    status,
+  } = garageData;
   const newGarage = new Garage({
     name,
     address,
@@ -23,10 +39,12 @@ const registerGarage = async (user, garageData) => {
     interiorImages,
     documentImages,
     user: [user.id],
-    status
+    status,
   });
   await newGarage.save();
-  await User.findByIdAndUpdate(user.id, { $push: { garageList: newGarage._id } });
+  await User.findByIdAndUpdate(user.id, {
+    $push: { garageList: newGarage._id },
+  });
   return newGarage;
 };
 
@@ -38,7 +56,10 @@ const viewGarages = async (userId) => {
 };
 
 const getGarageById = async (garageId) => {
-  const garage = await Garage.findById(garageId);
+  const garage = await Garage.findById(garageId).populate(
+    "user",
+    "name email phone"
+  );
   if (!garage) {
     throw new Error("Garage not found");
   }
@@ -98,7 +119,10 @@ const deleteGarage = async (userId, garageId) => {
 
 const viewGarageRegistrations = async () => {
   try {
-    const garages = await Garage.find({ status: 'pending' }).populate('user', 'email name phone');
+    const garages = await Garage.find({ status: "pending" }).populate(
+      "user",
+      "email name phone"
+    );
     return garages;
   } catch (err) {
     throw new Error(err.message);
@@ -119,7 +143,7 @@ const approveGarageRegistration = async (garageId) => {
     if (!garage) {
       throw new Error("Garage not found");
     }
-    garage.status = 'approved';
+    garage.status = ["enabled", "approved"];
     await garage.save();
     return { message: "Garage registration approved successfully" };
   } catch (err) {
@@ -133,7 +157,7 @@ const rejectGarageRegistration = async (garageId) => {
     if (!garage) {
       throw new Error("Garage not found");
     }
-    garage.status = 'rejected';
+    garage.status = "rejected";
     await garage.save();
     return { message: "Garage registration rejected successfully" };
   } catch (err) {
@@ -185,7 +209,10 @@ const viewStaff = async (userId, garageId) => {
   if (!garage) {
     throw new Error("Garage not found");
   }
-  const staffList = await User.find({ garageList: garageId, roles: "67b60df8c465fe4f943b98cc" });
+  const staffList = await User.find({
+    garageList: garageId,
+    roles: "67b60df8c465fe4f943b98cc",
+  });
   return staffList;
 };
 
@@ -268,7 +295,7 @@ const enableGarage = async (garageId) => {
       throw new Error("Garage not found");
     }
     if (!garage.status.includes("enabled")) {
-      garage.status = garage.status.filter(status => status !== "disabled");
+      garage.status = garage.status.filter((status) => status !== "disabled");
       garage.status.push("enabled");
     }
     garage.updatedAt = new Date();
@@ -287,7 +314,7 @@ const disableGarage = async (garageId) => {
       throw new Error("Garage not found");
     }
     if (!garage.status.includes("disabled")) {
-      garage.status = garage.status.filter(status => status !== "enabled");
+      garage.status = garage.status.filter((status) => status !== "enabled");
       garage.status.push("disabled");
     }
     garage.updatedAt = new Date();
@@ -302,7 +329,9 @@ const disableGarage = async (garageId) => {
 export const calculateAverageRating = async (garageId) => {
   const feedbacks = await Feedback.find({ garage: garageId });
 
-  const averageRating = feedbacks.reduce((acc, feedback) => acc + feedback.rating, 0) / feedbacks.length || 0;
+  const averageRating =
+    feedbacks.reduce((acc, feedback) => acc + feedback.rating, 0) /
+      feedbacks.length || 0;
   return averageRating;
 };
 
@@ -321,13 +350,15 @@ export const calculateAverageRating = async (garageId) => {
 // };
 export const filterGaragesByRating = async (minRating = 0) => {
   try {
-    const garages = await Garage.find().select('name address phone email ratingAverage');
-    const filteredGarages = garages.filter(garage => garage.ratingAverage >= minRating);
+    const garages = await Garage.find().select(
+      "name address phone email ratingAverage"
+    );
+    const filteredGarages = garages.filter(
+      (garage) => garage.ratingAverage >= minRating
+    );
     for (const garage of garages) {
-      const averageRating = await calculateAverageRating(garage._id) ||
-          0;
-      garage.ratingAverage =
-          averageRating;
+      const averageRating = (await calculateAverageRating(garage._id)) || 0;
+      garage.ratingAverage = averageRating;
       await garage.save();
     }
     filteredGarages.sort((a, b) => b.ratingAverage - a.ratingAverage);
@@ -337,4 +368,22 @@ export const filterGaragesByRating = async (minRating = 0) => {
     throw new Error(err.message);
   }
 };
-export { registerGarage, viewGarages, getGarageById, updateGarage, deleteGarage, viewGarageRegistrations, approveGarageRegistration, rejectGarageRegistration, getGarageRegistrationById, addStaff, viewStaff, disableStaff, enableStaff, getStaffById, enableGarage, disableGarage,viewGarageExisting };
+export {
+  registerGarage,
+  viewGarages,
+  getGarageById,
+  updateGarage,
+  deleteGarage,
+  viewGarageRegistrations,
+  approveGarageRegistration,
+  rejectGarageRegistration,
+  getGarageRegistrationById,
+  addStaff,
+  viewStaff,
+  disableStaff,
+  enableStaff,
+  getStaffById,
+  enableGarage,
+  disableGarage,
+  viewGarageExisting,
+};
