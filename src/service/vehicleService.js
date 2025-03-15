@@ -1,10 +1,18 @@
 import Vehicle from "../models/vehicle.js";
 import User from "../models/user.js";
 import { validateAddVehicle, validateUpdateVehicle } from "../validator/vehicleValidator.js";
+import Brand from "../models/brand.js"; 
 
 const addVehicle = async (user, vehicleData) => {
-  // hàm validate dữ liệu
+  // Validate dữ liệu
   validateAddVehicle(vehicleData);
+
+  // Kiểm tra sự tồn tại của carBrand
+  const brandExists = await Brand.exists({ _id: vehicleData.carBrand });
+  if (!brandExists) {
+    throw new Error("Car brand not found");
+  }
+
   const { carBrand, carName, carYear, carColor, carPlate } = vehicleData;
   const newVehicle = new Vehicle({
     carBrand,
@@ -17,8 +25,6 @@ const addVehicle = async (user, vehicleData) => {
     updatedAt: new Date(),
   });
   await newVehicle.save();
-  // Lưu vô Vehicle chưa đồng nghĩa là bên User cũng có nha. 
-  // Phải có dòng ni thì hắn mới update thuộc tính vehicles bên đó chứ @KhangNV?
   await User.findByIdAndUpdate(user.id, { $push: { vehicles: newVehicle._id } });
   return newVehicle;
 };
@@ -36,25 +42,33 @@ const getVehicleById = async (vehicleId) => {
     return vehicle;
 };
 
-  const updateVehicle = async (userId, vehicleId, updateData) => {
-    // validate update data
-    validateUpdateVehicle(updateData);
-    const { carBrand, carName, carYear, carColor, carPlate } = updateData;
-    const vehicle = await Vehicle.findById(vehicleId);
-    if (!vehicle) {
-      throw new Error("Vehicle not found");
+const updateVehicle = async (userId, vehicleId, updateData) => {
+  // Validate update data
+  validateUpdateVehicle(updateData);
+
+  if (updateData.carBrand) {
+    const brandExists = await Brand.exists({ _id: updateData.carBrand });
+    if (!brandExists) {
+      throw new Error("Car brand not found");
     }
-    if (vehicle.carOwner.toString() !== userId) {
-      throw new Error("Unauthorized");
-    }
-    vehicle.carBrand = carBrand || vehicle.carBrand;
-    vehicle.carName = carName || vehicle.carName;
-    vehicle.carYear = carYear || vehicle.carYear;
-    vehicle.carColor = carColor || vehicle.carColor;
-    vehicle.carPlate = carPlate || vehicle.carPlate;
-    vehicle.updatedAt = new Date();
-    await vehicle.save();
-    return vehicle;
+  }
+
+  const { carBrand, carName, carYear, carColor, carPlate } = updateData;
+  const vehicle = await Vehicle.findById(vehicleId);
+  if (!vehicle) {
+    throw new Error("Vehicle not found");
+  }
+  if (vehicle.carOwner.toString() !== userId) {
+    throw new Error("Unauthorized");
+  }
+  vehicle.carBrand = carBrand || vehicle.carBrand;
+  vehicle.carName = carName || vehicle.carName;
+  vehicle.carYear = carYear || vehicle.carYear;
+  vehicle.carColor = carColor || vehicle.carColor;
+  vehicle.carPlate = carPlate || vehicle.carPlate;
+  vehicle.updatedAt = new Date();
+  await vehicle.save();
+  return vehicle;
 };
 
 const deleteVehicle = async (userId, vehicleId) => {

@@ -40,7 +40,7 @@ router.get('/garage-registrations/:id', adminMiddleware, getGarageRegistrationBy
 router.post('/garage-registrations/:id/approve', adminMiddleware, approveGarageRegistration); // approve garage registration
 router.post('/garage-registrations/:id/reject', adminMiddleware, rejectGarageRegistration); // reject garage registration
 router.get("/garages", authMiddleware, viewGarages); // view all garages that are managed by the garage manager
-router.put("/garages/:id", updateGarage);
+router.put("/garages/:id", authMiddleware, updateGarage);
 // router.delete('/garage/:id', deleteGarage);
 
 router.get('/existing', viewGarageExisting);

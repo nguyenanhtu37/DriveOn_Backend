@@ -1,71 +1,34 @@
-export const validateAddVehicle = (vehicleData) => {
-    const errors = [];
-    // Validate carBrand
-    if (!vehicleData.carBrand) {
-      errors.push("Car brand is required");
-    }
-    // Validate carName
-    if (!vehicleData.carName) {
-      errors.push("Car name is required");
-    } else if (typeof vehicleData.carName !== 'string') {
-      errors.push("Car name must be a string");
-    }
-    // Validate carYear
-    if (!vehicleData.carYear) {
-      errors.push("Car year is required");
-    } else if (typeof vehicleData.carYear !== 'string') {
-      errors.push("Car year must be a string");
-    }
-    // Validate carColor
-    if (!vehicleData.carColor) {
-      errors.push("Car color is required");
-    } else if (typeof vehicleData.carColor !== 'string') {
-      errors.push("Car color must be a string");
-    }
-    // Validate carPlate
-    if (!vehicleData.carPlate) {
-      errors.push("Car plate is required");
-    } else if (typeof vehicleData.carPlate !== 'string') {
-      errors.push("Car plate must be a string");
-    }
-    if (errors.length > 0) {
-      throw new Error(errors.join(", "));
-    }
-    return true;
-  };
+import { z } from "zod";
 
-  export const validateUpdateVehicle = (vehicleData) => {
-    const errors = [];
-    // Validate carBrand
-    if (vehicleData.carBrand !== undefined && !vehicleData.carBrand) {
-      errors.push("Car brand is required");
-    }
-    // Validate carName
-    if (vehicleData.carName !== undefined) {
-      if (typeof vehicleData.carName !== 'string') {
-        errors.push("Car name must be a string");
-      }
-    }
-    // Validate carYear
-    if (vehicleData.carYear !== undefined) {
-      if (typeof vehicleData.carYear !== 'string') {
-        errors.push("Car year must be a string");
-      }
-    }
-    // Validate carColor
-    if (vehicleData.carColor !== undefined) {
-      if (typeof vehicleData.carColor !== 'string') {
-        errors.push("Car color must be a string");
-      }
-    }
-    // Validate carPlate
-    if (vehicleData.carPlate !== undefined) {
-      if (typeof vehicleData.carPlate !== 'string') {
-        errors.push("Car plate must be a string");
-      }
-    }
-    if (errors.length > 0) {
-      throw new Error(errors.join(", "));
-    }
-    return true;
-  };
+// Lấy năm hiện tại
+const currentYear = new Date().getFullYear();
+
+const vehicleSchema = z.object({
+  carBrand: z.string().nonempty("Car brand is required"),
+  carName: z.string().nonempty("Car name is required"),
+  carYear: z.string().refine((year) => {
+    const parsedYear = parseInt(year);
+    return parsedYear > 1970 && parsedYear < currentYear;
+  }, {
+    message: `Car year must be a valid number and less than ${currentYear}`,
+  }),
+  carColor: z.string().nonempty("Car color is required"),
+  carPlate: z.string().nonempty("Car plate is required"),
+});
+
+export const validateAddVehicle = (vehicleData) => {
+  try {
+    vehicleSchema.parse(vehicleData);
+  } catch (e) {
+    throw new Error(e.errors.map((err) => err.message).join(", "));
+  }
+};
+
+export const validateUpdateVehicle = (vehicleData) => {
+  const updateSchema = vehicleSchema.partial();
+  try {
+    updateSchema.parse(vehicleData);
+  } catch (e) {
+    throw new Error(e.errors.map((err) => err.message).join(", "));
+  }
+};
