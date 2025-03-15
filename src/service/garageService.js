@@ -45,40 +45,39 @@ const getGarageById = async (garageId) => {
   return garage;
 };
 
+
+
 const updateGarage = async (userId, garageId, updateData) => {
   // Validate updateData
   validateUpdateGarage(updateData);
-  const {
-    name,
-    address,
-    phone,
-    email,
-    description,
-    openTime,
-    closeTime,
-    operating_days,
-    facadeImages,
-    interiorImages,
-    documentImages,
-  } = updateData;
+
   const garage = await Garage.findById(garageId);
   if (!garage) {
     throw new Error("Garage not found");
   }
-  if (garage.user.toString() !== userId) {
+  if (!garage.user.includes(userId)) {
     throw new Error("Unauthorized");
   }
-  garage.name = name || garage.name;
-  garage.address = address || garage.address;
-  garage.phone = phone || garage.phone;
-  garage.email = email || garage.email;
-  garage.description = description || garage.description;
-  garage.openTime = openTime || garage.openTime;
-  garage.closeTime = closeTime || garage.closeTime;
-  garage.operating_days = operating_days || garage.operating_days;
-  garage.facadeImages = facadeImages || garage.facadeImages;
-  garage.interiorImages = interiorImages || garage.interiorImages;
-  garage.documentImages = documentImages || garage.documentImages;
+  // Cập nhật các trường cho garage hahaa
+  const fieldsToUpdate = [
+    "name",
+    "address",
+    "phone",
+    "email",
+    "description",
+    "openTime",
+    "closeTime",
+    "operating_days",
+    "facadeImages",
+    "interiorImages",
+    "documentImages"
+  ];
+  fieldsToUpdate.forEach(field => {
+    if (updateData[field] !== undefined) {
+      garage[field] = updateData[field];
+    }
+  });
+
   garage.updatedAt = new Date();
   await garage.save();
   return garage;
