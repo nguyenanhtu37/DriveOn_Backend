@@ -1,11 +1,15 @@
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import { OAuth2Client } from 'google-auth-library';
-import redis from '../config/redis.js';
-import transporter from '../config/mailer.js';
-import User from '../models/user.js';
-import Role from '../models/role.js';
-import { validateLogin, validateResetPassword, validateSignup } from '../validator/authValidator.js';
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import { OAuth2Client } from "google-auth-library";
+import redis from "../config/redis.js";
+import transporter from "../config/mailer.js";
+import User from "../models/user.js";
+import Role from "../models/role.js";
+import {
+  validateLogin,
+  validateResetPassword,
+  validateSignup,
+} from "../validator/authValidator.js";
 
 const signup = async (userData) => {
   // Validate userData
@@ -16,8 +20,12 @@ const signup = async (userData) => {
   if (existingUser) throw new Error("Email already exists");
   // hash pass
   const hashedPassword = await bcrypt.hash(password, 10);
-  // tao token verify   
-  const token = jwt.sign({ email, password: hashedPassword, name, phone, roles, avatar }, process.env.JWT_SECRET, { expiresIn: "15m" });
+  // tao token verify
+  const token = jwt.sign(
+    { email, password: hashedPassword, name, phone, roles, avatar },
+    process.env.JWT_SECRET,
+    { expiresIn: "15m" }
+  );
   // luu token vao redis (key: email, value: token)
   await redis.setex(email, 900, token); // 15'
   // gui mail xminh
@@ -31,8 +39,8 @@ const signup = async (userData) => {
       <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
         <p style="font-size: 18px; margin-bottom: 10px;">Thank you for registering with <strong>DriveOn!</strong></p>
         <p style="font-size: 16px; margin-bottom: 20px;">
-          Please click 
-          <a href="${link}" style="color: #007BFF; text-decoration: none; font-weight: bold;">here</a> 
+          Please click
+          <a href="${link}" style="color: #007BFF; text-decoration: none; font-weight: bold;">here</a>
           to verify your account and complete your registration process.
         </p>
         <p style="font-size: 14px; font-style: italic; color: #777;">Best regards,</p>
@@ -48,9 +56,12 @@ const verifyEmail = async (token) => {
   const payload = jwt.verify(token, process.env.JWT_SECRET);
   // check token co ton tai trong redis k
   const storedToken = await redis.get(payload.email);
-  if (!storedToken || storedToken !== token) throw new Error("Invalid or expired token");
+  if (!storedToken || storedToken !== token)
+    throw new Error("Invalid or expired token");
   // tim role mac dinh tu db
-  const defaultRole = await Role.find({ roleName: { $in: ["carowner", "manager"] } });
+  const defaultRole = await Role.find({
+    roleName: { $in: ["carowner", "manager"] },
+  });
   if (!defaultRole || defaultRole.length < 2) {
     throw new Error("Default role not found");
   }
@@ -60,7 +71,7 @@ const verifyEmail = async (token) => {
     password: payload.password,
     name: payload.name,
     phone: payload.phone,
-    roles: defaultRole.map(role => role._id),
+    roles: defaultRole.map((role) => role._id),
     avatar: payload.avatar,
   });
   await user.save();
@@ -71,7 +82,9 @@ const login = async (email, password) => {
   // validate input
   validateLogin(email, password);
   // find user by email
-  const user = await User.findOne({ email }).populate('roles').populate('garageList');
+  const user = await User.findOne({ email })
+    .populate("roles")
+    .populate("garageList");
   if (!user) throw new Error("Invalid email or password");
   // check status
   if (user.status !== "active") throw new Error("Account is not active");
@@ -84,12 +97,20 @@ const login = async (email, password) => {
   }
   // tao jwt token
   const token = jwt.sign(
-    { id: user._id, email: user.email, roles: user.roles.map(role => role.roleName) },
+    {
+      id: user._id,
+      email: user.email,
+      roles: user.roles.map((role) => role.roleName),
+    },
     process.env.JWT_SECRET,
-    { algorithm: 'HS256', expiresIn: "1h" }
+    { algorithm: "HS256", expiresIn: "1h" }
   );
-  console.log(`User ID: ${user._id}, Email: ${user.email}, Roles: ${user.roles.map(role => role.roleName)}`);
-  return { token };
+  console.log(
+    `User ID: ${user._id}, Email: ${user.email}, Roles: ${user.roles.map(
+      (role) => role.roleName
+    )}`
+  );
+  return { user, token };
 };
 
 const requestPasswordReset = async (email) => {
@@ -97,7 +118,11 @@ const requestPasswordReset = async (email) => {
   const user = await User.findOne({ email });
   if (!user) throw new Error("User does not exist!");
   // tao token reset pass
-  const token = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: "15m" });
+  const token = jwt.sign(
+    { id: user._id, email: user.email },
+    process.env.JWT_SECRET,
+    { expiresIn: "15m" }
+  );
   // luu token vao redis (key: email, value: token)
   await redis.setex(email, 900, token); // 15'
   const checkToken = await redis.get(email);
@@ -132,7 +157,7 @@ const resetPassword = async (token, newPassword) => {
     // Update password
     await User.findByIdAndUpdate(payload.id, {
       password: hashedPassword,
-      updatedAt: new Date()
+      updatedAt: new Date(),
     });
     // Xóa token trong redis sau khi reset thành công
     await redis.del(payload.email);
@@ -158,23 +183,36 @@ const logout = async (token) => {
 
 const googleLogin = async (token) => {
   try {
-    // xac thuc token google 
+    // xac thuc token google
     const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
     const ticket = await client.verifyIdToken({
       idToken: token,
       audience: process.env.GOOGLE_CLIENT_ID,
     });
-    // lay thong tin tu payload 
+    // lay thong tin tu payload
     let payload = ticket.getPayload();
     console.log("Google login payload:", payload);
-    const { email, name, sub, email_verified, picture, locale, given_name, family_name } = payload;
+    const {
+      email,
+      name,
+      sub,
+      email_verified,
+      picture,
+      locale,
+      given_name,
+      family_name,
+    } = payload;
     // tim user theo email va googleId
-    let user = await User.findOne({ email, googleId: sub }).populate('roles').populate('garageList');
+    let user = await User.findOne({ email, googleId: sub })
+      .populate("roles")
+      .populate("garageList");
     // neu k ton tai thi tao moi
     if (!user) {
       console.log("User not found, creating new user...");
       // tim role mac dinh tu db
-      const defaultRole = await Role.find({ roleName: { $in: ["carowner", "manager"] } });
+      const defaultRole = await Role.find({
+        roleName: { $in: ["carowner", "manager"] },
+      });
       if (!defaultRole || defaultRole.length < 2) {
         throw new Error("Default role not found");
       }
@@ -190,16 +228,20 @@ const googleLogin = async (token) => {
         locale,
         givenName: given_name,
         familyName: family_name,
-        roles: defaultRole.map(role => role._id),
+        roles: defaultRole.map((role) => role._id),
       });
       await user.save();
       console.log("New user created:", user);
     }
     // tao jwt token
     const jwtToken = jwt.sign(
-      { id: user._id, email: user.email, roles: user.roles.map(role => role.roleName), },
+      {
+        id: user._id,
+        email: user.email,
+        roles: user.roles.map((role) => role.roleName),
+      },
       process.env.JWT_SECRET,
-      { algorithm: 'HS256', expiresIn: "1h" }
+      { algorithm: "HS256", expiresIn: "1h" }
     );
     // tra ve token
     console.log("User logged in:", user);
@@ -211,4 +253,12 @@ const googleLogin = async (token) => {
   }
 };
 
-export { signup, verifyEmail, login, requestPasswordReset, resetPassword, logout, googleLogin };
+export {
+  signup,
+  verifyEmail,
+  login,
+  requestPasswordReset,
+  resetPassword,
+  logout,
+  googleLogin,
+};
