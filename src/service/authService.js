@@ -10,14 +10,14 @@ import { validateLogin, validateResetPassword, validateSignup } from '../validat
 const signup = async (userData) => {
   // Validate userData
   validateSignup(userData);
-  const { email, password, name, phone, roles } = userData;
+  const { email, password, name, phone, roles, avatar } = userData;
   // check email da ton tai chua
   const existingUser = await User.findOne({ email });
   if (existingUser) throw new Error("Email already exists");
   // hash pass
   const hashedPassword = await bcrypt.hash(password, 10);
   // tao token verify   
-  const token = jwt.sign({ email, password: hashedPassword, name, phone, roles }, process.env.JWT_SECRET, { expiresIn: "15m" });
+  const token = jwt.sign({ email, password: hashedPassword, name, phone, roles, avatar }, process.env.JWT_SECRET, { expiresIn: "15m" });
   // luu token vao redis (key: email, value: token)
   await redis.setex(email, 900, token); // 15'
   // gui mail xminh
@@ -61,6 +61,7 @@ const verifyEmail = async (token) => {
     name: payload.name,
     phone: payload.phone,
     roles: defaultRole.map(role => role._id),
+    avatar: payload.avatar,
   });
   await user.save();
   return { message: "Email verified successfully" };
@@ -102,7 +103,7 @@ const requestPasswordReset = async (email) => {
   const checkToken = await redis.get(email);
   console.log("Token saved in Redis:", checkToken);
   // gui mail reset
-  const link = `http://localhost:${process.env.PORT}/api/auth/reset-password?token=${token}`;
+  const link = `http://localhost:5173/reset-password?token=${token}`;
   await transporter.sendMail({
     from: process.env.MAIL_USER,
     to: email,
