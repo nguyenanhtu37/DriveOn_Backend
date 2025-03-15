@@ -1,6 +1,7 @@
 import ServiceDetail from "../models/serviceDetail.js";
 import { validateAddServiceDetail, validateUpdateServiceDetail } from "../validator/serviceDetailValidator.js";
 
+
 const addServiceDetail = async (serviceDetailData) => {
   // Validate service detail data
   validateAddServiceDetail(serviceDetailData);
@@ -23,8 +24,12 @@ const addServiceDetail = async (serviceDetailData) => {
 };
 
 const getServiceDetailsByGarage = async (garageId) => {
-    const serviceDetails = await ServiceDetail.find({ garage: garageId }).populate("service").populate("garage");
-    return serviceDetails;
+  const garageExists = await ServiceDetail.exists({ garage: garageId });
+  if (!garageExists) {
+      throw new Error("Garage not found");
+  }
+  const serviceDetails = await ServiceDetail.find({ garage: garageId }).populate("service").populate("garage");
+  return serviceDetails;
 };
 
 const updateServiceDetail = async (serviceDetailId, updateData) => {
@@ -54,6 +59,7 @@ const deleteServiceDetail = async (serviceDetailId) => {
     await serviceDetail.deleteOne();
     return { message: "Service detail deleted successfully" };
 };
+
  export const getServiceDetailById = async (serviceDetailId) => {
      const serviceDetail = await ServiceDetail.findById(serviceDetailId)
          .populate("service")
