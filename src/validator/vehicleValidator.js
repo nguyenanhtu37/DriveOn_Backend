@@ -6,8 +6,11 @@ const currentYear = new Date().getFullYear();
 const vehicleSchema = z.object({
   carBrand: z.string().nonempty("Car brand is required"),
   carName: z.string().nonempty("Car name is required"),
-  carYear: z.string().refine((year) => parseInt(year) < currentYear, {
-    message: `Car year must be less than ${currentYear}`,
+  carYear: z.string().refine((year) => {
+    const parsedYear = parseInt(year);
+    return parsedYear > 1970 && parsedYear < currentYear;
+  }, {
+    message: `Car year must be a valid number and less than ${currentYear}`,
   }),
   carColor: z.string().nonempty("Car color is required"),
   carPlate: z.string().nonempty("Car plate is required"),
