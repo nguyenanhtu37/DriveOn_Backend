@@ -1,8 +1,11 @@
 import Feedback from '../models/feedback.js';
 import Garage from '../models/garage.js';
 import Service from '../models/service.js';
+import { validateAddFeedback, validateUpdateFeedback } from "../validator/feedbackValidator.js";
 
 export const addFeedback = async (userId, feedbackData) => {
+    validateAddFeedback(feedbackData);
+
     const { garage, rating, text, service } = feedbackData;
 
     // Check xem garage ni có exist ko
@@ -57,6 +60,7 @@ export const getFeedbackByGarageId = async (garageId) => {
 
 
 export const updateFeedback = async (userId, feedbackId, updateData) => {
+    validateUpdateFeedback(updateData);
     const { rating, text } = updateData;
 
     const feedback = await Feedback.findById(feedbackId);
