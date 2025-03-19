@@ -48,23 +48,33 @@ export const getFeedbackByGarageId = async (garageId) => {
 export const updateFeedback = async (userId, feedbackId, updateData) => {
     const { rating, text } = updateData;
 
-    // Tìm feedback theo ID
     const feedback = await Feedback.findById(feedbackId);
     if (!feedback) {
         throw new Error("Feedback not found");
     }
 
-    // Kiểm tra quyền sở hữu feedback
     if (feedback.user.toString() !== userId) {
         throw new Error("Unauthorized");
     }
-
-    // Cập nhật các trường
     feedback.rating = rating !== undefined ? rating : feedback.rating;
     feedback.text = text !== undefined ? text : feedback.text;
     feedback.updatedAt = new Date();
 
-    // Lưu feedback đã cập nhật
     await feedback.save();
     return feedback;
+};
+
+
+export const deleteFeedback = async (userId, feedbackId) => {
+    const feedback = await Feedback.findById(feedbackId);
+    if (!feedback) {
+        throw new Error("Feedback not found");
+    }
+
+    if (feedback.user.toString() !== userId) {
+        throw new Error("Unauthorized");
+    }
+
+    await feedback.deleteOne();
+    return { message: "Feedback deleted successfully" };
 };

@@ -25,7 +25,7 @@ export const addFeedback = async (req, res) => {
 };
 
 export const updateFeedback = async (req, res) => {
-    const userId = req.user.id; // Lấy userId từ middleware xác thực
+    const userId = req.user.id; 
     const { id } = req.params; // feedback ID
     try {
         const updatedFeedback = await feedbackService.updateFeedback(userId, id, req.body);
@@ -33,6 +33,17 @@ export const updateFeedback = async (req, res) => {
             message: "Feedback updated successfully",
             feedback: updatedFeedback,
         });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+export const deleteFeedback = async (req, res) => {
+    const userId = req.user.id; 
+    const { id } = req.params; // feedback ID
+    try {
+        const result = await feedbackService.deleteFeedback(userId, id);
+        res.status(200).json(result);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
