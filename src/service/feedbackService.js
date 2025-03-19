@@ -29,6 +29,17 @@ export const addFeedback = async (userId, feedbackData) => {
     });
 
     await newFeedback.save();
+
+    // rating trung bình cho garage
+    const feedbacks = await Feedback.find({ garage });
+
+    const averageRating =
+        feedbacks.reduce((acc, feedback) => acc + feedback.rating, 0) /
+            feedbacks.length || 0;
+
+    garageExists.ratingAverage = averageRating;
+    await garageExists.save();
+
     return newFeedback;
 };
 
@@ -61,6 +72,19 @@ export const updateFeedback = async (userId, feedbackId, updateData) => {
     feedback.updatedAt = new Date();
 
     await feedback.save();
+
+    // Cập nhật rating trung bình cho garage
+    const feedbacks = await Feedback.find({ garage: feedback.garage });
+    const averageRating =
+        feedbacks.reduce((acc, feedback) => acc + feedback.rating, 0) /
+        feedbacks.length || 0; // tránh lỗi chia cho 0
+
+    const garage = await Garage.findById(feedback.garage);
+    if (garage) {
+        garage.ratingAverage = averageRating;
+        await garage.save();
+    }
+
     return feedback;
 };
 
