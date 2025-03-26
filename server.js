@@ -12,12 +12,8 @@ import roleRoutes from "./src/routes/roleRoutes.js";
 import vehicleRoutes from "./src/routes/vehicleRoutes.js";
 import brandRoutes from "./src/routes/brandRoutes.js";
 import favoriteRoutes from "./src/routes/favoriteRoutes.js";
-import feedbackRoutes from './src/routes/feedbackRoutes.js';
+import feedbackRoutes from "./src/routes/feedbackRoutes.js";
 import appointmentRoutes from "./src/routes/appointmentRoutes.js"; // Import appointment routes
-
-
-
-
 
 import serviceRoutes from "./src/routes/serviceRoutes.js";
 import serviceDetailRoutes from "./src/routes/serviceDetailRoutes.js";
@@ -29,11 +25,6 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Allowed origins
-const allowedOrigins = [
-  "https://driveon-deploy.vercel.app",
-  "https://drive-on-frontend-1tcaq008x-nguyen-anh-tus-projects.vercel.app/",
-  "http://localhost:5173",
-];
 
 // Middleware
 app.use(express.json());
@@ -42,13 +33,7 @@ app.use(bodyParser.json());
 // CORS Config
 app.use(
   cors({
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
+    origin: "*", // Cho phép tất cả các origin
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
@@ -59,7 +44,10 @@ app.use(
 app.use((req, res, next) => {
   res.setHeader("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
   res.setHeader("Cross-Origin-Embedder-Policy", "credentialless");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET, POST, PUT, DELETE, OPTIONS"
+  );
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
   res.setHeader("Access-Control-Allow-Credentials", "true");
   next();
@@ -81,7 +69,6 @@ app.use("/api/service", serviceRoutes);
 app.use("/api/service-detail", serviceDetailRoutes);
 
 app.use("/api/appointment", appointmentRoutes);
-
 
 // Test Route
 app.get("/", (req, res) => {

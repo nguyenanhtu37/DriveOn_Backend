@@ -33,8 +33,6 @@ router.put("/:id/staff/enable", authMiddleware, enableStaff);
 //filter
 router.get('/filter-by-rating', filterGaragesByRating);
 
-
-
 router.post("/register-garage", authMiddleware, registerGarage); // register new garage
 router.get("/garages/:id", getGarageById); // view garage details  
 router.get('/garage-registrations', adminMiddleware, viewGarageRegistrations); // view garage registration list
