@@ -14,6 +14,7 @@ const vehicleSchema = z.object({
   }),
   carColor: z.string().nonempty("Car color is required"),
   carPlate: z.string().nonempty("Car plate is required"),
+  carImages: z.array(z.string().url()).nonempty("At least one car image is required"),
 });
 
 export const validateAddVehicle = (vehicleData) => {
