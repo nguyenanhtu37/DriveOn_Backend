@@ -13,13 +13,14 @@ const addVehicle = async (user, vehicleData) => {
     throw new Error("Car brand not found");
   }
 
-  const { carBrand, carName, carYear, carColor, carPlate } = vehicleData;
+  const { carBrand, carName, carYear, carColor, carPlate, carImages } = vehicleData;
   const newVehicle = new Vehicle({
     carBrand,
     carName,
     carYear,
     carColor,
     carPlate,
+    carImages, // Thêm carImages
     carOwner: user.id,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -30,16 +31,20 @@ const addVehicle = async (user, vehicleData) => {
 };
 
 const viewVehicles = async (userId) => {
-    const vehicles = await Vehicle.find({ carOwner: userId }).populate('carOwner');
-    return vehicles;
+  const vehicles = await Vehicle.find({ carOwner: userId })
+    .populate('carOwner')
+    .select('carBrand carName carYear carColor carPlate carImages'); 
+  return vehicles;
 };
 
 const getVehicleById = async (vehicleId) => {
-    const vehicle = await Vehicle.findById(vehicleId).populate('carOwner');
-    if (!vehicle) {
-      throw new Error("Vehicle not found");
-    }
-    return vehicle;
+  const vehicle = await Vehicle.findById(vehicleId)
+    .populate('carOwner')
+    .select('carBrand carName carYear carColor carPlate carImages'); 
+  if (!vehicle) {
+    throw new Error("Vehicle not found");
+  }
+  return vehicle;
 };
 
 const updateVehicle = async (userId, vehicleId, updateData) => {
@@ -53,7 +58,7 @@ const updateVehicle = async (userId, vehicleId, updateData) => {
     }
   }
 
-  const { carBrand, carName, carYear, carColor, carPlate } = updateData;
+  const { carBrand, carName, carYear, carColor, carPlate, carImages } = updateData;
   const vehicle = await Vehicle.findById(vehicleId);
   if (!vehicle) {
     throw new Error("Vehicle not found");
@@ -66,6 +71,7 @@ const updateVehicle = async (userId, vehicleId, updateData) => {
   vehicle.carYear = carYear || vehicle.carYear;
   vehicle.carColor = carColor || vehicle.carColor;
   vehicle.carPlate = carPlate || vehicle.carPlate;
+  vehicle.carImages = carImages || vehicle.carImages; // Cập nhật carImages
   vehicle.updatedAt = new Date();
   await vehicle.save();
   return vehicle;
