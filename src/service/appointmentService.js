@@ -2,7 +2,7 @@ import Appointment from "../models/appointment.js";
 import ServiceDetail from "../models/serviceDetail.js";
 import Garage from "../models/garage.js";
 import User from "../models/user.js";
-import { createAppointmentValidate } from "../validator/appointmentValidator.js";
+import { createAppointmentValidate,updateAppointmentValidate } from "../validator/appointmentValidator.js";
 
 // Add this helper function to appointmentService.js
 const checkVehicleDoubleBooking = async (vehicleId, garageId, date, start, end, currentAppointmentId = null) => {
@@ -112,7 +112,7 @@ export const createAppointmentService = async ({
     garage,
     service,
     vehicle,
-    date: startTime, // Dùng startTime đã chuyển đổi thay vì date string
+    date: startTime,
     start,
     end,
     tag,
@@ -272,7 +272,45 @@ export const updateAppointmentService = async (
     throw new Error("Only pending appointments can be updated");
   }
 
-  // If updating time/date/garage, check for double booking
+  // Validate date and time if they are being updated
+  if (updateData.date || updateData.start || updateData.end) {
+    const date = updateData.date || appointment.date;
+    const start = updateData.start || appointment.start;
+    const end = updateData.end || appointment.end;
+
+    const { startTime, endTime, isValid, error } = convertAndValidateDateTime(date, start, end);
+    if (!isValid) {
+      throw new Error(error);
+    }
+
+    // Update with validated startTime
+    if (updateData.date) {
+      updateData.date = startTime;
+    }
+  }
+
+  // Create combined data for validation with proper string conversion
+  const validationData = {
+    user: appointment.user.toString(),
+    garage: (updateData.garage || appointment.garage).toString(),
+    service: (updateData.service || appointment.service).map(s => s.toString()),
+    vehicle: (updateData.vehicle || appointment.vehicle).toString(),
+    date: updateData.date || appointment.date,
+    start: updateData.start || appointment.start,
+    end: updateData.end || appointment.end,
+    tag: updateData.tag || appointment.tag,
+    note: updateData.note || appointment.note
+  };
+
+  // Validate updated appointment data
+  const { valid, errors } = updateAppointmentValidate(validationData);
+  if (!valid) {
+    console.error("Validation errors:", errors);
+    const errorMessages = Array.isArray(errors) ? errors.map(error => error.message).join(", ") : "Validation failed";
+    throw new Error(errorMessages);
+  }
+
+  // Check for double booking if relevant fields are updated
   if (updateData.date || updateData.start || updateData.end || updateData.garage) {
     const bookingCheck = await checkVehicleDoubleBooking(
         appointment.vehicle,
