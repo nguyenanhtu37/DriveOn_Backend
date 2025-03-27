@@ -1,55 +1,36 @@
 import { z } from "zod";
 
-// Function to validate start time
-const validateStartTime = (start) => {
-    const now = new Date();
-    const [startHour, startMinute] = start.split(":").map(Number);
-    const startDateTime = new Date();
-    startDateTime.setHours(startHour, startMinute, 0, 0);
-    return startDateTime > now;
-};
+// Validate date format (YYYY-MM-DD)
+const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format. Use YYYY-MM-DD.");
 
-// Function to validate end time
-const validateEndTime = (end, ctx) => {
-    const [endHour, endMinute] = end.split(":").map(Number);
-    const endDateTime = new Date();
-    endDateTime.setHours(endHour, endMinute, 0, 0);
-    const startDateTime = new Date();
-    const [startHour, startMinute] = ctx.parent.start.split(":").map(Number);
-    startDateTime.setHours(startHour, startMinute, 0, 0);
-    return endDateTime > startDateTime;
-};
+// Validate time format (HH:mm)
+const timeSchema = z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Invalid time format. Use HH:mm.");
 
-// Function to validate date - must be today or in the future
-const validateDate = (date) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); // Set time to 00:00:00 of today
-    return date >= today;
-};
-
-// Schema validation using Zod
 const appointmentSchema = z.object({
-    user: z.string().nonempty("User ID is required"), // User ID
-    garage: z.string().nonempty("Garage ID is required"), // Garage ID
-    service: z.array(z.string().nonempty("Service ID is required")).nonempty("At least one service is required"), // Required services
-    vehicle: z.string().nonempty("Vehicle ID is required"), // Vehicle ID
-    // date: z.date().refine(validateDate, { message: "Date must be today or in the future" }), // Date must be today or in the future
-    // start: z.string().refine(validateStartTime, { message: "Start time must be in the future" }), // Start time must be in the future
-    // end: z.string().refine(validateEndTime, { message: "End time must be after start time" }), // End time must be after start time
+    user: z.string().nonempty("User ID is required"),
+    garage: z.string().nonempty("Garage ID is required"),
+    service: z.array(z.string().nonempty("Service ID is required")).nonempty("At least one service is required"),
+    vehicle: z.string().nonempty("Vehicle ID is required"),
+    date: z.preprocess((val) => {
+        if (typeof val === "string") {
+            return new Date(val); // Chuyển string thành Date object
+        }
+        return val; // Nếu đã là Date thì giữ nguyên
+    }, z.date()),
+    start: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Invalid time format. Use HH:mm"),
+    end: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Invalid time format. Use HH:mm"),
 
-    status: z.enum(["Pending", "Accepted", "Rejected", "Completed", "Cancelled"]).default("Pending"), // Status
-    tag: z.enum(["Normal", "Emergency"]).default("Normal"), // Tag (condition)
-    note: z.string().optional(), // Note (optional)
+    status: z.enum(["Pending", "Accepted", "Rejected", "Completed", "Cancelled"]).default("Pending"),
+    tag: z.enum(["Normal", "Emergency"]).default("Normal"),
+    note: z.string().optional(),
 });
 
 // Validation function for creating an appointment
 export const createAppointmentValidate = (appointmentData) => {
     try {
-        // Validate input data with the defined schema
         appointmentSchema.parse(appointmentData);
         return { valid: true, errors: null };
     } catch (e) {
-        // Return errors if validation fails
         return { valid: false, errors: e.errors };
     }
 };

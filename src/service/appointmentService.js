@@ -55,17 +55,64 @@ const checkVehicleDoubleBooking = async (vehicleId, garageId, date, start, end, 
 
   return { hasConflict: false };
 };
+const convertAndValidateDateTime = (date, start, end) => {
+  try {
+    // Chuyển đổi date sang Date object
+    const appointmentDate = new Date(date);
+    if (isNaN(appointmentDate.getTime())) {
+      throw new Error("Invalid date format");
+    }
+
+    // Chuyển start, end thành giờ & phút
+    const [startHour, startMinute] = start.split(":").map(Number);
+    const [endHour, endMinute] = end.split(":").map(Number);
+
+    if (
+        isNaN(startHour) || isNaN(startMinute) ||
+        isNaN(endHour) || isNaN(endMinute)
+    ) {
+      throw new Error("Invalid time format");
+    }
+
+    // Tạo Date object cho startTime và endTime
+    const startTime = new Date(appointmentDate);
+    startTime.setHours(startHour, startMinute, 0, 0);
+
+    const endTime = new Date(appointmentDate);
+    endTime.setHours(endHour, endMinute, 0, 0);
+
+    // Kiểm tra xem thời gian có nằm trong tương lai không
+    const now = new Date();
+    if (startTime <= now) {
+      throw new Error("Start time must be in the future");
+    }
+    if (endTime <= startTime) {
+      throw new Error("End time must be after start time");
+    }
+
+    return { startTime, endTime, isValid: true, error: null };
+  } catch (error) {
+    return { startTime: null, endTime: null, isValid: false, error: error.message };
+  }
+};
+
 
 export const createAppointmentService = async ({
                                                  userId, garage, service, vehicle, date, start, end, tag, note,
                                                }) => {
+  // Chuyển đổi và kiểm tra thời gian hợp lệ
+  const { startTime, endTime, isValid, error } = convertAndValidateDateTime(date, start, end);
+  if (!isValid) {
+    throw new Error(error);
+  }
+
   // Validate appointment data
   const { valid, errors } = createAppointmentValidate({
     user: userId,
     garage,
     service,
     vehicle,
-    date: new Date(date), // Chuyển đổi date từ string sang Date object
+    date: startTime, // Dùng startTime đã chuyển đổi thay vì date string
     start,
     end,
     tag,
@@ -84,12 +131,13 @@ export const createAppointmentService = async ({
     throw new Error("This vehicle is already booked at another garage during this time period");
   }
 
+  // Tạo appointment mới
   const newAppointment = new Appointment({
     user: userId,
     garage: garage,
     service: service,
     vehicle: vehicle,
-    date,
+    date: startTime, // Dùng startTime thay vì date string
     start,
     end,
     status: "Pending",
@@ -99,6 +147,7 @@ export const createAppointmentService = async ({
   await newAppointment.save();
   return newAppointment;
 };
+
 export const getAppointmentsByUserService = async (userId) => {
   return await Appointment.find({ user: userId })
     .populate("user", "name email") // Select basic user information
