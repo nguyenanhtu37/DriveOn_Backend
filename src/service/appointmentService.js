@@ -1,13 +1,14 @@
 import Appointment from "../models/appointment.js";
-import ServiceDetail from "../models/serviceDetail.js";
 import Garage from "../models/garage.js";
 import User from "../models/user.js";
-import { createAppointmentValidate,updateAppointmentValidate } from "../validator/appointmentValidator.js";
+import { updateAppointmentValidate,createAppointmentValidate } from "../validator/appointmentValidator.js";
 
-// Add this helper function to appointmentService.js
+// Helper function to check for double bookings
 const checkVehicleDoubleBooking = async (vehicleId, garageId, date, start, end, currentAppointmentId = null) => {
-  // Convert appointment times to Date objects for comparison
   const appointmentDate = new Date(date);
+  const appointmentDay = appointmentDate.toISOString().split("T")[0]; // Chỉ lấy phần YYYY-MM-DD
+
+  // Chuyển đổi thời gian bắt đầu & kết thúc
   const [startHour, startMinute] = start.split(":").map(Number);
   const [endHour, endMinute] = end.split(":").map(Number);
 
@@ -17,48 +18,46 @@ const checkVehicleDoubleBooking = async (vehicleId, garageId, date, start, end, 
   const endTime = new Date(appointmentDate);
   endTime.setHours(endHour, endMinute, 0, 0);
 
-  // Find existing appointments for this vehicle on the same date
+  // Tạo truy vấn MongoDB (so sánh theo ngày)
   const query = {
     vehicle: vehicleId,
-    date: appointmentDate,
+    date: { $gte: new Date(`${appointmentDay}T00:00:00.000Z`), $lt: new Date(`${appointmentDay}T23:59:59.999Z`) },
     status: { $nin: ["Rejected", "Cancelled"] }
   };
 
-  // Exclude current appointment when updating
   if (currentAppointmentId) {
     query._id = { $ne: currentAppointmentId };
   }
 
   const existingAppointments = await Appointment.find(query);
 
-  // Check for overlap with appointments at different garages
   for (const appointment of existingAppointments) {
-    if (appointment.garage.toString() !== garageId.toString()) {
-      const [apptStartHour, apptStartMinute] = appointment.start.split(":").map(Number);
-      const [apptEndHour, apptEndMinute] = appointment.end.split(":").map(Number);
+    const [apptStartHour, apptStartMinute] = appointment.start.split(":").map(Number);
+    const [apptEndHour, apptEndMinute] = appointment.end.split(":").map(Number);
 
-      const apptStartTime = new Date(appointmentDate);
-      apptStartTime.setHours(apptStartHour, apptStartMinute, 0, 0);
+    const apptStartTime = new Date(appointment.date);
+    apptStartTime.setHours(apptStartHour, apptStartMinute, 0, 0);
 
-      const apptEndTime = new Date(appointmentDate);
-      apptEndTime.setHours(apptEndHour, apptEndMinute, 0, 0);
+    const apptEndTime = new Date(appointment.date);
+    apptEndTime.setHours(apptEndHour, apptEndMinute, 0, 0);
 
-      // Check if times overlap
-      if (startTime < apptEndTime && endTime > apptStartTime) {
-        return {
-          hasConflict: true,
-          conflictGarage: appointment.garage
-        };
-      }
+    // Kiểm tra xung đột thời gian
+    if (startTime < apptEndTime && endTime > apptStartTime) {
+      return {
+        hasConflict: true,
+        conflictGarage: appointment.garage
+      };
     }
   }
 
   return { hasConflict: false };
 };
+
+
 const convertAndValidateDateTime = (date, start, end) => {
   try {
-    // Chuyển đổi date sang Date object
-    const appointmentDate = new Date(date);
+    // Chuyển đổi date sang Date object và thiết lập múi giờ UTC
+    const appointmentDate = new Date(date + "T00:00:00Z");
     if (isNaN(appointmentDate.getTime())) {
       throw new Error("Invalid date format");
     }
@@ -76,10 +75,10 @@ const convertAndValidateDateTime = (date, start, end) => {
 
     // Tạo Date object cho startTime và endTime
     const startTime = new Date(appointmentDate);
-    startTime.setHours(startHour, startMinute, 0, 0);
+    startTime.setUTCHours(startHour, startMinute, 0, 0);
 
     const endTime = new Date(appointmentDate);
-    endTime.setHours(endHour, endMinute, 0, 0);
+    endTime.setUTCHours(endHour, endMinute, 0, 0);
 
     // Kiểm tra xem thời gian có nằm trong tương lai không
     const now = new Date();
@@ -100,19 +99,13 @@ const convertAndValidateDateTime = (date, start, end) => {
 export const createAppointmentService = async ({
                                                  userId, garage, service, vehicle, date, start, end, tag, note,
                                                }) => {
-  // Chuyển đổi và kiểm tra thời gian hợp lệ
-  const { startTime, endTime, isValid, error } = convertAndValidateDateTime(date, start, end);
-  if (!isValid) {
-    throw new Error(error);
-  }
-
-  // Validate appointment data
+  // Validate input data
   const { valid, errors } = createAppointmentValidate({
     user: userId,
     garage,
     service,
     vehicle,
-    date: startTime,
+    date,
     start,
     end,
     tag,
@@ -120,34 +113,39 @@ export const createAppointmentService = async ({
   });
 
   if (!valid) {
-    console.error("Validation errors:", errors); // Log lỗi chi tiết
-    const errorMessages = Array.isArray(errors) ? errors.map(error => error.message).join(", ") : "Validation failed";
+    const errorMessages = errors.map(error => error.message).join(", ");
     throw new Error(errorMessages);
   }
 
+  // Convert and validate date and time
+  const { startTime, endTime, isValid, error } = convertAndValidateDateTime(date, start, end);
+  if (!isValid) {
+    throw new Error(error);
+  }
+
   // Check for double booking
-  const bookingCheck = await checkVehicleDoubleBooking(vehicle, garage, date, start, end);
+  const bookingCheck = await checkVehicleDoubleBooking(vehicle, garage, startTime, start, end);
   if (bookingCheck.hasConflict) {
     throw new Error("This vehicle is already booked at another garage during this time period");
   }
 
-  // Tạo appointment mới
+  // Create new appointment
   const newAppointment = new Appointment({
     user: userId,
-    garage: garage,
-    service: service,
-    vehicle: vehicle,
-    date: startTime, // Dùng startTime thay vì date string
+    garage,
+    service,
+    vehicle,
+    date: startTime,
     start,
     end,
     status: "Pending",
     tag,
     note,
   });
+
   await newAppointment.save();
   return newAppointment;
 };
-
 export const getAppointmentsByUserService = async (userId) => {
   return await Appointment.find({ user: userId })
     .populate("user", "name email") // Select basic user information
@@ -254,70 +252,51 @@ export const cancelAppointmentService = async (appointmentId, userId) => {
   return appointment;
 };
 
-export const updateAppointmentService = async (
-    appointmentId,
-    userId,
-    updateData
-) => {
+export const updateAppointmentService = async (appointmentId, userId, updateData) => {
+  // Validate input data
+  const { valid, errors } = updateAppointmentValidate(updateData);
+  if (!valid) {
+    const errorMessages = errors.map(error => error.message).join(", ");
+    throw new Error(errorMessages);
+  }
+
+  // Find the existing appointment
   const appointment = await Appointment.findById(appointmentId);
   if (!appointment) {
     throw new Error("Appointment not found");
   }
 
+  // Check ownership
   if (appointment.user.toString() !== userId) {
     throw new Error("Unauthorized");
   }
-
   if (appointment.status !== "Pending") {
     throw new Error("Only pending appointments can be updated");
   }
 
-  // Validate date and time if they are being updated
+  // Convert and validate date and time if provided
   if (updateData.date || updateData.start || updateData.end) {
-    const date = updateData.date || appointment.date;
-    const start = updateData.start || appointment.start;
-    const end = updateData.end || appointment.end;
+    const { startTime, endTime, isValid, error } = convertAndValidateDateTime(
+        updateData.date || appointment.date,
+        updateData.start || appointment.start,
+        updateData.end || appointment.end
+    );
 
-    const { startTime, endTime, isValid, error } = convertAndValidateDateTime(date, start, end);
     if (!isValid) {
       throw new Error(error);
     }
 
-    // Update with validated startTime
-    if (updateData.date) {
-      updateData.date = startTime;
-    }
-  }
+    updateData.date = startTime;
+    updateData.start = updateData.start || appointment.start;
+    updateData.end = updateData.end || appointment.end;
 
-  // Create combined data for validation with proper string conversion
-  const validationData = {
-    user: appointment.user.toString(),
-    garage: (updateData.garage || appointment.garage).toString(),
-    service: (updateData.service || appointment.service).map(s => s.toString()),
-    vehicle: (updateData.vehicle || appointment.vehicle).toString(),
-    date: updateData.date || appointment.date,
-    start: updateData.start || appointment.start,
-    end: updateData.end || appointment.end,
-    tag: updateData.tag || appointment.tag,
-    note: updateData.note || appointment.note
-  };
-
-  // Validate updated appointment data
-  const { valid, errors } = updateAppointmentValidate(validationData);
-  if (!valid) {
-    console.error("Validation errors:", errors);
-    const errorMessages = Array.isArray(errors) ? errors.map(error => error.message).join(", ") : "Validation failed";
-    throw new Error(errorMessages);
-  }
-
-  // Check for double booking if relevant fields are updated
-  if (updateData.date || updateData.start || updateData.end || updateData.garage) {
+    // Check for double booking
     const bookingCheck = await checkVehicleDoubleBooking(
-        appointment.vehicle,
+        updateData.vehicle || appointment.vehicle,
         updateData.garage || appointment.garage,
-        updateData.date || appointment.date,
-        updateData.start || appointment.start,
-        updateData.end || appointment.end,
+        updateData.date,
+        updateData.start,
+        updateData.end,
         appointmentId
     );
 
@@ -326,7 +305,12 @@ export const updateAppointmentService = async (
     }
   }
 
-  Object.assign(appointment, updateData);
-  await appointment.save();
-  return appointment;
+  // Update the appointment
+  const updatedAppointment = await Appointment.findByIdAndUpdate(
+      appointmentId,
+      { $set: updateData },
+      { new: true, runValidators: true }
+  );
+
+  return updatedAppointment;
 };
