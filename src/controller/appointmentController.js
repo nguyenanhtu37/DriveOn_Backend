@@ -1,4 +1,5 @@
 import * as appointmentService from "../service/appointmentService.js";
+import { createAppointmentValidate } from "../validator/appointmentValidator.js";
 
 export const createAppointment = async (req, res) => {
   const userId = req.user.id;
