@@ -55,23 +55,11 @@ const convertAndValidateDateTime = (date, start, end) => {
     const nowUtc = new Date(); // Get current system time (UTC)
     const nowGmt7 = new Date(nowUtc.getTime() + 7 * 60 * 60 * 1000); // Convert to GMT+7
 
-    console.log("Current System Time (UTC):", nowUtc.toISOString());
-    console.log("Current Time (GMT+7):", nowGmt7.toISOString());
-
-    console.log("Input Data:", { date, start, end });
-
-    // Convert `date` to UTC with time set to 00:00:00.000Z
     const appointmentDate = new Date(`${date}T00:00:00.000Z`);
-    console.log("Appointment Date (UTC, only date):", appointmentDate.toISOString());
 
-    // Keep `start` and `end` times but set timezone to UTC
     const appointmentStart = new Date(`${date}T${start}:00.000Z`);
     const appointmentEnd = new Date(`${date}T${end}:00.000Z`);
 
-    console.log("Appointment Start Time (DB - UTC):", appointmentStart.toISOString());
-    console.log("Appointment End Time (DB - UTC):", appointmentEnd.toISOString());
-
-    // Validate times
     if (appointmentStart <= nowGmt7) {
       throw new Error("Start time must be in the future");
     }
@@ -87,10 +75,15 @@ const convertAndValidateDateTime = (date, start, end) => {
       error: null,
     };
   } catch (error) {
-    return { date: null, startTime: null, endTime: null, isValid: false, error: error.message };
+    return {
+      date: null,
+      startTime: null,
+      endTime: null,
+      isValid: false,
+      error: error.message
+    };
   }
 };
-
 
 export const createAppointmentService = async ({
                                                  userId, garage, service, vehicle, date, start, end, tag, note,
