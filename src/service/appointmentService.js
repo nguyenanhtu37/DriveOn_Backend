@@ -1,14 +1,13 @@
 import Appointment from "../models/appointment.js";
 import Garage from "../models/garage.js";
 import User from "../models/user.js";
-import { updateAppointmentValidate,createAppointmentValidate } from "../validator/appointmentValidator.js";
+import { updateAppointmentValidate, createAppointmentValidate } from "../validator/appointmentValidator.js";
 
 // Helper function to check for double bookings
 const checkVehicleDoubleBooking = async (vehicleId, garageId, date, start, end, currentAppointmentId = null) => {
   const appointmentDate = new Date(date);
-  const appointmentDay = appointmentDate.toISOString().split("T")[0]; // Chỉ lấy phần YYYY-MM-DD
+  const appointmentDay = appointmentDate.toISOString().split("T")[0];
 
-  // Chuyển đổi thời gian bắt đầu & kết thúc
   const [startHour, startMinute] = start.split(":").map(Number);
   const [endHour, endMinute] = end.split(":").map(Number);
 
@@ -18,7 +17,6 @@ const checkVehicleDoubleBooking = async (vehicleId, garageId, date, start, end, 
   const endTime = new Date(appointmentDate);
   endTime.setHours(endHour, endMinute, 0, 0);
 
-  // Tạo truy vấn MongoDB (so sánh theo ngày)
   const query = {
     vehicle: vehicleId,
     date: { $gte: new Date(`${appointmentDay}T00:00:00.000Z`), $lt: new Date(`${appointmentDay}T23:59:59.999Z`) },
@@ -41,7 +39,6 @@ const checkVehicleDoubleBooking = async (vehicleId, garageId, date, start, end, 
     const apptEndTime = new Date(appointment.date);
     apptEndTime.setHours(apptEndHour, apptEndMinute, 0, 0);
 
-    // Kiểm tra xung đột thời gian
     if (startTime < apptEndTime && endTime > apptStartTime) {
       return {
         hasConflict: true,
@@ -53,45 +50,44 @@ const checkVehicleDoubleBooking = async (vehicleId, garageId, date, start, end, 
   return { hasConflict: false };
 };
 
-
 const convertAndValidateDateTime = (date, start, end) => {
   try {
-    // Chuyển đổi date sang Date object và thiết lập múi giờ UTC
-    const appointmentDate = new Date(date + "T00:00:00Z");
-    if (isNaN(appointmentDate.getTime())) {
-      throw new Error("Invalid date format");
-    }
+    const nowUtc = new Date(); // Get current system time (UTC)
+    const nowGmt7 = new Date(nowUtc.getTime() + 7 * 60 * 60 * 1000); // Convert to GMT+7
 
-    // Chuyển start, end thành giờ & phút
-    const [startHour, startMinute] = start.split(":").map(Number);
-    const [endHour, endMinute] = end.split(":").map(Number);
+    console.log("Current System Time (UTC):", nowUtc.toISOString());
+    console.log("Current Time (GMT+7):", nowGmt7.toISOString());
 
-    if (
-        isNaN(startHour) || isNaN(startMinute) ||
-        isNaN(endHour) || isNaN(endMinute)
-    ) {
-      throw new Error("Invalid time format");
-    }
+    console.log("Input Data:", { date, start, end });
 
-    // Tạo Date object cho startTime và endTime
-    const startTime = new Date(appointmentDate);
-    startTime.setUTCHours(startHour, startMinute, 0, 0);
+    // Convert `date` to UTC with time set to 00:00:00.000Z
+    const appointmentDate = new Date(`${date}T00:00:00.000Z`);
+    console.log("Appointment Date (UTC, only date):", appointmentDate.toISOString());
 
-    const endTime = new Date(appointmentDate);
-    endTime.setUTCHours(endHour, endMinute, 0, 0);
+    // Keep `start` and `end` times but set timezone to UTC
+    const appointmentStart = new Date(`${date}T${start}:00.000Z`);
+    const appointmentEnd = new Date(`${date}T${end}:00.000Z`);
 
-    // Kiểm tra xem thời gian có nằm trong tương lai không
-    const now = new Date();
-    if (startTime <= now) {
+    console.log("Appointment Start Time (DB - UTC):", appointmentStart.toISOString());
+    console.log("Appointment End Time (DB - UTC):", appointmentEnd.toISOString());
+
+    // Validate times
+    if (appointmentStart <= nowGmt7) {
       throw new Error("Start time must be in the future");
     }
-    if (endTime <= startTime) {
+    if (appointmentEnd <= appointmentStart) {
       throw new Error("End time must be after start time");
     }
 
-    return { startTime, endTime, isValid: true, error: null };
+    return {
+      date: appointmentDate,
+      startTime: appointmentStart,
+      endTime: appointmentEnd,
+      isValid: true,
+      error: null,
+    };
   } catch (error) {
-    return { startTime: null, endTime: null, isValid: false, error: error.message };
+    return { date: null, startTime: null, endTime: null, isValid: false, error: error.message };
   }
 };
 
@@ -99,7 +95,6 @@ const convertAndValidateDateTime = (date, start, end) => {
 export const createAppointmentService = async ({
                                                  userId, garage, service, vehicle, date, start, end, tag, note,
                                                }) => {
-  // Validate input data
   const { valid, errors } = createAppointmentValidate({
     user: userId,
     garage,
@@ -117,19 +112,16 @@ export const createAppointmentService = async ({
     throw new Error(errorMessages);
   }
 
-  // Convert and validate date and time
   const { startTime, endTime, isValid, error } = convertAndValidateDateTime(date, start, end);
   if (!isValid) {
     throw new Error(error);
   }
 
-  // Check for double booking
   const bookingCheck = await checkVehicleDoubleBooking(vehicle, garage, startTime, start, end);
   if (bookingCheck.hasConflict) {
     throw new Error("This vehicle is already booked at another garage during this time period");
   }
 
-  // Create new appointment
   const newAppointment = new Appointment({
     user: userId,
     garage,
@@ -141,24 +133,28 @@ export const createAppointmentService = async ({
     status: "Pending",
     tag,
     note,
+    createdAt: new Date(),
+    updatedAt: new Date(),
   });
 
   await newAppointment.save();
   return newAppointment;
 };
+
 export const getAppointmentsByUserService = async (userId) => {
   return await Appointment.find({ user: userId })
-    .populate("user", "name email") // Select basic user information
-    .populate("garage", "name address") // Select basic garage information
-    .populate("vehicle", "carBrand carName carPlate") // Select basic vehicle information
-    .populate("service"); // Populate service details
+      .populate("user", "name email")
+      .populate("garage", "name address")
+      .populate("vehicle", "carBrand carName carPlate")
+      .populate("service");
 };
+
 export const getAppointmentByIdService = async (appointmentId) => {
   return await Appointment.findById(appointmentId)
-    .populate("user", "name email") // Select basic user information
-    .populate("garage", "name address") // Select basic garage information
-    .populate("vehicle", "carBrand carName carPlate") // Select basic vehicle information
-    .populate("service"); // Populate service details
+      .populate("user", "name email")
+      .populate("garage", "name address")
+      .populate("vehicle", "carBrand carName carPlate")
+      .populate("service");
 };
 
 export const getAppointmentsByGarageService = async (garageId) => {
@@ -167,11 +163,12 @@ export const getAppointmentsByGarageService = async (garageId) => {
     throw new Error("Garage not found");
   }
   return await Appointment.find({ garage: garageId })
-    .populate("user", "name email") // Select basic user information
-    .populate("garage", "name address") // Select basic garage information
-    .populate("vehicle", "carBrand carName carPlate") // Select basic vehicle information
-    .populate("service"); // Populate service details
+      .populate("user", "name email")
+      .populate("garage", "name address")
+      .populate("vehicle", "carBrand carName carPlate")
+      .populate("service");
 };
+
 export const confirmAppointmentService = async (appointmentId, userId) => {
   const appointment = await Appointment.findById(appointmentId);
   if (!appointment) {
@@ -184,9 +181,11 @@ export const confirmAppointmentService = async (appointmentId, userId) => {
   }
 
   appointment.status = "Accepted";
+  appointment.updatedAt = new Date();
   await appointment.save();
   return appointment;
 };
+
 export const denyAppointmentService = async (appointmentId, userId) => {
   const appointment = await Appointment.findById(appointmentId);
   if (!appointment) {
@@ -199,9 +198,11 @@ export const denyAppointmentService = async (appointmentId, userId) => {
   }
 
   appointment.status = "Rejected";
+  appointment.updatedAt = new Date();
   await appointment.save();
   return appointment;
 };
+
 export const completeAppointmentService = async (appointmentId, userId) => {
   const appointment = await Appointment.findById(appointmentId);
   if (!appointment) {
@@ -218,9 +219,11 @@ export const completeAppointmentService = async (appointmentId, userId) => {
   }
 
   appointment.status = "Completed";
+  appointment.updatedAt = new Date();
   await appointment.save();
   return appointment;
 };
+
 export const getAcceptedAppointmentsService = async (userId, garageId) => {
   const user = await User.findById(userId);
   if (!user) {
@@ -232,11 +235,12 @@ export const getAcceptedAppointmentsService = async (userId, garageId) => {
   }
 
   return await Appointment.find({ status: "Accepted", garage: garageId })
-    .populate("user", "name email") // Select basic user information
-    .populate("garage", "name address") // Select basic garage information
-    .populate("vehicle", "carBrand carName carPlate") // Select basic vehicle information
-    .populate("service"); // Populate service details
+      .populate("user", "name email")
+      .populate("garage", "name address")
+      .populate("vehicle", "carBrand carName carPlate")
+      .populate("service");
 };
+
 export const cancelAppointmentService = async (appointmentId, userId) => {
   const appointment = await Appointment.findById(appointmentId);
   if (!appointment) {
@@ -248,25 +252,23 @@ export const cancelAppointmentService = async (appointmentId, userId) => {
   }
 
   appointment.status = "Cancelled";
+  appointment.updatedAt = new Date();
   await appointment.save();
   return appointment;
 };
 
 export const updateAppointmentService = async (appointmentId, userId, updateData) => {
-  // Validate input data
   const { valid, errors } = updateAppointmentValidate(updateData);
   if (!valid) {
     const errorMessages = errors.map(error => error.message).join(", ");
     throw new Error(errorMessages);
   }
 
-  // Find the existing appointment
   const appointment = await Appointment.findById(appointmentId);
   if (!appointment) {
     throw new Error("Appointment not found");
   }
 
-  // Check ownership
   if (appointment.user.toString() !== userId) {
     throw new Error("Unauthorized");
   }
@@ -274,7 +276,6 @@ export const updateAppointmentService = async (appointmentId, userId, updateData
     throw new Error("Only pending appointments can be updated");
   }
 
-  // Convert and validate date and time if provided
   if (updateData.date || updateData.start || updateData.end) {
     const { startTime, endTime, isValid, error } = convertAndValidateDateTime(
         updateData.date || appointment.date,
@@ -290,7 +291,6 @@ export const updateAppointmentService = async (appointmentId, userId, updateData
     updateData.start = updateData.start || appointment.start;
     updateData.end = updateData.end || appointment.end;
 
-    // Check for double booking
     const bookingCheck = await checkVehicleDoubleBooking(
         updateData.vehicle || appointment.vehicle,
         updateData.garage || appointment.garage,
@@ -305,7 +305,8 @@ export const updateAppointmentService = async (appointmentId, userId, updateData
     }
   }
 
-  // Update the appointment
+  updateData.updatedAt = new Date();
+
   const updatedAppointment = await Appointment.findByIdAndUpdate(
       appointmentId,
       { $set: updateData },

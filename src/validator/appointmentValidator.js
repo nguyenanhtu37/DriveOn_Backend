@@ -7,20 +7,6 @@ const objectIdOrStringSchema = z.union([
     z.instanceof(mongoose.Types.ObjectId),
 ]);
 
-// Schema cho create appointment
-export const createAppointmentSchema = z.object({
-    user: objectIdOrStringSchema.optional(),
-    garage: objectIdOrStringSchema.optional(),
-    service: z.array(objectIdOrStringSchema).optional(),
-    vehicle: objectIdOrStringSchema.optional(),
-    date: z.string().refine((val) => !isNaN(Date.parse(val)), {
-        message: "Invalid date format",
-    }),
-    start: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Invalid time format"),
-    end: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Invalid time format"),
-    tag: z.enum(["Normal", "Emergency"]),
-    note: z.string().optional(),
-});
 
 
 
