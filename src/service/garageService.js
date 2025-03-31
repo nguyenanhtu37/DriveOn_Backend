@@ -12,6 +12,7 @@ import Feedback from "../models/feedback.js";
 import { haversineDistance } from "../utils/distanceHelper.js";
 
 const registerGarage = async (user, garageData) => {
+  console.log(garageData);
   // Validate garageData
   validateGarageRegistration(garageData);
   const {
@@ -27,6 +28,7 @@ const registerGarage = async (user, garageData) => {
     interiorImages,
     documentImages,
     status,
+    location,
     tag,
   } = garageData;
   const newGarage = new Garage({
@@ -41,6 +43,7 @@ const registerGarage = async (user, garageData) => {
     facadeImages,
     interiorImages,
     documentImages,
+    location,
     user: [user.id],
     status,
     tag,
@@ -70,8 +73,6 @@ const getGarageById = async (garageId) => {
   return garage;
 };
 
-
-
 const updateGarage = async (userId, garageId, updateData) => {
   // Validate updateData
   validateUpdateGarage(updateData);
@@ -95,9 +96,9 @@ const updateGarage = async (userId, garageId, updateData) => {
     "operating_days",
     "facadeImages",
     "interiorImages",
-    "documentImages"
+    "documentImages",
   ];
-  fieldsToUpdate.forEach(field => {
+  fieldsToUpdate.forEach((field) => {
     if (updateData[field] !== undefined) {
       garage[field] = updateData[field];
     }

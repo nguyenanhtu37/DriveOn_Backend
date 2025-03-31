@@ -5,7 +5,8 @@ const garageSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  address: { //địa chỉ text. Ví dụ: 123 Nguyễn Văn Linh, Quận 7, TP.HCM
+  address: {
+    //địa chỉ text. Ví dụ: 123 Nguyễn Văn Linh, Quận 7, TP.HCM
     type: String,
     required: true,
   },
@@ -28,20 +29,39 @@ const garageSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  operating_days: [{
-    type: String,
-    enum: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
-    required: true
-  }],
-  facadeImages: [{ //ảnh mặt tiền
-    type: String
-  }],
-  interiorImages: [{ //ảnh bên trong
-    type: String
-  }],
-  documentImages: [{ //ảnh giấy tờ chứng minh
-    type: String
-  }],
+  operating_days: [
+    {
+      type: String,
+      enum: [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday",
+      ],
+      required: true,
+    },
+  ],
+  facadeImages: [
+    {
+      //ảnh mặt tiền
+      type: String,
+    },
+  ],
+  interiorImages: [
+    {
+      //ảnh bên trong
+      type: String,
+    },
+  ],
+  documentImages: [
+    {
+      //ảnh giấy tờ chứng minh
+      type: String,
+    },
+  ],
   createdAt: {
     type: Date,
     default: Date.now,
@@ -65,14 +85,16 @@ const garageSchema = new mongoose.Schema({
     enum: ["pending", "approved", "rejected", "enabled", "disabled"], // dùng chung cho cả enable/disable garage và approve/reject garage
     default: "pending",
   },
-  location: { //lưu điểm tọa độ
+  location: {
+    //lưu điểm tọa độ
     type: {
       type: String,
-      enum: ['Point'],
+      enum: ["Point"],
     },
-    coordinates: { //tọa độ
+    coordinates: {
+      //tọa độ
       type: [Number], //[kinh độ, vĩ độ]
-    }
+    },
   },
   tag: {
     type: String,
