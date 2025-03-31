@@ -74,6 +74,11 @@ const garageSchema = new mongoose.Schema({
       type: [Number], //[kinh độ, vĩ độ]
     }
   },
+  tag: {
+    type: String,
+    enum: ["normal", "pro"],
+    default: "normal"
+  },
   appointment: [
     {
       type: mongoose.Schema.Types.ObjectId,

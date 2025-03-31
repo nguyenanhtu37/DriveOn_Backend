@@ -1,3 +1,4 @@
+import axios from "axios";
 import Garage from "../models/garage.js";
 import User from "../models/user.js";
 import bcrypt from "bcrypt";
@@ -8,6 +9,7 @@ import {
 import { validateSignup } from "../validator/authValidator.js";
 import Role from "../models/role.js";
 import Feedback from "../models/feedback.js";
+import { haversineDistance } from "../utils/distanceHelper.js";
 
 const registerGarage = async (user, garageData) => {
   // Validate garageData
@@ -25,6 +27,7 @@ const registerGarage = async (user, garageData) => {
     interiorImages,
     documentImages,
     status,
+    tag,
   } = garageData;
   const newGarage = new Garage({
     name,
@@ -40,6 +43,7 @@ const registerGarage = async (user, garageData) => {
     documentImages,
     user: [user.id],
     status,
+    tag,
   });
   await newGarage.save();
   await User.findByIdAndUpdate(user.id, {
@@ -330,7 +334,7 @@ export const calculateAverageRating = async (garageId) => {
 
   const averageRating =
     feedbacks.reduce((acc, feedback) => acc + feedback.rating, 0) /
-      feedbacks.length || 0;
+    feedbacks.length || 0;
   return averageRating;
 };
 
@@ -347,26 +351,304 @@ export const calculateAverageRating = async (garageId) => {
 //     throw new Error(err.message);
 //   }
 // };
-export const filterGaragesByRating = async (minRating = 0) => {
-  try {
-    const garages = await Garage.find().select(
-      "name address phone email ratingAverage"
-    );
-    const filteredGarages = garages.filter(
-      (garage) => garage.ratingAverage >= minRating
-    );
-    for (const garage of garages) {
-      const averageRating = (await calculateAverageRating(garage._id)) || 0;
-      garage.ratingAverage = averageRating;
-      await garage.save();
-    }
-    filteredGarages.sort((a, b) => b.ratingAverage - a.ratingAverage);
 
-    return filteredGarages;
-  } catch (err) {
-    throw new Error(err.message);
+// export const filterGaragesByRating = async (minRating = 0) => {
+//   try {
+//     const garages = await Garage.find().select(
+//       "name address phone email ratingAverage"
+//     );
+//     const filteredGarages = garages.filter(
+//       (garage) => garage.ratingAverage >= minRating
+//     );
+//     for (const garage of garages) {
+//       const averageRating = (await calculateAverageRating(garage._id)) || 0;
+//       garage.ratingAverage = averageRating;
+//       await garage.save();
+//     }
+//     filteredGarages.sort((a, b) => b.ratingAverage - a.ratingAverage);
+
+//     return filteredGarages;
+//   } catch (err) {
+//     throw new Error(err.message);
+//   }
+// };
+
+// export const getFilteredGarages = async ({ rating, distance, availability, lat, lng }) => {
+//   let query = {};
+
+//   // Filter by rating (reputation)
+//   if (rating) {
+//       query.rating = { $gte: parseFloat(rating) };
+//   }
+
+//   // Filter by availability (đang mở cửa)
+//   if (availability) {
+//       const currentHour = new Date().getHours();
+//       query.openingHours = { $lte: currentHour };
+//       query.closingHours = { $gte: currentHour };
+//   }
+
+//   // Fetch garages từ database
+//   let garages = await Garage.find(query);
+
+//   // Filter by distance (sau khi lấy từ DB)
+//   if (lat && lng) {
+//       garages = garages
+//           .map(garage => ({
+//               ...garage._doc,
+//               distance: calculateDistance(lat, lng, garage.location.lat, garage.location.lng)
+//           }))
+//           .filter(garage => !distance || garage.distance <= distance)
+//           .sort((a, b) => a.distance - b.distance); // Sắp xếp theo khoảng cách tăng dần
+//   }
+
+//   // Ưu tiên garage pro (trong phạm vi nhất định)
+//   const PRO_RANGE_KM = 20;
+//   const proGarages = garages.filter(g => g.isPro && g.distance <= PRO_RANGE_KM);
+//   const nonProGarages = garages.filter(g => !g.isPro || g.distance > PRO_RANGE_KM);
+
+//   return [...proGarages, ...nonProGarages]; // Pro hiển thị trước trong phạm vi
+// };
+
+export const getCoordinatesFromAddress = async (address) => {
+  try {
+      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`;
+      const response = await axios.get(url, { headers: { "User-Agent": "DriveOn-App" } });
+
+      if (response.data.length === 0) {
+          throw new Error("Không tìm thấy tọa độ cho địa chỉ này.");
+      }
+
+      const { lat, lon } = response.data[0];
+      return { latitude: parseFloat(lat), longitude: parseFloat(lon) };
+  } catch (error) {
+      throw new Error("Lỗi khi lấy tọa độ: " + error.message);
   }
 };
+
+// export const filterGaragesByDistance = (userLat, userLon, garages, maxDistance) => {
+//   return garages.filter(garage => {
+//       const [garageLon, garageLat] = garage.location.coordinates; // GeoJSON lưu (lon, lat)
+//       const distance = haversineDistance(userLat, userLon, garageLat, garageLon);
+//       return distance <= maxDistance; // Giữ lại garage nằm trong phạm vi
+//   });
+// };
+
+// export const filterGaragesByDistance = (userLat, userLon, garages, maxDistance) => {
+//   return garages
+//       .map(garage => {
+//           const [garageLon, garageLat] = garage.location.coordinates;
+//           const distance = haversineDistance(userLat, userLon, garageLat, garageLon);
+
+//           return {
+//               ...garage.toObject(), // Chuyển từ Mongoose object sang plain object
+//               distance, // Thêm khoảng cách vào object garage
+//               isOpen: checkGarageOpen(garage.openingHours), // Kiểm tra trạng thái mở cửa
+//           };
+//       })
+//       .filter(garage => garage.distance <= maxDistance) // Giữ lại garage trong phạm vi
+//       .sort((a, b) => {
+//           // 1️⃣ Garage đang mở cửa lên trước, đóng cửa đẩy xuống dưới
+//           if (a.isOpen !== b.isOpen) return b.isOpen - a.isOpen;
+          
+//           // 2️⃣ Garage Pro (trong phạm vi) được ưu tiên
+//           if (a.isPro !== b.isPro) return b.isPro - a.isPro;
+
+//           // 3️⃣ Sắp xếp theo rating (cao → thấp)
+//           if (a.rating !== b.rating) return b.rating - a.rating;
+
+//           // 4️⃣ Nếu rating bằng nhau, sắp xếp theo khoảng cách (gần → xa)
+//           return a.distance - b.distance;
+//       });
+// };
+
+// export const filterGaragesByDistance = (userLat, userLon, garages, maxDistance) => {
+//   return garages
+//       .map(garage => {
+//           const [garageLon, garageLat] = garage.location.coordinates;
+//           const distance = haversineDistance(userLat, userLon, garageLat, garageLon);
+//           const isOpen = checkGarageOpen(garage.openTime, garage.closeTime, garage.operating_days);
+//           const isPro = garage.isPro || false; // Giả sử có trường isPro trong DB
+
+//           return {
+//               ...garage.toObject(), // Chuyển từ Mongoose object sang plain object
+//               distance, // Thêm khoảng cách
+//               isOpen, // Trạng thái mở cửa
+//               isPro // Trạng thái Pro
+//           };
+//       })
+//       .filter(garage => garage.distance <= maxDistance) // Lọc garage trong phạm vi
+//       .sort((a, b) => {
+//           // 1️⃣ Garage đang mở cửa lên trước, đóng cửa đẩy xuống dưới
+//           if (a.isOpen !== b.isOpen) return b.isOpen - a.isOpen;
+
+//           // 2️⃣ Garage Pro (trong phạm vi) được ưu tiên
+//           if (a.isPro !== b.isPro) return b.isPro - a.isPro;
+
+//           // 3️⃣ Sắp xếp theo rating (cao → thấp)
+//           if (a.ratingAverage !== b.ratingAverage) return b.ratingAverage - a.ratingAverage;
+
+//           // 4️⃣ Nếu rating bằng nhau, sắp xếp theo khoảng cách (gần → xa)
+//           return a.distance - b.distance;
+//       });
+// };
+
+// export const filterGaragesByDistance = (userLat, userLon, garages, maxDistance) => {
+//   return garages
+//       .map(garage => {
+//           const [garageLon, garageLat] = garage.location.coordinates;
+//           const distance = haversineDistance(userLat, userLon, garageLat, garageLon);
+
+//           return {
+//               ...garage.toObject(), // Chuyển từ Mongoose object sang plain object
+//               distance, // Thêm khoảng cách vào object garage
+//               isOpen: checkGarageOpen(garage.openingHours), // Kiểm tra trạng thái mở cửa
+//               isPro: garage.tag === "pro" // Check nếu garage là Pro
+//           };
+//       })
+//       .filter(garage => garage.distance <= maxDistance) // Chỉ giữ lại garage trong phạm vi tìm kiếm
+//       .sort((a, b) => {
+//           // 1️⃣ Garage đang mở cửa lên trước, đóng cửa đẩy xuống dưới
+//           if (a.isOpen !== b.isOpen) return b.isOpen - a.isOpen;
+          
+//           // 2️⃣ Garage Pro (trong phạm vi) được ưu tiên
+//           if (a.isPro !== b.isPro) return b.isPro - a.isPro;
+
+//           // 3️⃣ Sắp xếp theo rating (cao → thấp)
+//           if (a.ratingAverage !== b.ratingAverage) return b.ratingAverage - a.ratingAverage;
+
+//           // 4️⃣ Nếu rating bằng nhau, sắp xếp theo khoảng cách (gần → xa)
+//           return a.distance - b.distance;
+//       });
+// };
+
+export const filterGaragesByDistance = (userLat, userLon, garages, maxDistance) => {
+  return garages
+      .map(garage => {
+          const [garageLon, garageLat] = garage.location.coordinates;
+          const distance = haversineDistance(userLat, userLon, garageLat, garageLon);
+
+          return {
+              ...garage.toObject(), // Chuyển từ Mongoose object sang plain object
+              distance, // Thêm khoảng cách vào object garage
+              isOpen: checkGarageOpen(garage), // Kiểm tra trạng thái mở cửa
+              isPro: garage.tag === "pro" // Kiểm tra nếu garage là Pro
+          };
+      })
+      .filter(garage => garage.distance <= maxDistance) // Chỉ giữ lại garage trong phạm vi tìm kiếm
+      .sort((a, b) => {
+          // 1️⃣ Garage mở cửa trước, đóng cửa sau
+          if (a.isOpen !== b.isOpen) return b.isOpen - a.isOpen;
+          
+          // 2️⃣ Garage Pro (trong phạm vi) được ưu tiên
+          if (a.isPro !== b.isPro) return b.isPro - a.isPro;
+
+          // 3️⃣ Sắp xếp theo rating cao → thấp
+          if (a.ratingAverage !== b.ratingAverage) return b.ratingAverage - a.ratingAverage;
+
+          // 4️⃣ Nếu rating bằng nhau, sắp xếp theo khoảng cách gần → xa
+          return a.distance - b.distance;
+      });
+};
+
+// Hàm kiểm tra garage có đang mở cửa không
+// const checkGarageOpen = (openingHours) => {
+//   const now = new Date();
+//   const currentHour = now.getHours();
+//   const currentMinute = now.getMinutes();
+  
+//   const today = now.getDay(); // Lấy thứ hiện tại (0: Chủ Nhật, 1: Thứ Hai, ... 6: Thứ Bảy)
+//   const todayHours = openingHours[today]; // Lấy giờ mở cửa của hôm nay
+  
+//   if (!todayHours || !todayHours.open || !todayHours.close) return false; // Nếu không có thông tin, coi như đóng cửa
+  
+//   const [openHour, openMinute] = todayHours.open.split(":").map(Number);
+//   const [closeHour, closeMinute] = todayHours.close.split(":").map(Number);
+  
+//   // So sánh giờ hiện tại với giờ mở cửa
+//   return (
+//       currentHour > openHour || (currentHour === openHour && currentMinute >= openMinute)
+//   ) && (
+//       currentHour < closeHour || (currentHour === closeHour && currentMinute < closeMinute)
+//   );
+// };
+
+// const checkGarageOpen = (openTime, closeTime, operatingDays) => {
+//   const now = new Date();
+//   const currentHour = now.getHours();
+//   const currentMinute = now.getMinutes();
+//   const currentDay = now.toLocaleString('en-US', { weekday: 'long' }); // Lấy thứ bằng tiếng Anh
+
+//   // Nếu hôm nay garage không hoạt động
+//   if (!operatingDays.includes(currentDay)) return false;
+
+//   const [openHour, openMinute] = openTime.split(":").map(Number);
+//   const [closeHour, closeMinute] = closeTime.split(":").map(Number);
+
+//   return (
+//       (currentHour > openHour || (currentHour === openHour && currentMinute >= openMinute)) &&
+//       (currentHour < closeHour || (currentHour === closeHour && currentMinute < closeMinute))
+//   );
+// };
+
+// const checkGarageOpen = (garage) => {
+//   if (!garage.openTime || !garage.closeTime || !garage.operating_days) {
+//       return false; // Nếu thiếu dữ liệu, mặc định là đóng cửa
+//   }
+
+//   const now = new Date();
+//   const currentHour = now.getHours();
+//   const currentMinute = now.getMinutes();
+  
+//   const todayIndex = now.getDay(); // 0: Chủ Nhật, 1: Thứ Hai, ..., 6: Thứ Bảy
+//   const daysMapping = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+//   const today = daysMapping[todayIndex];
+
+//   // Kiểm tra nếu hôm nay có trong danh sách hoạt động của garage
+//   if (!garage.operating_days.includes(today)) {
+//       return false;
+//   }
+
+//   // Chuyển đổi giờ mở cửa & đóng cửa từ string -> số
+//   const [openHour, openMinute] = garage.openTime.split(":").map(Number);
+//   const [closeHour, closeMinute] = garage.closeTime.split(":").map(Number);
+
+//   // Kiểm tra xem giờ hiện tại có nằm trong khoảng mở cửa không
+//   return (
+//       (currentHour > openHour || (currentHour === openHour && currentMinute >= openMinute)) &&
+//       (currentHour < closeHour || (currentHour === closeHour && currentMinute < closeMinute))
+//   );
+// };
+
+const checkGarageOpen = (garage) => {
+  if (!garage.openTime || !garage.closeTime || !garage.operating_days) {
+      return false; // Nếu thiếu dữ liệu, mặc định đóng cửa
+  }
+
+  const now = new Date();
+  const currentHour = now.getHours();
+  const currentMinute = now.getMinutes();
+  
+  const todayIndex = now.getDay(); // 0: Chủ Nhật, 1: Thứ Hai, ..., 6: Thứ Bảy
+  const daysMapping = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const today = daysMapping[todayIndex];
+
+  // Kiểm tra nếu hôm nay có trong danh sách hoạt động của garage
+  if (!garage.operating_days.includes(today)) {
+      return false;
+  }
+
+  // Chuyển đổi giờ mở cửa & đóng cửa từ string -> số
+  const [openHour, openMinute] = garage.openTime.split(":").map(Number);
+  const [closeHour, closeMinute] = garage.closeTime.split(":").map(Number);
+
+  // Kiểm tra xem giờ hiện tại có nằm trong khoảng mở cửa không
+  return (
+      (currentHour > openHour || (currentHour === openHour && currentMinute >= openMinute)) &&
+      (currentHour < closeHour || (currentHour === closeHour && currentMinute < closeMinute))
+  );
+};
+
 export {
   registerGarage,
   viewGarages,
