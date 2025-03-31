@@ -25,6 +25,7 @@ const registerGarage = async (user, garageData) => {
     interiorImages,
     documentImages,
     status,
+    location,
   } = garageData;
   const newGarage = new Garage({
     name,
@@ -38,6 +39,7 @@ const registerGarage = async (user, garageData) => {
     facadeImages,
     interiorImages,
     documentImages,
+    location,
     user: [user.id],
     status,
   });
@@ -66,8 +68,6 @@ const getGarageById = async (garageId) => {
   return garage;
 };
 
-
-
 const updateGarage = async (userId, garageId, updateData) => {
   // Validate updateData
   validateUpdateGarage(updateData);
@@ -91,9 +91,9 @@ const updateGarage = async (userId, garageId, updateData) => {
     "operating_days",
     "facadeImages",
     "interiorImages",
-    "documentImages"
+    "documentImages",
   ];
-  fieldsToUpdate.forEach(field => {
+  fieldsToUpdate.forEach((field) => {
     if (updateData[field] !== undefined) {
       garage[field] = updateData[field];
     }
