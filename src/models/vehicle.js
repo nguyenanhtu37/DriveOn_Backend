@@ -22,6 +22,10 @@ const vehicleSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  carImages: {
+    type: [String], 
+    required: true,
+  },
   carOwner: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
