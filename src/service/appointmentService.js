@@ -3,118 +3,205 @@ import Garage from "../models/garage.js";
 import User from "../models/user.js";
 import { updateAppointmentValidate, createAppointmentValidate } from "../validator/appointmentValidator.js";
 import transporter from "../config/mailer.js";
+import Vehicle from "../models/vehicle.js";
+import ServiceDetail
+  from "../models/serviceDetail.js";
 
-
-
-// Helper function to check for double bookings and validate time range
-const checkBooking = async (vehicleId, garageId, date, start, end, currentAppointmentId = null) => {
-  const appointmentDate = new Date(date);
-  const appointmentDay = appointmentDate.toISOString().split("T")[0];
-
+const checkBooking = async (vehicleId, garageId, start, end, currentAppointmentId = null) => {
   // Get garage operating hours
+  console.log("=== START: checkBooking ===");
+  console.log(`Input start time: ${start.toISOString()}`);
+  console.log(`Input end time: ${end.toISOString()}`);
+
   const garage = await Garage.findById(garageId);
   if (!garage) {
+    console.log("Garage not found");
     return {
       hasConflict: true,
       conflictMessage: "Garage not found"
     };
   }
 
-  const [startHour, startMinute] = start.split(":").map(Number);
-  const [endHour, endMinute] = end.split(":").map(Number);
+  console.log(`Garage openTime: ${garage.openTime}`);
+  console.log(`Garage closeTime: ${garage.closeTime}`);
 
-  // Get garage operating hours
+  // Create date objects for today's garage operating hours
+  const appointmentDate = new Date(start);
+  const appointmentDay = appointmentDate.toISOString().split("T")[0];
+  console.log(`Appointment date: ${appointmentDay}`);
+
   const [garageOpenHour, garageOpenMinute] = garage.openTime.split(":").map(Number);
   const [garageCloseHour, garageCloseMinute] = garage.closeTime.split(":").map(Number);
+  console.log(`Parsed hours - Open: ${garageOpenHour}:${garageOpenMinute}, Close: ${garageCloseHour}:${garageCloseMinute}`);
 
-  // Convert to minutes for easy comparison
-  const startTimeInMinutes = startHour * 60 + startMinute;
-  const endTimeInMinutes = endHour * 60 + endMinute;
-  const garageOpenTimeInMinutes = garageOpenHour * 60 + garageOpenMinute;
-  const garageCloseTimeInMinutes = garageCloseHour * 60 + garageCloseMinute;
+  // Create proper UTC times for garage hours
+  const garageOpenTime = new Date(appointmentDate);
+  const garageCloseTime = new Date(appointmentDate);
+
+  // Set hours directly to UTC values (no conversion needed)
+  garageOpenTime.setUTCHours(garageOpenHour, garageOpenMinute, 0, 0);
+  garageCloseTime.setUTCHours(garageCloseHour, garageCloseMinute, 0, 0);
 
   // Check if appointment is within garage's operating hours
-  if (startTimeInMinutes < garageOpenTimeInMinutes) {
+  console.log(`Comparison: ${start.toISOString()} < ${garageOpenTime.toISOString()} = ${start < garageOpenTime}`);
+
+  if (start < garageOpenTime) {
+    console.log("Appointment starts before garage opens!");
     return {
       hasConflict: true,
       conflictMessage: `Garage opens at ${garage.openTime}`
     };
   }
 
-  if (endTimeInMinutes > garageCloseTimeInMinutes) {
+  console.log(`Comparison: ${end.toISOString()} > ${garageCloseTime.toISOString()} = ${end > garageCloseTime}`);
+
+  if (end > garageCloseTime) {
+    console.log("Appointment ends after garage closes!");
     return {
       hasConflict: true,
       conflictMessage: `Garage closes at ${garage.closeTime}`
     };
   }
 
-  const startTime = new Date(appointmentDate);
-  startTime.setHours(startHour, startMinute, 0, 0);
-
-  const endTime = new Date(appointmentDate);
-  endTime.setHours(endHour, endMinute, 0, 0);
-
-  const query = {
+  // Check if vehicle is already booked at any garage during this time
+  const overlappingAppointments = await Appointment.find({
     vehicle: vehicleId,
-    date: { $gte: new Date(`${appointmentDay}T00:00:00.000Z`), $lt: new Date(`${appointmentDay}T23:59:59.999Z`) },
-    status: { $nin: ["Rejected", "Cancelled"] }
-  };
+    _id: { $ne: currentAppointmentId }, // Exclude current appointment if updating
+    $or: [
+      // Start time falls within existing appointment
+      { start: { $lte: start }, end: { $gt: start } },
+      // End time falls within existing appointment
+      { start: { $lt: end }, end: { $gte: end } },
+      // New appointment completely contains existing appointment
+      { start: { $gte: start, $lt: end } }
+    ],
+    status: { $nin: ["Cancelled", "Rejected"] } // Ignore cancelled/rejected appointments
+  });
 
-  if (currentAppointmentId) {
-    query._id = { $ne: currentAppointmentId };
+  if (overlappingAppointments.length > 0) {
+    console.log("Vehicle already has an appointment during this time!");
+
+    // Get the garage name for the conflicting appointment
+    const conflictGarage = await Garage.findById(overlappingAppointments[0].garage);
+    const garageName = conflictGarage ? conflictGarage.name : "another garage";
+
+    return {
+      hasConflict: true,
+      conflictMessage: `Vehicle is already scheduled at ${garageName} during this time`
+    };
   }
 
-  const existingAppointments = await Appointment.find(query);
-
-  for (const appointment of existingAppointments) {
-    const [apptStartHour, apptStartMinute] = appointment.start.split(":").map(Number);
-    const [apptEndHour, apptEndMinute] = appointment.end.split(":").map(Number);
-
-    const apptStartTime = new Date(appointment.date);
-    apptStartTime.setHours(apptStartHour, apptStartMinute, 0, 0);
-
-    const apptEndTime = new Date(appointment.date);
-    apptEndTime.setHours(apptEndHour, apptEndMinute, 0, 0);
-
-    if (startTime < apptEndTime && endTime > apptStartTime) {
-      return {
-        hasConflict: true,
-        conflictMessage: "This vehicle is already booked at another garage during this time period",
-        conflictGarage: appointment.garage
-      };
-    }
-  }
-
+  console.log("=== END: checkBooking ===");
   return { hasConflict: false };
 };
 
-const convertAndValidateDateTime = (date, start, end) => {
+const convertAndValidateDateTime = async (start, serviceIds) => {
+  console.log("=== START: convertAndValidateDateTime ===");
+  console.log(`Input start time:`, start);
+  console.log(`Service IDs:`, serviceIds);
+
   try {
-    const nowUtc = new Date(); // Get current system time (UTC)
-    const nowGmt7 = new Date(nowUtc.getTime() + 7 * 60 * 60 * 1000); // Convert to GMT+7
+    // Get current time in UTC
+    const nowUtc = new Date();
+    console.log(`Current UTC time: ${nowUtc.toISOString()}`);
 
-    const appointmentDate = new Date(`${date}T00:00:00.000Z`);
+    // Add UTC+7 offset to account for Vietnam timezone
+    const vietnamOffset = 7 * 60 * 60 * 1000; // 7 hours in milliseconds
+    const nowVietnam = new Date(nowUtc.getTime() + vietnamOffset);
+    console.log(`Current Vietnam time (UTC+7): ${nowVietnam.toISOString()}`);
 
-    const appointmentStart = new Date(`${date}T${start}:00.000Z`);
-    const appointmentEnd = new Date(`${date}T${end}:00.000Z`);
+    // Convert start to Date if it's a string
+    const startTime = typeof start === 'string' ? new Date(start) : start;
 
-    if (appointmentStart <= nowGmt7) {
-      throw new Error("Start time must be in the future");
+    // Check if startTime is a valid date
+    if (isNaN(startTime.getTime())) {
+      console.log("ERROR: Invalid date format");
+      throw new Error("Invalid date format. Please provide a valid date and time.");
     }
-    if (appointmentEnd <= appointmentStart) {
-      throw new Error("End time must be after start time");
+
+    console.log(`Parsed start time: ${startTime.toISOString()}`);
+
+    // FUTURE TIME VALIDATION - compare with Vietnam time
+    console.log(`Is start time in future? ${startTime > nowVietnam}`);
+    if (startTime <= nowVietnam) {
+      console.log("ERROR: Start time must be in the future");
+      throw new Error("Appointment time must be in the future");
     }
 
-    return {
-      date: appointmentDate,
-      startTime: appointmentStart,
-      endTime: appointmentEnd,
+    // Calculate service duration
+    let totalDurationMinutes = 0;
+    console.log("Calculating total duration from services:");
+
+    for (const serviceId of serviceIds) {
+      console.log(`Processing service ID: ${serviceId}`);
+      const serviceDetail = await ServiceDetail.findById(serviceId);
+
+      if (!serviceDetail) {
+        console.log(`ERROR: Service with ID ${serviceId} not found`);
+        throw new Error(`Service with ID ${serviceId} not found`);
+      }
+
+      console.log(`Service name: ${serviceDetail.name}`);
+      console.log(`Raw duration string: "${serviceDetail.duration}"`);
+
+      // Parse duration from various formats
+      const durationStr = serviceDetail.duration;
+      let minutes = 0;
+
+      if (durationStr.includes('hour')) {
+        const hours = parseFloat(durationStr.split(' ')[0]);
+        minutes = hours * 60;
+        console.log(`Parsed as hours: ${hours} hours = ${minutes} minutes`);
+      } else if (durationStr.includes('minute')) {
+        minutes = parseInt(durationStr.split(' ')[0]);
+        console.log(`Parsed as minutes: ${minutes} minutes`);
+      } else if (durationStr.includes(':')) {
+        const [first, second] = durationStr.split(':').map(Number);
+        console.log(`Parsed time format: ${first}:${second}`);
+
+        if (second === 0) {
+          minutes = first;
+          console.log(`Treated as direct minutes: ${minutes} minutes`);
+        } else if (first < 24 && second < 60) {
+          minutes = first * 60 + second;
+          console.log(`Treated as hours:minutes: ${minutes} minutes`);
+        } else {
+          minutes = 60; // Default fallback
+          console.log(`Invalid format, using default: ${minutes} minutes`);
+        }
+      } else if (!isNaN(parseInt(durationStr))) {
+        minutes = parseInt(durationStr);
+        console.log(`Parsed as number: ${minutes} minutes`);
+      } else {
+        minutes = 60; // Default fallback
+        console.log(`Unrecognized format, using default: ${minutes} minutes`);
+      }
+
+      totalDurationMinutes += minutes;
+      console.log(`Running total duration: ${totalDurationMinutes} minutes`);
+    }
+
+    console.log(`Final total duration: ${totalDurationMinutes} minutes`);
+
+    // Calculate end time by adding total duration
+    const endTime = new Date(startTime.getTime() + totalDurationMinutes * 60000);
+    console.log(`Calculated end time: ${endTime.toISOString()}`);
+
+    const result = {
+      startTime,
+      endTime,
       isValid: true,
       error: null,
     };
+
+    console.log(`Returning result:`, result);
+    console.log("=== END: convertAndValidateDateTime ===");
+    return result;
   } catch (error) {
+    console.log(`ERROR in convertAndValidateDateTime: ${error.message}`);
+    console.log(error.stack);
+
     return {
-      date: null,
       startTime: null,
       endTime: null,
       isValid: false,
@@ -123,33 +210,30 @@ const convertAndValidateDateTime = (date, start, end) => {
   }
 };
 
-export const createAppointmentService = async ({
-                                                 userId, garage, service, vehicle, date, start, end, tag, note,
-                                               }) => {
-  const { valid, errors } = createAppointmentValidate({
-    user: userId,
-    garage,
-    service,
-    vehicle,
-    date,
-    start,
-    end,
-    tag,
-    note,
-  });
 
-  if (!valid) {
-    const errorMessages = errors.map(error => error.message).join(", ");
-    throw new Error(errorMessages);
+export const createAppointmentService = async ({
+                                                 userId, garage, service, vehicle, start, tag, note,
+                                               }) => {
+  // Validate with zod schema
+  const validation = createAppointmentValidate({ garage, service, vehicle, start, tag, note });
+  if (!validation.valid) {
+    throw new Error(`Validation error: ${JSON.stringify(validation.errors)}`);
   }
 
-  const { startTime, endTime, isValid, error } = convertAndValidateDateTime(date, start, end);
+  // Convert start to Date if it's a string
+  const startTime = typeof start === 'string' ? new Date(start) : start;
+
+  // Calculate end time based on service durations
+  const { startTime: validatedStartTime, endTime, isValid, error } =
+      await convertAndValidateDateTime(startTime, service);
+
   if (!isValid) {
     throw new Error(error);
   }
 
-  const bookingCheck = await checkBooking(vehicle, garage, startTime, start, end);
-  if (bookingCheck.hasConflict) {
+  // Check for booking conflicts - pass directly to checkBooking with UTC times
+  const bookingCheck = await checkBooking(vehicle, garage, validatedStartTime, endTime);
+  if (bookingCheck && bookingCheck.hasConflict) {
     throw new Error(bookingCheck.conflictMessage || "Booking conflict detected");
   }
 
@@ -158,43 +242,74 @@ export const createAppointmentService = async ({
     garage,
     service,
     vehicle,
-    date: startTime,
-    start,
-    end,
+    start: validatedStartTime,
+    end: endTime,
     status: "Pending",
     tag,
     note
-
   });
 
   await newAppointment.save();
-  // Lấy thông tin người dùng để gửi email
+
+  // Retrieve information for email
   const user = await User.findById(userId);
   const garageInfo = await Garage.findById(garage).select('name address');
+  const vehicleInfo = await Vehicle.findById(vehicle).select('carBrand carName carPlate');
 
+  // Format dates for display
+  const displayDate = validatedStartTime.toLocaleDateString('vi-VN');
+  const displayStartTime = validatedStartTime.toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'});
+  const displayEndTime = endTime.toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'});
 
-  // Gửi email xác nhận đặt lịch
-  await transporter.sendMail({
-    from: process.env.MAIL_USER,
-    to: user.email,
-    subject: "Xác nhận đặt lịch hẹn",
-    html: `
-     <h2>Xin chào ${user.name},</h2>
-    <p>Bạn đã đặt lịch hẹn thành công tại hệ thống của chúng tôi.</p>
-    <h3>Chi tiết lịch hẹn:</h3>
-    <ul>
-      <li><strong>Garage:</strong> ${garageInfo.name}</li>
-      <li><strong>Địa chỉ:</strong> ${garageInfo.address}</li>
-      <li><strong>Ngày hẹn:</strong> ${date}</li>
-      <li><strong>Thời gian:</strong> ${start} - ${end}</li>
-      <li><strong>Trạng thái:</strong> Đang chờ xác nhận</li>
-    </ul>
-    <p>Garage sẽ xem xét và xác nhận lịch hẹn của bạn sớm nhất có thể.</p>
-      <p>Xem chi tiết lịch hẹn của bạn <a href="http://localhost:${process.env.PORT}/api/appointment/${newAppointment._id}">tại đây</a>.</p>
+  // // Send confirmation email to customer
+  // await transporter.sendMail({
+  //   from: process.env.MAIL_USER,
+  //   to: user.email,
+  //   subject: "Xác nhận đặt lịch hẹn",
+  //   html: `
+  //     <h2>Xin chào ${user.name},</h2>
+  //     <p>Bạn đã đặt lịch hẹn thành công tại hệ thống của chúng tôi.</p>
+  //     <h3>Chi tiết lịch hẹn:</h3>
+  //     <ul>
+  //       <li><strong>Garage:</strong> ${garageInfo.name}</li>
+  //       <li><strong>Địa chỉ:</strong> ${garageInfo.address}</li>
+  //       <li><strong>Ngày hẹn:</strong> ${displayDate}</li>
+  //       <li><strong>Thời gian:</strong> ${displayStartTime} - ${displayEndTime}</li>
+  //       <li><strong>Trạng thái:</strong> Đang chờ xác nhận</li>
+  //     </ul>
+  //     <p>Garage sẽ xem xét và xác nhận lịch hẹn của bạn sớm nhất có thể.</p>
+  //     <p>Xem chi tiết lịch hẹn của bạn <a href="http://localhost:${process.env.PORT}/api/appointment/${newAppointment._id}">tại đây</a>.</p>
+  //     <p>Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>
+  //   `
+  // });
+  //
+  // // Send notification to garage owners
+  // const garageOwners = await User.find({ garageList: garage });
+  // if (garageOwners && garageOwners.length > 0) {
+  //   for (const owner of garageOwners) {
+  //     await transporter.sendMail({
+  //       from: process.env.MAIL_USER,
+  //       to: owner.email,
+  //       subject: "Thông báo lịch hẹn mới",
+  //       html: `
+  //         <h2>Xin chào ${owner.name},</h2>
+  //         <p>Garage của bạn vừa nhận được một lịch hẹn mới.</p>
+  //         <h3>Chi tiết lịch hẹn:</h3>
+  //         <ul>
+  //           <li><strong>Khách hàng:</strong> ${user.name}</li>
+  //           <li><strong>Số điện thoại:</strong> ${user.phone || 'Không có'}</li>
+  //           <li><strong>Xe:</strong> ${vehicleInfo ? `${vehicleInfo.carBrand} ${vehicleInfo.carName} (${vehicleInfo.carPlate})` : 'Không có thông tin xe'}</li>
+  //           <li><strong>Ngày hẹn:</strong> ${displayDate}</li>
+  //           <li><strong>Thời gian:</strong> ${displayStartTime} - ${displayEndTime}</li>
+  //           <li><strong>Ghi chú:</strong> ${note || 'Không có'}</li>
+  //         </ul>
+  //         <p>Xem chi tiết lịch hẹn <a href="http://localhost:${process.env.PORT}/api/appointment/${newAppointment._id}">tại đây</a>.</p>
+  //         <p>Vui lòng kiểm tra và xác nhận lịch hẹn càng sớm càng tốt.</p>
+  //       `
+  //     });
+  //   }
+  // }
 
-    <p>Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>
-  `
-  });
   return newAppointment;
 };
 
@@ -410,8 +525,8 @@ export const cancelAppointmentService = async (appointmentId, userId) => {
     subject: "Xác nhận hủy lịch hẹn",
     html: `
       <h2>Xin chào ${customer.name},</h2>
-      <p>Lịch hẹn của bạn đã được hủy thành công.</p>
-      <h3>Chi tiết lịch hẹn đã hủy:</h3>
+<p>Lịch hẹn của bạn đã được hủy <span style="color: #28a745; font-weight: bold;">thành công</span>.</p>  
+    <h3>Chi tiết lịch hẹn đã hủy:</h3>
       <ul>
         <li><strong>Garage:</strong> ${garageInfo.name}</li>
         <li><strong>Địa chỉ:</strong> ${garageInfo.address}</li>
@@ -451,10 +566,10 @@ export const cancelAppointmentService = async (appointmentId, userId) => {
 };
 
 export const updateAppointmentService = async (appointmentId, userId, updateData) => {
-  const { valid, errors } = updateAppointmentValidate(updateData);
-  if (!valid) {
-    const errorMessages = errors.map(error => error.message).join(", ");
-    throw new Error(errorMessages);
+  // Validate update data
+  const validation = updateAppointmentValidate(updateData);
+  if (!validation.valid) {
+    throw new Error(`Validation error: ${JSON.stringify(validation.errors)}`);
   }
 
   const appointment = await Appointment.findById(appointmentId);
@@ -465,59 +580,78 @@ export const updateAppointmentService = async (appointmentId, userId, updateData
   if (appointment.user.toString() !== userId) {
     throw new Error("Unauthorized");
   }
+
   if (appointment.status !== "Pending") {
     throw new Error("Only pending appointments can be updated");
   }
 
-  // Lưu thông tin lịch hẹn cũ để hiển thị trong email
-  const oldDate = appointment.date.toISOString().split('T')[0];
+  // Save old appointment times for email
   const oldStart = appointment.start;
   const oldEnd = appointment.end;
 
-  if (updateData.date || updateData.start || updateData.end) {
-    const { startTime, endTime, isValid, error } = convertAndValidateDateTime(
-        updateData.date || oldDate,
-        updateData.start || oldStart,
-        updateData.end || oldEnd
-    );
+  let startTime = oldStart;
+  let endTime = oldEnd;
+  let serviceIds = appointment.service;
 
-    if (!isValid) {
-      throw new Error(error);
+  // If updating start time or services, recalculate end time
+  if (updateData.start || updateData.service) {
+    if (updateData.service) {
+      serviceIds = updateData.service;
     }
 
-    updateData.date = startTime;
-    updateData.start = updateData.start || oldStart;
-    updateData.end = updateData.end || oldEnd;
+    const newStartTime = updateData.start ?
+        (typeof updateData.start === 'string' ? new Date(updateData.start) : updateData.start) :
+        oldStart;
 
+    const validationResult = await convertAndValidateDateTime(newStartTime, serviceIds);
+    if (!validationResult.isValid) {
+      throw new Error(validationResult.error);
+    }
+
+    startTime = validationResult.startTime;
+    endTime = validationResult.endTime;
+
+    // Check for booking conflicts
     const bookingCheck = await checkBooking(
         updateData.vehicle || appointment.vehicle,
         updateData.garage || appointment.garage,
-        updateData.date,
-        updateData.start,
-        updateData.end,
+        startTime,
+        endTime,
         appointmentId
     );
 
     if (bookingCheck.hasConflict) {
-      throw new Error("This vehicle is already booked at another garage during this time period");
+      throw new Error(bookingCheck.conflictMessage || "Booking conflict detected");
     }
   }
 
+  // Update the appointment with new data
+  const updatedFields = {
+    ...updateData,
+    start: startTime,
+    end: endTime
+  };
 
   const updatedAppointment = await Appointment.findByIdAndUpdate(
       appointmentId,
-      { $set: updateData },
+      { $set: updatedFields },
       { new: true, runValidators: true }
   );
 
-  // Lấy thông tin người dùng và garage để gửi email
+  // Send email notification about the update
   const user = await User.findById(userId);
   const garageInfo = await Garage.findById(updatedAppointment.garage).select('name address');
 
-  // Format date for display
-  const displayDate = updatedAppointment.date.toISOString().split('T')[0];
+  // Format dates for email
+  const oldDisplayDate = oldStart.toLocaleDateString('vi-VN');
+  const oldDisplayStartTime = oldStart.toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'});
+  const oldDisplayEndTime = oldEnd.toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'});
 
-  // Gửi email thông báo cập nhật lịch hẹn
+  const newDisplayDate = startTime.toLocaleDateString('vi-VN');
+  const newDisplayStartTime = startTime.toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'});
+  const newDisplayEndTime = endTime.toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'});
+
+  // Send email about the update
   await transporter.sendMail({
     from: process.env.MAIL_USER,
     to: user.email,
@@ -525,22 +659,22 @@ export const updateAppointmentService = async (appointmentId, userId, updateData
     html: `
       <h2>Xin chào ${user.name},</h2>
       <p>Lịch hẹn của bạn đã được cập nhật thành công.</p>
-      
+
       <h3>Thông tin cũ:</h3>
       <ul>
-        <li><strong>Ngày hẹn:</strong> ${oldDate}</li>
-        <li><strong>Thời gian:</strong> ${oldStart} - ${oldEnd}</li>
+        <li><strong>Ngày hẹn:</strong> ${oldDisplayDate}</li>
+        <li><strong>Thời gian:</strong> ${oldDisplayStartTime} - ${oldDisplayEndTime}</li>
       </ul>
-      
+
       <h3>Thông tin mới:</h3>
       <ul>
         <li><strong>Garage:</strong> ${garageInfo.name}</li>
         <li><strong>Địa chỉ:</strong> ${garageInfo.address}</li>
-        <li><strong>Ngày hẹn:</strong> ${displayDate}</li>
-        <li><strong>Thời gian:</strong> ${updatedAppointment.start} - ${updatedAppointment.end}</li>
+        <li><strong>Ngày hẹn:</strong> ${newDisplayDate}</li>
+        <li><strong>Thời gian:</strong> ${newDisplayStartTime} - ${newDisplayEndTime}</li>
         <li><strong>Trạng thái:</strong> Đang chờ xác nhận</li>
       </ul>
-      
+
       <p>Xem chi tiết lịch hẹn của bạn <a href="http://localhost:${process.env.PORT}/api/appointment/${updatedAppointment._id}">tại đây</a>.</p>
       <p>Garage sẽ xem xét và xác nhận lịch hẹn của bạn sớm nhất có thể.</p>
       <p>Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>
