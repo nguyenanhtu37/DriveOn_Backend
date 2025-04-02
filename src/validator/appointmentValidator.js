@@ -12,11 +12,21 @@ const objectIdOrStringSchema = z.union([
 
 // Schema cho update appointment
 const updateAppointmentSchema = z.object({
-    // date: z.union([z.string().refine((val) => !isNaN(Date.parse(val)), {
-    //     message: "Invalid date format",
-    // }), z.date()]).optional(),
-    // start: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Invalid time format").optional(),
-    // end: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Invalid time format").optional(),
+// Kiểm tra định dạng ngày YYYY-MM-DD
+    date: z.string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in format YYYY-MM-DD")
+        .refine(val => !isNaN(Date.parse(val)), {
+            message: "Invalid date format"
+        }),
+
+    // Kiểm tra định dạng thời gian HH:MM (24-hour format)
+    start: z.string()
+        .regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Start time must be in format HH:MM"),
+
+    // Kiểm tra định dạng thời gian HH:MM (24-hour format)
+    end: z.string()
+        .regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "End time must be in format HH:MM"),
+
     note: z.string().optional(),
     vehicle: objectIdOrStringSchema.optional(),
     garage: objectIdOrStringSchema.optional(),
@@ -33,14 +43,27 @@ export const updateAppointmentValidate = (appointmentData) => {
         return { valid: false, errors: e.errors };
     }
 };
+// Cập nhật appointmentSchema để bao gồm date, start và end
 const appointmentSchema = z.object({
     user: z.string().nonempty("User ID is required"), // User ID
     garage: z.string().nonempty("Garage ID is required"), // Garage ID
     service: z.array(z.string().nonempty("Service ID is required")).nonempty("At least one service is required"), // Required services
     vehicle: z.string().nonempty("Vehicle ID is required"), // Vehicle ID
-    // date: z.date().refine(validateDate, { message: "Date must be today or in the future" }), // Date must be today or in the future
-    // start: z.string().refine(validateStartTime, { message: "Start time must be in the future" }), // Start time must be in the future
-    // end: z.string().refine(validateEndTime, { message: "End time must be after start time" }), // End time must be after start time
+
+    // Kiểm tra định dạng ngày YYYY-MM-DD
+    date: z.string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in format YYYY-MM-DD")
+        .refine(val => !isNaN(Date.parse(val)), {
+            message: "Invalid date format"
+        }),
+
+    // Kiểm tra định dạng thời gian HH:MM (24-hour format)
+    start: z.string()
+        .regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Start time must be in format HH:MM"),
+
+    // Kiểm tra định dạng thời gian HH:MM (24-hour format)
+    end: z.string()
+        .regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "End time must be in format HH:MM"),
 
     status: z.enum(["Pending", "Accepted", "Rejected", "Completed", "Cancelled"]).default("Pending"), // Status
     tag: z.enum(["Normal", "Emergency"]).default("Normal"), // Tag (condition)
