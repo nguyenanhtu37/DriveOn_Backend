@@ -46,8 +46,8 @@ export const validateAddServiceDetail = (serviceDetailData) => {
     }
   
     // Validate duration
-    if (serviceDetailData.duration !== undefined && typeof serviceDetailData.duration !== 'string') {
-      errors.push("Service detail duration must be a string");
+    if (serviceDetailData.duration !== undefined && typeof serviceDetailData.duration !== 'number') {
+        errors.push("Service detail duration must be a number (minutes)");
     }
   
     // Validate warranty
@@ -94,10 +94,10 @@ export const validateUpdateServiceDetail = (serviceDetailData) => {
     if (serviceDetailData.price !== undefined && typeof serviceDetailData.price !== 'number') {
       errors.push("Service detail price must be a number");
     }
-  
-    // Validate duration
-    if (serviceDetailData.duration !== undefined && typeof serviceDetailData.duration !== 'string') {
-      errors.push("Service detail duration must be a string");
+
+    // For updating service details
+    if (serviceDetailData.duration !== undefined && typeof serviceDetailData.duration !== 'number') {
+        errors.push("Service detail duration must be a number (minutes)");
     }
   
     // Validate warranty

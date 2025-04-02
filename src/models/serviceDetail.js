@@ -22,7 +22,7 @@ const serviceDetailSchema = new mongoose.Schema({
     type: Number
   },
   duration: {
-    type: String
+    type: Number,
   },
   warranty: { //thoi gian bao hanh dich vu
     type: String

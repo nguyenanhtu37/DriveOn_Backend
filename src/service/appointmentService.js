@@ -109,32 +109,9 @@ const convertAndValidateDateTime = async (start, serviceIds) => {
         throw new Error(`Service with ID ${serviceId} not found`);
       }
 
-      // Parse duration from various formats
-      const durationStr = serviceDetail.duration;
-      let minutes = 0;
-
-      if (durationStr.includes('hour')) {
-        const hours = parseFloat(durationStr.split(' ')[0]);
-        minutes = hours * 60;
-      } else if (durationStr.includes('minute')) {
-        minutes = parseInt(durationStr.split(' ')[0]);
-      } else if (durationStr.includes(':')) {
-        const [first, second] = durationStr.split(':').map(Number);
-
-        if (second === 0) {
-          minutes = first;
-        } else if (first < 24 && second < 60) {
-          minutes = first * 60 + second;
-        } else {
-          minutes = 60; // Default fallback
-        }
-      } else if (!isNaN(parseInt(durationStr))) {
-        minutes = parseInt(durationStr);
-      } else {
-        minutes = 60; // Default fallback
-      }
-
-      totalDurationMinutes += minutes;
+      // Get duration directly as a number (minutes)
+      const durationMinutes = serviceDetail.duration || 60; // Default to 60 minutes if not set
+      totalDurationMinutes += durationMinutes;
     }
 
     // Calculate end time by adding total duration
@@ -155,7 +132,6 @@ const convertAndValidateDateTime = async (start, serviceIds) => {
     };
   }
 };
-
 
 export const createAppointmentService = async ({
                                                  userId, garage, service, vehicle, start, tag, note,
