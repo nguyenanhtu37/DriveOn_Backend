@@ -4,13 +4,49 @@ import User from "../models/user.js";
 import { updateAppointmentValidate, createAppointmentValidate } from "../validator/appointmentValidator.js";
 import transporter from "../config/mailer.js";
 
-// Helper function to check for double bookings
-const checkVehicleDoubleBooking = async (vehicleId, garageId, date, start, end, currentAppointmentId = null) => {
+
+
+// Helper function to check for double bookings and validate time range
+const checkBooking = async (vehicleId, garageId, date, start, end, currentAppointmentId = null) => {
   const appointmentDate = new Date(date);
   const appointmentDay = appointmentDate.toISOString().split("T")[0];
 
+  // Get garage operating hours
+  const garage = await Garage.findById(garageId);
+  if (!garage) {
+    return {
+      hasConflict: true,
+      conflictMessage: "Garage not found"
+    };
+  }
+
   const [startHour, startMinute] = start.split(":").map(Number);
   const [endHour, endMinute] = end.split(":").map(Number);
+
+  // Get garage operating hours
+  const [garageOpenHour, garageOpenMinute] = garage.openTime.split(":").map(Number);
+  const [garageCloseHour, garageCloseMinute] = garage.closeTime.split(":").map(Number);
+
+  // Convert to minutes for easy comparison
+  const startTimeInMinutes = startHour * 60 + startMinute;
+  const endTimeInMinutes = endHour * 60 + endMinute;
+  const garageOpenTimeInMinutes = garageOpenHour * 60 + garageOpenMinute;
+  const garageCloseTimeInMinutes = garageCloseHour * 60 + garageCloseMinute;
+
+  // Check if appointment is within garage's operating hours
+  if (startTimeInMinutes < garageOpenTimeInMinutes) {
+    return {
+      hasConflict: true,
+      conflictMessage: `Garage opens at ${garage.openTime}`
+    };
+  }
+
+  if (endTimeInMinutes > garageCloseTimeInMinutes) {
+    return {
+      hasConflict: true,
+      conflictMessage: `Garage closes at ${garage.closeTime}`
+    };
+  }
 
   const startTime = new Date(appointmentDate);
   startTime.setHours(startHour, startMinute, 0, 0);
@@ -43,6 +79,7 @@ const checkVehicleDoubleBooking = async (vehicleId, garageId, date, start, end, 
     if (startTime < apptEndTime && endTime > apptStartTime) {
       return {
         hasConflict: true,
+        conflictMessage: "This vehicle is already booked at another garage during this time period",
         conflictGarage: appointment.garage
       };
     }
@@ -111,9 +148,9 @@ export const createAppointmentService = async ({
     throw new Error(error);
   }
 
-  const bookingCheck = await checkVehicleDoubleBooking(vehicle, garage, startTime, start, end);
+  const bookingCheck = await checkBooking(vehicle, garage, startTime, start, end);
   if (bookingCheck.hasConflict) {
-    throw new Error("This vehicle is already booked at another garage during this time period");
+    throw new Error(bookingCheck.conflictMessage || "Booking conflict detected");
   }
 
   const newAppointment = new Appointment({
@@ -126,9 +163,8 @@ export const createAppointmentService = async ({
     end,
     status: "Pending",
     tag,
-    note,
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    note
+
   });
 
   await newAppointment.save();
@@ -202,11 +238,39 @@ export const confirmAppointmentService = async (appointmentId, userId) => {
   }
 
   appointment.status = "Accepted";
-  appointment.updatedAt = new Date();
   await appointment.save();
+
+  // Get user and garage info for email
+  const customer = await User.findById(appointment.user);
+  const garageInfo = await Garage.findById(appointment.garage).select('name address');
+
+  // Format date for display
+  const displayDate = appointment.date.toISOString().split('T')[0];
+
+  // Send confirmation email to customer
+  await transporter.sendMail({
+    from: process.env.MAIL_USER,
+    to: customer.email,
+    subject: "Lịch hẹn của bạn đã được xác nhận",
+    html: `
+      <h2>Xin chào ${customer.name},</h2>
+      <p>Lịch hẹn của bạn đã được xác nhận bởi garage.</p>
+      <h3>Chi tiết lịch hẹn:</h3>
+      <ul>
+        <li><strong>Garage:</strong> ${garageInfo.name}</li>
+        <li><strong>Địa chỉ:</strong> ${garageInfo.address}</li>
+        <li><strong>Ngày hẹn:</strong> ${displayDate}</li>
+        <li><strong>Thời gian:</strong> ${appointment.start} - ${appointment.end}</li>
+        <li><strong>Trạng thái:</strong> Đã xác nhận</li>
+      </ul>
+      <p>Vui lòng đến đúng giờ. Nếu bạn cần thay đổi lịch hẹn, vui lòng liên hệ với garage.</p>
+      <p>Xem chi tiết lịch hẹn của bạn <a href="http://localhost:${process.env.PORT}/api/appointment/${appointment._id}">tại đây</a>.</p>
+      <p>Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>
+    `
+  });
+
   return appointment;
 };
-
 export const denyAppointmentService = async (appointmentId, userId) => {
   const appointment = await Appointment.findById(appointmentId);
   if (!appointment) {
@@ -219,10 +283,39 @@ export const denyAppointmentService = async (appointmentId, userId) => {
   }
 
   appointment.status = "Rejected";
-  appointment.updatedAt = new Date();
   await appointment.save();
+
+  // Get user and garage info for email
+  const customer = await User.findById(appointment.user);
+  const garageInfo = await Garage.findById(appointment.garage).select('name address');
+
+  // Format date for display
+  const displayDate = appointment.date.toISOString().split('T')[0];
+
+  // Send rejection email to customer
+  await transporter.sendMail({
+    from: process.env.MAIL_USER,
+    to: customer.email,
+    subject: "Lịch hẹn của bạn đã bị từ chối",
+    html: `
+      <h2>Xin chào ${customer.name},</h2>
+      <p>Rất tiếc, lịch hẹn của bạn đã bị từ chối bởi garage.</p>
+      <h3>Chi tiết lịch hẹn:</h3>
+      <ul>
+        <li><strong>Garage:</strong> ${garageInfo.name}</li>
+        <li><strong>Địa chỉ:</strong> ${garageInfo.address}</li>
+        <li><strong>Ngày hẹn:</strong> ${displayDate}</li>
+        <li><strong>Thời gian:</strong> ${appointment.start} - ${appointment.end}</li>
+      </ul>
+      <p>Xem chi tiết lịch hẹn của bạn <a href="http://localhost:${process.env.PORT}/api/appointment/${appointment._id}">tại đây</a>.</p>
+
+      <p>Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>
+    `
+  });
+
   return appointment;
 };
+
 
 export const completeAppointmentService = async (appointmentId, userId) => {
   const appointment = await Appointment.findById(appointmentId);
@@ -240,11 +333,39 @@ export const completeAppointmentService = async (appointmentId, userId) => {
   }
 
   appointment.status = "Completed";
-  appointment.updatedAt = new Date();
   await appointment.save();
+
+  // Get user and garage info for email
+  const customer = await User.findById(appointment.user);
+  const garageInfo = await Garage.findById(appointment.garage).select('name address');
+
+  // Format date for display
+  const displayDate = appointment.date.toISOString().split('T')[0];
+
+  // Send completion email to customer
+  await transporter.sendMail({
+    from: process.env.MAIL_USER,
+    to: customer.email,
+    subject: "Dịch vụ của bạn đã hoàn thành",
+    html: `
+      <h2>Xin chào ${customer.name},</h2>
+      <p>Dịch vụ của bạn đã được hoàn thành.</p>
+      <h3>Chi tiết lịch hẹn:</h3>
+      <ul>
+        <li><strong>Garage:</strong> ${garageInfo.name}</li>
+        <li><strong>Địa chỉ:</strong> ${garageInfo.address}</li>
+        <li><strong>Ngày hẹn:</strong> ${displayDate}</li>
+        <li><strong>Thời gian:</strong> ${appointment.start} - ${appointment.end}</li>
+        <li><strong>Trạng thái:</strong> Đã hoàn thành</li>
+      </ul>      
+      <p>Xem chi tiết lịch hẹn của bạn <a href="http://localhost:${process.env.PORT}/api/appointment/${appointment._id}">tại đây</a>.</p>
+
+      <p>Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>
+    `
+  });
+
   return appointment;
 };
-
 export const getAcceptedAppointmentsService = async (userId, garageId) => {
   const user = await User.findById(userId);
   if (!user) {
@@ -273,8 +394,59 @@ export const cancelAppointmentService = async (appointmentId, userId) => {
   }
 
   appointment.status = "Cancelled";
-  appointment.updatedAt = new Date();
   await appointment.save();
+
+  // Get user and garage info for email
+  const customer = await User.findById(appointment.user);
+  const garageInfo = await Garage.findById(appointment.garage).select('name address phone');
+
+  // Format date for display
+  const displayDate = appointment.date.toISOString().split('T')[0];
+
+  // Send cancellation email to customer
+  await transporter.sendMail({
+    from: process.env.MAIL_USER,
+    to: customer.email,
+    subject: "Xác nhận hủy lịch hẹn",
+    html: `
+      <h2>Xin chào ${customer.name},</h2>
+      <p>Lịch hẹn của bạn đã được hủy thành công.</p>
+      <h3>Chi tiết lịch hẹn đã hủy:</h3>
+      <ul>
+        <li><strong>Garage:</strong> ${garageInfo.name}</li>
+        <li><strong>Địa chỉ:</strong> ${garageInfo.address}</li>
+        <li><strong>Ngày hẹn:</strong> ${displayDate}</li>
+        <li><strong>Thời gian:</strong> ${appointment.start} - ${appointment.end}</li>
+      </ul>
+      <p>Xem chi tiết lịch hẹn của bạn <a href="http://localhost:${process.env.PORT}/api/appointment/${appointment._id}">tại đây</a>.</p>
+      <p>Nếu bạn muốn đặt lịch hẹn mới, vui lòng truy cập trang web của chúng tôi.</p>
+      <p>Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>
+    `
+  });
+
+  // Also notify the garage about the cancellation
+  const garageOwners = await User.find({ garageList: appointment.garage });
+  if (garageOwners && garageOwners.length > 0) {
+    for (const owner of garageOwners) {
+      await transporter.sendMail({
+        from: process.env.MAIL_USER,
+        to: owner.email,
+        subject: "Thông báo hủy lịch hẹn",
+        html: `
+          <h2>Xin chào ${owner.name},</h2>
+          <p>Một khách hàng đã hủy lịch hẹn.</p>
+          <h3>Chi tiết lịch hẹn đã hủy:</h3>
+          <ul>
+            <li><strong>Khách hàng:</strong> ${customer.name}</li>
+            <li><strong>Ngày hẹn:</strong> ${displayDate}</li>
+            <li><strong>Thời gian:</strong> ${appointment.start} - ${appointment.end}</li>
+          </ul>
+          <p>Xem chi tiết lịch hẹn <a href="http://localhost:${process.env.PORT}/api/appointment/${appointment._id}">tại đây</a>.</p>
+        `
+      });
+    }
+  }
+
   return appointment;
 };
 
@@ -317,7 +489,7 @@ export const updateAppointmentService = async (appointmentId, userId, updateData
     updateData.start = updateData.start || oldStart;
     updateData.end = updateData.end || oldEnd;
 
-    const bookingCheck = await checkVehicleDoubleBooking(
+    const bookingCheck = await checkBooking(
         updateData.vehicle || appointment.vehicle,
         updateData.garage || appointment.garage,
         updateData.date,
@@ -331,7 +503,6 @@ export const updateAppointmentService = async (appointmentId, userId, updateData
     }
   }
 
-  updateData.updatedAt = new Date();
 
   const updatedAppointment = await Appointment.findByIdAndUpdate(
       appointmentId,
