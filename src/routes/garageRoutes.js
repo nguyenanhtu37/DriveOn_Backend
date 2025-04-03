@@ -18,8 +18,9 @@ import {
     enableGarage,
     disableGarage,
     viewGarageExisting,
-    getCoordinates,
-    getGaragesWithinRadius,
+    findGarages,
+    // getCoordinates,
+    // getGaragesWithinRadius,
     // filterGarages,
     // filterGaragesByRating,
 } from '../controller/garageController.js';
@@ -33,10 +34,14 @@ router.get("/:id/staff/:staffId", authMiddleware, getStaffById);
 router.put("/:id/staff/disable", authMiddleware, disableStaff);
 router.put("/:id/staff/enable", authMiddleware, enableStaff);
 
-//filter
-router.get("/get-coordinates", getCoordinates);
+// filter garage:
+router.get("/filter", findGarages);
+
+// lấy kinh độ, vĩ độ khi ng dùng nhập text
+// router.get("/get-coordinates", getCoordinates);
+
 // API để lấy danh sách garage trong phạm vi
-router.get("/filter", getGaragesWithinRadius);
+// router.get("/filter", getGaragesWithinRadius);
 // router.get('/filter', filterGarages);
 // router.get('/filter-by-rating', filterGaragesByRating);
 
