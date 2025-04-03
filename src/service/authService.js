@@ -11,6 +11,9 @@ import {
   validateSignup,
 } from "../validator/authValidator.js";
 
+const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:5000";
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
+
 const signup = async (userData) => {
   // Validate userData
   validateSignup(userData);
@@ -29,8 +32,7 @@ const signup = async (userData) => {
   // luu token vao redis (key: email, value: token)
   await redis.setex(email, 900, token); // 15'
   // gui mail xminh
-  const link = `http://localhost:${process.env.PORT}/api/auth/verify?token=${token}`;
-  // const link = `http://localhost:5173?token=${token}`;
+  const link = `${BACKEND_URL}/api/auth/verify?token=${token}`;
   await transporter.sendMail({
     from: process.env.MAIL_USER,
     to: email,
@@ -128,8 +130,7 @@ const requestPasswordReset = async (email) => {
   const checkToken = await redis.get(email);
   console.log("Token saved in Redis:", checkToken);
   // gui mail reset
-  // const link = `http://localhost:${process.env.PORT}/api/auth/reset-password?token=${token}`;
-  const link = `http://localhost:5173/reset-password?token=${token}`;
+  const link = `${FRONTEND_URL}/reset-password?token=${token}`;
   await transporter.sendMail({
     from: process.env.MAIL_USER,
     to: email,
