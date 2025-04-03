@@ -1,6 +1,6 @@
 import bcrypt from 'bcrypt';
 import User from '../models/user.js';
-// import Role from "../models/role.js";
+import Role from "../models/role.js";
 import { validateUserData, validateUpdateProfile, validateChangePassword } from '../validator/userValidator.js';
 
 const changePassword = async (userId, oldPassword, newPassword) => {
@@ -47,43 +47,35 @@ const updatePersonalProfile = async (userId, userData) => {
   }
 };
 
-// const getUsersByRoles = async (roleNames) => {
-//   try {
-//     // Lấy ObjectId của các vai trò
-//     const roles = await Role.find({ roleName: { $in: roleNames } }).select("_id");
-//     const roleIds = roles.map(role => role._id);
 
-//     // Tìm các user có vai trò nằm trong danh sách roleIds
-//     const users = await User.find({ roles: { $in: roleIds } })
-//       .populate("roles", "roleName") // Lấy thông tin roleName
-//       .select("name email phone roles status createdAt updatedAt"); // Chỉ lấy các trường cần thiết
-//     return users;
-//   } catch (error) {
-//     throw new Error(error.message);
-//   }
-// };
+const getAllUsers = async (page = 1, limit = 10) => {
+  try {
+    const adminRole = await Role.findOne({ roleName: "admin" }).select("_id");
+    if (!adminRole) {
+      throw new Error("Admin role not found");
+    }
 
-// const getUsersByRoles = async (roleNames) => {
-//   try {
-//     console.log("Roles received:", roleNames); // Log danh sách vai trò nhận được
+    const skip = (page - 1) * limit;
 
-//     // Lấy ObjectId của các vai trò
-//     const roles = await Role.find({ roleName: { $in: roleNames } }).select("_id");
-//     console.log("Role IDs found:", roles); // Log danh sách ObjectId của vai trò
+    // Lấy danh sách user với phân trang
+    const users = await User.find({ roles: { $ne: adminRole._id } }) 
+      .populate("roles", "roleName") 
+      .select("name email phone roles status createdAt updatedAt") 
+      .skip(skip) 
+      .limit(limit); 
 
-//     const roleIds = roles.map(role => role._id);
+    // Đếm tổng số tài khoản (ko bao gồm admin)
+    const totalUsers = await User.countDocuments({ roles: { $ne: adminRole._id } });
 
-//     // Tìm các user có vai trò nằm trong danh sách roleIds
-//     const users = await User.find({ roles: { $in: roleIds } })
-//       .populate("roles", "roleName") // Lấy thông tin roleName
-//       .select("name email phone roles status createdAt updatedAt"); // Chỉ lấy các trường cần thiết
+    return {
+      users,
+      totalUsers,
+      totalPages: Math.ceil(totalUsers / limit),
+      currentPage: page,
+    };
+  } catch (error) {
+    throw new Error(error.message);
+  }
+};
 
-//     console.log("Users found:", users); // Log danh sách user tìm thấy
-//     return users;
-//   } catch (error) {
-//     console.error("Error in getUsersByRoles:", error.message);
-//     throw new Error(error.message);
-//   }
-// };
-
-export { changePassword, viewPersonalProfile, updatePersonalProfile };
+export { changePassword, viewPersonalProfile, updatePersonalProfile, getAllUsers };

@@ -28,27 +28,17 @@ const updatePersonalProfile = async (req, res) => {
     };
 };
 
-// const viewUsersByRoles = async (req, res) => {
-//     try {
-//       const roles = req.query.roles ? req.query.roles.split(",") : []; // Lấy danh sách roles từ query
-//       const result = await userService.getUsersByRoles(roles);
-//       res.status(200).json(result);
-//     } catch (err) {
-//       res.status(500).json({ error: err.message });
-//     }
-//   };
 
-// const viewUsersByRoles = async (req, res) => {
-//     try {
-//       const roles = req.query.roles ? req.query.roles.split(",") : [];
-//       console.log("Roles from query:", roles); // Log danh sách vai trò từ query
+const viewAllUsers = async (req, res) => {
+    try {
+      const page = parseInt(req.query.page) || 1; // Mặc định là trang 1
+      const limit = parseInt(req.query.limit) || 10; // Mặc định là 10 tài khoản mỗi trang
   
-//       const result = await userService.getUsersByRoles(roles);
-//       res.status(200).json(result);
-//     } catch (err) {
-//       console.error("Error in viewUsersByRoles:", err.message);
-//       res.status(500).json({ error: err.message });
-//     }
-//   };
+      const result = await userService.getAllUsers(page, limit);
+      res.status(200).json(result);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  };
 
-export { changePassword, viewPersonalProfile, updatePersonalProfile };
+export { changePassword, viewPersonalProfile, updatePersonalProfile, viewAllUsers };
