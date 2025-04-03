@@ -205,37 +205,39 @@ export const createAppointmentService = async ({
     `
   });
 
-  const roleStaff = await Role.findOne({ roleName: "staff" });
-  if (!roleStaff) {
-    console.log('Role "staff" not found');
-    return;
+  // In createAppointmentService, modify the garage notification part:
+  const roleManager = await Role.findOne({ roleName: "manager" });
+  if (!roleManager) {
+    console.log('Role "manager" not found');
+    return newAppointment;
   }
 
-  const garageOwners = await User.find({
+  const garageManagers = await User.find({
     garageList: garage,
-    roles: roleStaff._id // Chỉ tìm người có vai trò "staff"
+    roles: roleManager._id // Find users with "manager" role
   });
-    if (garageOwners && garageOwners.length > 0) {
-    for (const owner of garageOwners) {
+
+  if (garageManagers && garageManagers.length > 0) {
+    for (const manager of garageManagers) {
       await transporter.sendMail({
         from: process.env.MAIL_USER,
-        to: owner.email,
+        to: manager.email,
         subject: "Thông báo lịch hẹn mới",
         html: `
-          <h2>Xin chào ${owner.name},</h2>
-          <p>Garage của bạn vừa nhận được một lịch hẹn mới.</p>
-          <h3>Chi tiết lịch hẹn:</h3>
-          <ul>
-            <li><strong>Khách hàng:</strong> ${user.name}</li>
-            <li><strong>Số điện thoại:</strong> ${user.phone || 'Không có'}</li>
-            <li><strong>Xe:</strong> ${vehicleInfo.carName} (${vehicleInfo.carPlate})</li>
-            <li><strong>Ngày hẹn:</strong> ${displayDate}</li>
-            <li><strong>Thời gian:</strong> ${displayStartTime} - ${displayEndTime}</li>
-            <li><strong>Ghi chú:</strong> ${note || 'Không có'}</li>
-          </ul>
-          <p>Xem chi tiết lịch hẹn <a href="http://localhost:${process.env.PORT}/api/appointment/${newAppointment._id}">tại đây</a>.</p>
-          <p>Vui lòng kiểm tra và xác nhận lịch hẹn càng sớm càng tốt.</p>
-        `
+        <h2>Xin chào ${manager.name},</h2>
+        <p>Garage của bạn vừa nhận được một lịch hẹn mới.</p>
+        <h3>Chi tiết lịch hẹn:</h3>
+        <ul>
+          <li><strong>Khách hàng:</strong> ${user.name}</li>
+          <li><strong>Số điện thoại:</strong> ${user.phone || 'Không có'}</li>
+          <li><strong>Xe:</strong> ${vehicleInfo.carName} (${vehicleInfo.carPlate})</li>
+          <li><strong>Ngày hẹn:</strong> ${displayDate}</li>
+          <li><strong>Thời gian:</strong> ${displayStartTime} - ${displayEndTime}</li>
+          <li><strong>Ghi chú:</strong> ${note || 'Không có'}</li>
+        </ul>
+        <p>Xem chi tiết lịch hẹn <a href="http://localhost:${process.env.PORT}/api/appointment/${newAppointment._id}">tại đây</a>.</p>
+        <p>Vui lòng kiểm tra và xác nhận lịch hẹn càng sớm càng tốt.</p>
+      `
       });
     }
   }
@@ -477,31 +479,32 @@ export const cancelAppointmentService = async (appointmentId, userId) => {
     `
   });
 
-  // Also notify the garage about the cancellation
-  const roleStaff = await Role.findOne({ roleName: "staff" });
-  if (!roleStaff) {
-    console.log('Role "staff" not found');
-    return;
+  // Notify garage managers about the cancellation
+  const roleManager = await Role.findOne({ roleName: "manager" });
+  if (!roleManager) {
+    console.log('Role "manager" not found');
+    return appointment;
   }
 
-  const garageOwners = await User.find({
+  const garageManagers = await User.find({
     garageList: appointment.garage,
-    roles: roleStaff._id // Chỉ tìm người có vai trò "staff"
+    roles: roleManager._id // Find users with "manager" role
   });
-  if (garageOwners && garageOwners.length > 0) {
-    for (const owner of garageOwners) {
+
+  if (garageManagers && garageManagers.length > 0) {
+    for (const manager of garageManagers) {
       await transporter.sendMail({
         from: process.env.MAIL_USER,
-        to: owner.email,
+        to: manager.email,
         subject: "Thông báo hủy lịch hẹn",
         html: `
-          <h2>Xin chào ${owner.name},</h2>
+          <h2>Xin chào ${manager.name},</h2>
           <p>Một khách hàng đã hủy lịch hẹn.</p>
           <h3>Chi tiết lịch hẹn đã hủy:</h3>
           <ul>
             <li><strong>Khách hàng:</strong> ${customer.name}</li>
-             <li><strong>Ngày hẹn:</strong> ${displayDate}</li>
-        <li><strong>Thời gian:</strong> ${displayStartTime} - ${displayEndTime}</li>
+            <li><strong>Ngày hẹn:</strong> ${displayDate}</li>
+            <li><strong>Thời gian:</strong> ${displayStartTime} - ${displayEndTime}</li>
           </ul>
           <p>Xem chi tiết lịch hẹn <a href="http://localhost:${process.env.PORT}/api/appointment/${appointment._id}">tại đây</a>.</p>
         `
