@@ -232,4 +232,17 @@ export const filterGaragesByRating = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
-export { registerGarage, viewGarages, updateGarage, deleteGarage, getGarageById, viewGarageRegistrations, approveGarageRegistration, rejectGarageRegistration, getGarageRegistrationById, addStaff, viewStaff, disableStaff, enableStaff, getStaffById, enableGarage, disableGarage, viewGarageExisting };
+
+const viewAllGaragesByAdmin = async (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+
+  try {
+    const garages = await garageService.viewAllGaragesByAdmin(page, limit);
+    res.status(200).json(garages);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export { registerGarage, viewGarages, updateGarage, deleteGarage, getGarageById, viewGarageRegistrations, approveGarageRegistration, rejectGarageRegistration, getGarageRegistrationById, addStaff, viewStaff, disableStaff, enableStaff, getStaffById, enableGarage, disableGarage, viewGarageExisting, viewAllGaragesByAdmin };

@@ -367,6 +367,19 @@ export const filterGaragesByRating = async (minRating = 0) => {
     throw new Error(err.message);
   }
 };
+
+const viewAllGaragesByAdmin = async (page = 1, limit = 10) => {
+  try {
+    const garages = await Garage.find()
+      .populate("user", "name email phone")
+      .skip((page - 1) * limit)
+      .limit(limit);
+    return garages;
+  } catch (err) {
+    throw new Error(err.message);
+  }
+};
+
 export {
   registerGarage,
   viewGarages,
@@ -385,4 +398,5 @@ export {
   enableGarage,
   disableGarage,
   viewGarageExisting,
+  viewAllGaragesByAdmin
 };

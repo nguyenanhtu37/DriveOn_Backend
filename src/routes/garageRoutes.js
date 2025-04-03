@@ -19,7 +19,8 @@ import {
     enableGarage,
     disableGarage,
     viewGarageExisting,
-    filterGaragesByRating
+    filterGaragesByRating,
+    viewAllGaragesByAdmin
 } from '../controller/garageController.js';
 
 const router = express.Router();
@@ -46,5 +47,7 @@ router.put("/garages/:id", authMiddleware, updateGarage);
 router.get('/existing', viewGarageExisting);
 router.put('/:id/enable', adminMiddleware, enableGarage);
 router.put('/:id/disable', adminMiddleware, disableGarage);
+
+router.get("/view-all-garages-by-admin", adminMiddleware, viewAllGaragesByAdmin); // Admin xem toàn bộ garage
 
 export default router;
