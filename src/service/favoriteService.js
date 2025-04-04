@@ -15,6 +15,7 @@ export const addFavoriteGarage = async (userId, garageId) => {
         throw new Error(err.message);
     }
 };
+
 export const getFavoriteGarages = async (userId) => {
     try {
         const favorites = await Favorite.find({ user: userId }).populate('garage', 'name address phone');
@@ -23,6 +24,7 @@ export const getFavoriteGarages = async (userId) => {
         throw new Error(err.message);
     }
 };
+
 export const removeFavoriteGarage = async (userId, garageId) => {
     try {
         await Favorite.findOneAndDelete({ user: userId, garage: garageId });

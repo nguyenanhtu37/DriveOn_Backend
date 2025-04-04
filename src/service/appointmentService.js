@@ -255,10 +255,10 @@ export const getAppointmentsByUserService = async (userId) => {
 
 export const getAppointmentByIdService = async (appointmentId) => {
   return await Appointment.findById(appointmentId)
-      .populate("user", "name email")
-      .populate("garage", "name address")
-      .populate("vehicle", "carBrand carName carPlate")
-      .populate("service"," name description price duration");
+    .populate("user", "avatar name email locale phone") // Select basic user information
+    .populate("garage", "name address") // Select basic garage information
+    .populate("vehicle", "carBrand carName carPlate") // Select basic vehicle information
+    .populate("service"); // Populate service details
 };
 
 export const getAppointmentsByGarageService = async (garageId) => {
@@ -267,10 +267,10 @@ export const getAppointmentsByGarageService = async (garageId) => {
     throw new Error("Garage not found");
   }
   return await Appointment.find({ garage: garageId })
-      .populate("user", "name email")
-      .populate("garage", "name address")
-      .populate("vehicle", "carBrand carName carPlate")
-      .populate("service");
+    .populate("user", "name email avatar address") // Select basic user information
+    .populate("garage", "name address") // Select basic garage information
+    .populate("vehicle", "carBrand carName carPlate") // Select basic vehicle information
+    .populate("service"); // Populate service details
 };
 
 export const confirmAppointmentService = async (appointmentId, userId) => {

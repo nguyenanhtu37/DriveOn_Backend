@@ -1,111 +1,46 @@
+import { z } from "zod";
+
+const addServiceDetailSchema = z.object({
+  service: z
+    .string()
+    .regex(/^[0-9a-fA-F]{24}$/, "Service ID is not valid")
+    .nonempty("Service is required"),
+  garage: z
+    .string()
+    .regex(/^[0-9a-fA-F]{24}$/, "Garage ID is not valid")
+    .nonempty("Garage is required"),
+  name: z.string().nonempty("Service detail name is required"),
+  description: z.string().nonempty("Service detail description is required"),
+  images: z
+    .array(z.string().url("Each image URL must be a valid URL"))
+    .nonempty("Service detail images must be an array with at least one image"),
+  price: z.number().optional().refine((price) => price >= 0, {
+    message: "Service detail price must be a positive number",
+  }),
+ duration: z.number().optional().refine((duration) => duration > 0, {
+    message: "Service detail duration must be a positive number",
+  }),
+  warranty: z.string().optional(),
+});
+
+
+const updateServiceDetailSchema = addServiceDetailSchema.partial(); // Tất cả các trường đều là optional
+
+
 export const validateAddServiceDetail = (serviceDetailData) => {
-    const errors = [];
-  
-    // Validate service
-    if (!serviceDetailData.service) {
-      errors.push("Service is required");
-    } else if (!serviceDetailData.service.match(/^[0-9a-fA-F]{24}$/)) {
-      errors.push("Service ID is not valid");
-    }
-  
-    // Validate garage
-    if (!serviceDetailData.garage) {
-      errors.push("Garage is required");
-    } else if (!serviceDetailData.garage.match(/^[0-9a-fA-F]{24}$/)) {
-      errors.push("Garage ID is not valid");
-    }
-  
-    // Validate name
-    if (!serviceDetailData.name) {
-      errors.push("Service detail name is required");
-    } else if (typeof serviceDetailData.name !== 'string') {
-      errors.push("Service detail name must be a string");
-    }
-  
-    // Validate description
-    if (!serviceDetailData.description) {
-      errors.push("Service detail description is required");
-    } else if (typeof serviceDetailData.description !== 'string') {
-      errors.push("Service detail description must be a string");
-    }
-  
-    // Validate images
-    if (!Array.isArray(serviceDetailData.images)) {
-      errors.push("Service detail images must be an array");
-    } else {
-      serviceDetailData.images.forEach((image) => {
-        if (typeof image !== 'string') {
-          errors.push("Each image URL must be a string");
-        }
-      });
-    }
-  
-    // Validate price
-    if (serviceDetailData.price !== undefined && typeof serviceDetailData.price !== 'number') {
-      errors.push("Service detail price must be a number");
-    }
-  
-    // Validate duration
-    if (serviceDetailData.duration !== undefined && typeof serviceDetailData.duration !== 'number') {
-        errors.push("Service detail duration must be a number (minutes)");
-    }
-  
-    // Validate warranty
-    if (serviceDetailData.warranty !== undefined && typeof serviceDetailData.warranty !== 'string') {
-      errors.push("Service detail warranty must be a string");
-    }
-  
-    if (errors.length > 0) {
-      throw new Error(errors.join(", "));
-    }
-  };
+  try {
+    addServiceDetailSchema.parse(serviceDetailData);
+  } catch (e) {
+    throw new Error(e.errors.map((err) => err.message).join(", "));
+  }
+};
+
 
 export const validateUpdateServiceDetail = (serviceDetailData) => {
-    const errors = [];
-  
-    // Validate name
-    if (serviceDetailData.name !== undefined) {
-      if (typeof serviceDetailData.name !== 'string') {
-        errors.push("Service detail name must be a string");
-      }
-    }
-  
-    // Validate description
-    if (serviceDetailData.description !== undefined) {
-      if (typeof serviceDetailData.description !== 'string') {
-        errors.push("Service detail description must be a string");
-      }
-    }
-  
-    // Validate images
-    if (serviceDetailData.images !== undefined) {
-      if (!Array.isArray(serviceDetailData.images)) {
-        errors.push("Service detail images must be an array");
-      } else {
-        serviceDetailData.images.forEach((image) => {
-          if (typeof image !== 'string') {
-            errors.push("Each image URL must be a string");
-          }
-        });
-      }
-    }
-  
-    // Validate price
-    if (serviceDetailData.price !== undefined && typeof serviceDetailData.price !== 'number') {
-      errors.push("Service detail price must be a number");
-    }
+  try {
+    updateServiceDetailSchema.parse(serviceDetailData);
+  } catch (e) {
+    throw new Error(e.errors.map((err) => err.message).join(", "));
+  }
+};
 
-    // For updating service details
-    if (serviceDetailData.duration !== undefined && typeof serviceDetailData.duration !== 'number') {
-        errors.push("Service detail duration must be a number (minutes)");
-    }
-  
-    // Validate warranty
-    if (serviceDetailData.warranty !== undefined && typeof serviceDetailData.warranty !== 'string') {
-      errors.push("Service detail warranty must be a string");
-    }
-  
-    if (errors.length > 0) {
-      throw new Error(errors.join(", "));
-    }
-  };

@@ -37,6 +37,7 @@ export const viewFavoriteGarages = async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 };
+
 export const removeFavoriteGarage = async (req, res) => {
     try {
         const { garageId } = req.params;
