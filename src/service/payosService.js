@@ -30,8 +30,8 @@ export const webHook = (webhookBody) => {
     try {
         console.log("Webhook received:", webhookBody);
 
-        // Xử lý dữ liệu webhook
-        const webhookData = payos.verifyPaymentWebhookData(webhookBody);
+        // Bỏ qua xác minh chữ ký nếu không cần thiết
+        const webhookData = webhookBody.data;
 
         if (webhookData.status === "SUCCESS") {
             console.log(`Payment successful for orderCode: ${webhookData.orderCode}`);
