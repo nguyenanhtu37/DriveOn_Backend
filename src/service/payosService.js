@@ -37,8 +37,14 @@ export const webHook = (webhookBody) => {
 
         const webhookData = webhookBody.data;
 
+        // Kiểm tra nếu trường 'status' không tồn tại
         if (!webhookData.status) {
-            throw new Error("Invalid webhook data: Missing 'status' field");
+            console.warn("Webhook data does not contain 'status' field");
+            return {
+                success: false,
+                message: "Missing 'status' field in webhook data",
+                data: webhookData,
+            };
         }
 
         // Xử lý trạng thái thanh toán
