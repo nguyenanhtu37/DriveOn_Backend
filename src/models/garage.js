@@ -82,7 +82,7 @@ const garageSchema = new mongoose.Schema({
   ],
   status: {
     type: [String],
-    enum: ["pending", "approved", "rejected", "enabled", "disabled"], // dùng chung cho cả enable/disable garage và approve/reject garage
+    enum: ["pending", "approved", "rejected", "approved", "disabled"], // dùng chung cho cả enable/disable garage và approve/reject garage
     default: "pending",
   },
   location: {

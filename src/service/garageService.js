@@ -1,4 +1,3 @@
-import axios from "axios";
 import Garage from "../models/garage.js";
 import User from "../models/user.js";
 import bcrypt from "bcrypt";
@@ -9,7 +8,7 @@ import {
 import { validateSignup } from "../validator/authValidator.js";
 import Role from "../models/role.js";
 import Feedback from "../models/feedback.js";
-import { haversineDistance } from "../utils/distanceHelper.js";
+import {haversineDistance, getDrivingDistance} from "../utils/distanceHelper.js";
 
 const registerGarage = async (user, garageData) => {
   console.log(garageData);
@@ -440,29 +439,6 @@ export const findGarages = async ({
     return enhancedGarages;
   } catch (error) {
     throw new Error("Lỗi khi tìm garage: " + error.message);
-  }
-};
-
-// get coordinates theo distanmatrix.ai
-const getDrivingDistance = async (origin, destination) => {
-  try {
-    const apiKey = process.env.DISTANCEMATRIX_API_KEY;
-    const url = `https://api.distancematrix.ai/maps/api/distancematrix/json?origins=${encodeURIComponent(
-      origin
-    )}&destinations=${encodeURIComponent(destination)}&key=${apiKey}`;
-
-    const response = await axios.get(url);
-
-    if (response.data.status === "OK") {
-      const distance = response.data.rows[0].elements[0].distance.value; // kcach tính theo met
-      return distance / 1000; // convert sang km
-    } else {
-      console.error("Error from DistanceMatrix.ai:", response.data.error_message);
-      return null;
-    }
-  } catch (error) {
-    console.error("Error calling DistanceMatrix.ai API:", error.message);
-    return null;
   }
 };
 

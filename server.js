@@ -3,7 +3,6 @@ import connectDB from "./src/config/db.js";
 import dotenv from "dotenv";
 import cors from "cors";
 import bodyParser from "body-parser";
-import PayOS from '@payos/node';
 
 // Import Routes
 import authRoutes from "./src/routes/authRoutes.js";
@@ -17,6 +16,8 @@ import feedbackRoutes from "./src/routes/feedbackRoutes.js";
 import appointmentRoutes from "./src/routes/appointmentRoutes.js";
 import serviceRoutes from "./src/routes/serviceRoutes.js";
 import serviceDetailRoutes from "./src/routes/serviceDetailRoutes.js";
+import payosRoutes from "./src/routes/payosRoutes.js";
+import payos from './src/utils/payos.js';
 
 // Load environment variables
 dotenv.config();
@@ -24,13 +25,12 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-const payos = new PayOS(process.env.PAYOS_CLIENT_ID, process.env.PAYOS_API_KEY, process.env.PAYOS_CHECKSUM_KEY);
-const APP_DOMAIN = process.env.FRONTEND_URL;
-
 // Middleware
 app.use(express.json());
 app.use(bodyParser.json());
 app.use(express.static('public'));
+// app.use(express.urlencoded({ extended: false }));
+app.use(express.urlencoded({ extended: true }));
 
 // CORS Config
 app.use(cors({
@@ -65,85 +65,21 @@ app.use("/api/feedback", feedbackRoutes);
 app.use("/api/service", serviceRoutes);
 app.use("/api/service-detail", serviceDetailRoutes);
 app.use("/api/appointment", appointmentRoutes);
-
-// Create payment link
-app.post('/create-payment-link', async (req, res) => {
-  try {
-    const { amount, description } = req.body;
-    const orderCode = Date.now();
-
-    if (!amount || !description) {
-      return res.status(400).json({
-        error: 'Missing required fields',
-        required: ['amount', 'description']
-      });
-    }
-
-    if (typeof amount !== 'number' || amount <= 0) {
-      return res.status(400).json({
-        error: 'Invalid amount'
-      });
-    }
-
-    const order = {
-      amount: Math.round(amount),
-      description: description.substring(0, 200),
-      orderCode,
-      returnUrl: `${APP_DOMAIN}/payment/success`,
-      cancelUrl: `${APP_DOMAIN}/payment/cancel`,
-    };
-
-    const paymentLink = await payos.createPaymentLink(order);
-
-    res.status(200).json({
-      success: true,
-      checkoutUrl: paymentLink.checkoutUrl,
-      orderCode
-    });
-  } catch (error) {
-    console.error('Payment creation error:', error);
-    res.status(500).json({
-      error: 'Failed to create payment link',
-      message: error.message
-    });
-  }
-});
-
-// Handle payment success
-app.get('/payment/success', async (req, res) => {
-  try {
-    const { orderCode, status } = req.query;
-
-    if (status === 'PAID') {
-      const paymentInfo = await payos.getPaymentLinkInformation(orderCode);
-      if (paymentInfo.status === 'PAID') {
-        console.log(`Payment ${orderCode} successful, amount: ${paymentInfo.amount}`);
-        return res.redirect(`${APP_DOMAIN}/success-page`);
-      }
-    }
-    res.redirect(`${APP_DOMAIN}/error-page`);
-  } catch (error) {
-    console.error('Payment success error:', error);
-    res.redirect(`${APP_DOMAIN}/error-page`);
-  }
-});
-
-// Handle payment cancel
-app.get('/payment/cancel', async (req, res) => {
-  try {
-    const { orderCode } = req.query;
-    console.log(`Payment ${orderCode} cancelled`);
-    res.redirect(`${APP_DOMAIN}/cancel-page`);
-  } catch (error) {
-    console.error('Payment cancel error:', error);
-    res.redirect(`${APP_DOMAIN}/error-page`);
-  }
-});
+app.use("/api/payos", payosRoutes);
 
 // Test Route
 app.get("/", (req, res) => {
   res.send("Hello, DriveOn Backend!");
 });
+
+// (async () => {
+//   try {
+//     app.use('/payment', paymentController.default); // export default router;
+//     app.use('/order', orderController.default); // export default router;
+//   } catch (error) {
+//     console.error("Error importing controllers:", error);
+//   }
+// })();
 
 // Start Server
 app.listen(PORT, () => {
