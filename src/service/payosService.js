@@ -28,32 +28,44 @@ export const createPaymentLink = async (garageId, orderCode, amount, description
 
 export const webHook = (webhookBody) => {
     try {
-        console.log("Webhook received:", webhookBody);
+        console.log("Webhook body received:", webhookBody);
 
-        // Bỏ qua xác minh chữ ký nếu không cần thiết
+        // Kiểm tra dữ liệu webhook
+        if (!webhookBody || !webhookBody.data) {
+            throw new Error("Invalid webhook data: Missing 'data' field");
+        }
+
         const webhookData = webhookBody.data;
 
-        if (webhookData.status === "SUCCESS") {
-            console.log(`Payment successful for orderCode: ${webhookData.orderCode}`);
-            return {
-                success: true,
-                message: "Payment successful",
-                data: webhookData,
-            };
-        } else if (webhookData.status === "FAILED") {
-            console.error(`Payment failed for orderCode: ${webhookData.orderCode}`);
-            return {
-                success: false,
-                message: "Payment failed",
-                data: webhookData,
-            };
-        } else {
-            console.warn(`Unhandled payment status: ${webhookData.status}`);
-            return {
-                success: false,
-                message: "Unhandled payment status",
-                data: webhookData,
-            };
+        if (!webhookData.status) {
+            throw new Error("Invalid webhook data: Missing 'status' field");
+        }
+
+        // Xử lý trạng thái thanh toán
+        switch (webhookData.status) {
+            case "SUCCESS":
+                console.log(`Payment successful for orderCode: ${webhookData.orderCode}`);
+                return {
+                    success: true,
+                    message: "Payment successful",
+                    data: webhookData,
+                };
+
+            case "FAILED":
+                console.error(`Payment failed for orderCode: ${webhookData.orderCode}`);
+                return {
+                    success: false,
+                    message: "Payment failed",
+                    data: webhookData,
+                };
+
+            default:
+                console.warn(`Unhandled payment status: ${webhookData.status}`);
+                return {
+                    success: false,
+                    message: `Unhandled payment status: ${webhookData.status}`,
+                    data: webhookData,
+                };
         }
     } catch (error) {
         console.error("Error processing webhook:", error);
