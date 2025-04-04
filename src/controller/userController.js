@@ -39,6 +39,16 @@ const viewAllUsers = async (req, res) => {
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
-  };
+};
 
-export { changePassword, viewPersonalProfile, updatePersonalProfile, viewAllUsers };
+const viewUserDetails = async (req, res) => {
+    try {
+      const userId = req.params.id; // Lấy userId 
+      const user = await userService.getUserById(userId);
+      res.status(200).json(user);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+};
+
+export { changePassword, viewPersonalProfile, updatePersonalProfile, viewAllUsers, viewUserDetails };

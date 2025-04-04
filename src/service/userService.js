@@ -57,14 +57,14 @@ const getAllUsers = async (page = 1, limit = 10) => {
 
     const skip = (page - 1) * limit;
 
-    // Lấy danh sách user với phân trang
+    // Lấy list user với phân trang
     const users = await User.find({ roles: { $ne: adminRole._id } }) 
       .populate("roles", "roleName") 
       .select("name email phone roles status createdAt updatedAt") 
       .skip(skip) 
       .limit(limit); 
 
-    // Đếm tổng số tài khoản (ko bao gồm admin)
+    // Đếm total tài khoản (ko có tkhoan admin)
     const totalUsers = await User.countDocuments({ roles: { $ne: adminRole._id } });
 
     return {
@@ -78,4 +78,22 @@ const getAllUsers = async (page = 1, limit = 10) => {
   }
 };
 
-export { changePassword, viewPersonalProfile, updatePersonalProfile, getAllUsers };
+const getUserById = async (userId) => {
+  try {
+    // Tìm user theo ID 
+    const user = await User.findById(userId)
+      .populate("roles", "roleName") 
+      .populate("vehicles", "carName carPlate") 
+      .select("name email phone roles status createdAt updatedAt"); 
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    return user;
+  } catch (error) {
+    throw new Error(error.message);
+  }
+};
+
+export { changePassword, viewPersonalProfile, updatePersonalProfile, getAllUsers, getUserById };

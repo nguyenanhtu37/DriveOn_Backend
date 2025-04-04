@@ -1,5 +1,5 @@
 import express from "express";
-import { changePassword, viewPersonalProfile, updatePersonalProfile, viewAllUsers } from "../controller/userController.js";
+import { changePassword, viewPersonalProfile, updatePersonalProfile, viewAllUsers, viewUserDetails } from "../controller/userController.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import { adminMiddleware } from "../middleware/adminMiddleware.js";
 
@@ -13,5 +13,6 @@ router.put("/update-personal-profile", authMiddleware, updatePersonalProfile); /
 
 // Admin routes
 router.get("/view-all-users", adminMiddleware, viewAllUsers); // Admin xem toàn bộ danh sách user
+router.get("/view-user/:id", adminMiddleware, viewUserDetails); // Admin xem chi tiết 1 user
 
 export default router;
