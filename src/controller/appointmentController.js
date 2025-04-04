@@ -171,13 +171,13 @@ export const cancelAppointment = async (req, res) => {
 export const updateAppointment = async (req, res) => {
   const { appointmentId } = req.params;
   const userId = req.user.id;
-  const { date, start, end, note } = req.body;
+  const { service, start, note } = req.body;
 
   try {
     const appointment = await appointmentService.updateAppointmentService(
       appointmentId,
       userId,
-      { date, start, end, note }
+      { service, start, note }
     );
     if (!appointment) {
       return res.status(404).json({ message: "Appointment not found" });

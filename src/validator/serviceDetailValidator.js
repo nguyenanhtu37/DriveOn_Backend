@@ -17,7 +17,9 @@ const addServiceDetailSchema = z.object({
   price: z.number().optional().refine((price) => price >= 0, {
     message: "Service detail price must be a positive number",
   }),
-  duration: z.string().optional(),
+ duration: z.number().optional().refine((duration) => duration > 0, {
+    message: "Service detail duration must be a positive number",
+  }),
   warranty: z.string().optional(),
 });
 
@@ -41,3 +43,4 @@ export const validateUpdateServiceDetail = (serviceDetailData) => {
     throw new Error(e.errors.map((err) => err.message).join(", "));
   }
 };
+

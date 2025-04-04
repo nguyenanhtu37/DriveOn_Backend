@@ -25,7 +25,7 @@ const serviceDetailSchema = new mongoose.Schema({
     set: (value) => value * 1000,
   },
   duration: {
-    type: String,
+    type: Number,
   },
   warranty: {
     //thoi gian bao hanh dich vu
