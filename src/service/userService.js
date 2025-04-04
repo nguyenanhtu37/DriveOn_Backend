@@ -96,4 +96,63 @@ const getUserById = async (userId) => {
   }
 };
 
-export { changePassword, viewPersonalProfile, updatePersonalProfile, getAllUsers, getUserById };
+// const updateUserStatus = async (userId, status) => {
+//   try {
+//     if (!["active", "inactive"].includes(status)) {
+//       throw new Error("Invalid status. Allowed values are 'active' or 'inactive'.");
+//     }
+
+//     const user = await User.findById(userId);
+//     if (!user) {
+//       throw new Error("User not found");
+//     }
+
+//     user.status = status;
+//     user.updatedAt = new Date();
+//     await user.save();
+
+//     return { message: `User status updated to '${status}' successfully` };
+//   } catch (error) {
+//     throw new Error(error.message);
+//   }
+// };
+
+const enableUser = async (userId) => {
+  try {
+    // Tìm user theo ID
+    const user = await User.findById(userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    // Cập nhật status thành "active"
+    user.status = "active";
+    user.updatedAt = new Date();
+    await user.save();
+
+    return { message: "User account enabled successfully" };
+  } catch (error) {
+    throw new Error(error.message);
+  }
+};
+
+const disableUser = async (userId) => {
+  try {
+    // Tìm user theo ID
+    const user = await User.findById(userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    // Cập nhật status thành "inactive"
+    user.status = "inactive";
+    user.updatedAt = new Date();
+    await user.save();
+
+    return { message: "User account disabled successfully" };
+  } catch (error) {
+    throw new Error(error.message);
+  }
+};
+
+export { changePassword, viewPersonalProfile, updatePersonalProfile, getAllUsers, getUserById, enableUser, disableUser };

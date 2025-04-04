@@ -51,4 +51,36 @@ const viewUserDetails = async (req, res) => {
     }
 };
 
-export { changePassword, viewPersonalProfile, updatePersonalProfile, viewAllUsers, viewUserDetails };
+// const updateUserStatus = async (req, res) => {
+//     try {
+//       const userId = req.params.id; // Lấy userId 
+//       const { status } = req.body; // Lấy status từ body request
+  
+//       const result = await userService.updateUserStatus(userId, status);
+//       res.status(200).json(result);
+//     } catch (err) {
+//       res.status(500).json({ error: err.message });
+//     }
+//   };
+
+const enableUserAccount = async (req, res) => {
+    try {
+      const userId = req.params.id; 
+      const result = await userService.enableUser(userId);
+      res.status(200).json(result);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  };
+  
+  const disableUserAccount = async (req, res) => {
+    try {
+      const userId = req.params.id;
+      const result = await userService.disableUser(userId);
+      res.status(200).json(result);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  };
+
+export { changePassword, viewPersonalProfile, updatePersonalProfile, viewAllUsers, viewUserDetails, enableUserAccount, disableUserAccount };
