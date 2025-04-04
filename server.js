@@ -31,6 +31,7 @@ app.use(bodyParser.json());
 app.use(express.static('public'));
 // app.use(express.urlencoded({ extended: false }));
 app.use(express.urlencoded({ extended: true }));
+app.use(express.raw({ type: "*/*" }));
 
 // CORS Config
 app.use(cors({

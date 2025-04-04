@@ -17,12 +17,15 @@ export const createPaymentLink = async (req, res) => {
 
 export const webHook = async (req, res) => {
     try {
-        // Sử dụng req.body trực tiếp
-        const webhookBody = req.body;
+        console.log("Webhook headers:", req.headers);
+        console.log("Webhook body:", req.body);
 
-        console.log("Webhook body:", webhookBody);
+        if (!req.body || Object.keys(req.body).length === 0) {
+            console.error("Webhook body is empty");
+            return res.status(400).json({ error: "Webhook body is empty" });
+        }
 
-        const webhookResponse = await payosService.webHook(webhookBody);
+        const webhookResponse = await payosService.webHook(req.body);
 
         if (webhookResponse.success) {
             res.status(200).json({ message: webhookResponse.message, data: webhookResponse.data });

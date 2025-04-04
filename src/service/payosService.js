@@ -26,7 +26,7 @@ export const createPaymentLink = async (garageId, orderCode, amount, description
     }
 };
 
-export const webHook = (webhookBody, signature) => {
+export const webHook = (webhookBody) => {
     try {
         console.log("Webhook received:", webhookBody);
 
@@ -57,6 +57,10 @@ export const webHook = (webhookBody, signature) => {
         }
     } catch (error) {
         console.error("Error processing webhook:", error);
-        throw new Error("Failed to process webhook");
+        return {
+            success: false,
+            message: "Failed to process webhook",
+            error: error.message,
+        };
     }
 };
