@@ -20,11 +20,13 @@ export const webHook = async (req, res) => {
         console.log("Webhook headers:", req.headers);
         console.log("Webhook body:", req.body);
 
+        // Nếu body rỗng, trả về HTTP 200 để PayOS xác thực webhook
         if (!req.body || Object.keys(req.body).length === 0) {
-            console.error("Webhook body is empty");
-            return res.status(400).json({ error: "Webhook body is empty" });
+            console.warn("Webhook body is empty, returning HTTP 200 for validation");
+            return res.status(200).json({ message: "Webhook validated successfully" });
         }
 
+        // Xử lý webhook khi có body
         const webhookResponse = await payosService.webHook(req.body);
 
         if (webhookResponse.success) {
