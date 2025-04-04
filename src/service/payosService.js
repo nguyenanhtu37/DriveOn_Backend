@@ -37,19 +37,19 @@ export const webHook = (webhookBody) => {
 
         const webhookData = webhookBody.data;
 
-        // Kiểm tra nếu trường 'status' không tồn tại
-        if (!webhookData.status) {
-            console.warn("Webhook data does not contain 'status' field");
+        // Kiểm tra nếu trường 'code' không tồn tại
+        if (!webhookData.code) {
+            console.warn("Webhook data does not contain 'code' field");
             return {
                 success: false,
-                message: "Missing 'status' field in webhook data",
+                message: "Missing 'code' field in webhook data",
                 data: webhookData,
             };
         }
 
-        // Xử lý trạng thái thanh toán
-        switch (webhookData.status) {
-            case "SUCCESS":
+        // Xử lý trạng thái thanh toán dựa trên 'code'
+        switch (webhookData.code) {
+            case "00": // Thành công
                 console.log(`Payment successful for orderCode: ${webhookData.orderCode}`);
                 return {
                     success: true,
@@ -57,7 +57,7 @@ export const webHook = (webhookBody) => {
                     data: webhookData,
                 };
 
-            case "FAILED":
+            case "01": // Thất bại
                 console.error(`Payment failed for orderCode: ${webhookData.orderCode}`);
                 return {
                     success: false,
@@ -65,11 +65,11 @@ export const webHook = (webhookBody) => {
                     data: webhookData,
                 };
 
-            default:
-                console.warn(`Unhandled payment status: ${webhookData.status}`);
+            default: // Trạng thái không xác định
+                console.warn(`Unhandled payment code: ${webhookData.code}`);
                 return {
                     success: false,
-                    message: `Unhandled payment status: ${webhookData.status}`,
+                    message: `Unhandled payment code: ${webhookData.code}`,
                     data: webhookData,
                 };
         }
