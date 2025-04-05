@@ -8,6 +8,8 @@ import {
 import { validateSignup } from "../validator/authValidator.js";
 import Role from "../models/role.js";
 import Feedback from "../models/feedback.js";
+import ServiceDetail from "../models/serviceDetail.js";
+import Service from "../models/service.js";
 
 const registerGarage = async (user, garageData) => {
   // Validate garageData
@@ -367,6 +369,58 @@ export const filterGaragesByRating = async (minRating = 0) => {
     throw new Error(err.message);
   }
 };
+
+
+const viewGaragesWithSearchParams = async ({ services, province, district, rating , keySearch }) => {
+  try {
+
+    const query = { status: { $in: ["enabled"] } };
+
+    if (keySearch) {
+      query.name = { $regex: keySearch, $options: "i" };
+    }
+
+    if (province || district) {
+      const addressQuery = [];
+      if (province) {
+      addressQuery.push({ address: { $regex: new RegExp(province, "i") } });
+      }
+      if (district) {
+        const cleanedDistrict = district.split(/\s+/).slice(1).join(" ");
+        addressQuery.push({ address: { $regex: new RegExp(cleanedDistrict, "i") } });
+      }
+      if (addressQuery.length > 0) {
+      query.$and = addressQuery;
+      }
+    }
+
+    let garages = await Garage.find(query).populate("user", "name email phone");
+
+    if (services) {
+      const serviceIdArray = services.split(",");
+
+      const serviceDetails = await ServiceDetail.find({
+        service: { $in: serviceIdArray }
+      }).distinct('garage');
+
+      console.log("serviceDetails: ", serviceDetails);
+
+      garages = garages.filter(garage =>
+        serviceDetails.some(id => id.toString() === garage._id.toString())
+      );
+    }
+
+    if (rating) {
+      // garages.sort((a, b) => b.ratingAverage - a.ratingAverage);
+    }
+
+    return garages;
+  } catch (err) {
+    console.error("Error in viewGaragesWithSearchParams:", err.message);
+    throw new Error(err.message);
+  }
+}
+
 export {
   registerGarage,
   viewGarages,
@@ -385,4 +439,6 @@ export {
   enableGarage,
   disableGarage,
   viewGarageExisting,
+  viewGaragesWithSearchParams
 };
+

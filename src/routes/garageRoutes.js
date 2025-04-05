@@ -19,7 +19,8 @@ import {
     enableGarage,
     disableGarage,
     viewGarageExisting,
-    filterGaragesByRating
+    filterGaragesByRating,
+    viewGarage
 } from '../controller/garageController.js';
 
 const router = express.Router();
@@ -34,7 +35,7 @@ router.put("/:id/staff/enable", authMiddleware, enableStaff);
 router.get('/filter-by-rating', filterGaragesByRating);
 
 router.post("/register-garage", authMiddleware, registerGarage); // register new garage
-router.get("/garages/:id", getGarageById); // view garage details  
+router.get("/garages/:id", getGarageById); // view garage details
 router.get('/garage-registrations', adminMiddleware, viewGarageRegistrations); // view garage registration list
 router.get('/garage-registrations/:id', adminMiddleware, getGarageRegistrationById); // view garage registration details
 router.post('/garage-registrations/:id/approve', adminMiddleware, approveGarageRegistration); // approve garage registration
@@ -47,4 +48,5 @@ router.get('/existing', viewGarageExisting);
 router.put('/:id/enable', adminMiddleware, enableGarage);
 router.put('/:id/disable', adminMiddleware, disableGarage);
 
+router.get('/viewGarage' , viewGarage)
 export default router;

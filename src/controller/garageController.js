@@ -232,4 +232,15 @@ export const filterGaragesByRating = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
-export { registerGarage, viewGarages, updateGarage, deleteGarage, getGarageById, viewGarageRegistrations, approveGarageRegistration, rejectGarageRegistration, getGarageRegistrationById, addStaff, viewStaff, disableStaff, enableStaff, getStaffById, enableGarage, disableGarage, viewGarageExisting };
+
+const viewGarage = async (req, res) => {
+  const { services, province, district, rating , keySearch } = req.query;
+
+  try {
+    const garages = await garageService.viewGaragesWithSearchParams({ services, province, district, rating, keySearch });
+    res.status(200).json(garages);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+export { registerGarage, viewGarages, updateGarage, deleteGarage, getGarageById, viewGarageRegistrations, approveGarageRegistration, rejectGarageRegistration, getGarageRegistrationById, addStaff, viewStaff, disableStaff, enableStaff, getStaffById, enableGarage, disableGarage, viewGarageExisting , viewGarage};
