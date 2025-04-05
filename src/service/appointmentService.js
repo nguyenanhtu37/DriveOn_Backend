@@ -20,10 +20,9 @@ const checkBooking = async (vehicleId, garageId, start, end, currentAppointmentI
     };
   }
 
-  // Fix: use getUTCDay() for consistency with convertAndValidateDateTime
+  // Use getUTCDay() for consistency
   const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
   const appointmentDay = daysOfWeek[start.getUTCDay()];
-  console.log(`CheckBooking - day of week: ${appointmentDay} (index: ${start.getUTCDay()})`);
 
   // Check if garage operates on start day
   if (!garage.operating_days.includes(appointmentDay)) {
@@ -33,11 +32,10 @@ const checkBooking = async (vehicleId, garageId, start, end, currentAppointmentI
     };
   }
 
-  // Get operating hours for the start day
+  // Get opening hours for the start day
   const [garageOpenHour, garageOpenMinute] = garage.openTime.split(":").map(Number);
-  const [garageCloseHour, garageCloseMinute] = garage.closeTime.split(":").map(Number);
 
-  // Create proper UTC times for garage hours on appointment day
+  // Create proper UTC time for garage opening on appointment day
   const garageOpenTime = new Date(start);
   garageOpenTime.setUTCHours(garageOpenHour, garageOpenMinute, 0, 0);
 
@@ -48,9 +46,6 @@ const checkBooking = async (vehicleId, garageId, start, end, currentAppointmentI
       conflictMessage: `Garage opens at ${garage.openTime}`
     };
   }
-
-  // For appointments that span to the next day, we don't need to check closing time
-  // because convertAndValidateDateTime already handled that
 
   // Check for existing appointments
   const overlappingAppointments = await Appointment.find({
@@ -82,21 +77,11 @@ const checkBooking = async (vehicleId, garageId, start, end, currentAppointmentI
 
 const convertAndValidateDateTime = async (start, serviceIds) => {
   try {
-    // Log input parameters
-    console.log("Input - start:", start);
-    console.log("Input - serviceIds:", JSON.stringify(serviceIds));
-
     // Define days of week array
     const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
-    // Parse start time and ensure it's in UTC
+    // Parse start time
     const startTime = typeof start === 'string' ? new Date(start) : start;
-    console.log("Parsed startTime:", startTime.toISOString());
-
-    // Get day of week using getUTCDay to ensure consistency
-    const dayIndex = startTime.getUTCDay();
-    const dayOfWeek = daysOfWeek[dayIndex];
-    console.log(`Day of week (UTC): ${dayOfWeek} (index: ${dayIndex})`);
 
     if (isNaN(startTime.getTime())) {
       throw new Error("Invalid date format. Please provide a valid date and time.");
@@ -108,22 +93,20 @@ const convertAndValidateDateTime = async (start, serviceIds) => {
       throw new Error("Appointment time must be in the future");
     }
 
+    // Get day of week using UTC
+    const dayOfWeek = daysOfWeek[startTime.getUTCDay()];
+
     // Find the first service to get the garage
-    console.log("Looking up first service with ID:", serviceIds[0]);
     const firstService = await ServiceDetail.findById(serviceIds[0]);
     if (!firstService) {
       throw new Error("Service not found");
     }
 
     // Look up the garage
-    console.log("Looking up garage with ID:", firstService.garage);
     const garage = await Garage.findById(firstService.garage);
     if (!garage) {
       throw new Error("Garage not found");
     }
-
-    console.log("Garage operating days:", garage.operating_days);
-    console.log(`Checking if garage operates on ${dayOfWeek}`);
 
     // Check if garage operates on the appointment day
     if (!garage.operating_days.includes(dayOfWeek)) {
@@ -161,42 +144,25 @@ const convertAndValidateDateTime = async (start, serviceIds) => {
 
     // If appointment would end after closing time, extend to next operating day
     if (endTime > garageCloseTime) {
-      console.log("Appointment extends past closing time");
-      console.log("Current endTime:", endTime);
-      console.log("Garage closing time:", garageCloseTime);
-
       // Calculate remaining minutes after closing time
       const minutesOverClosing = Math.floor((endTime - garageCloseTime) / 60000);
-      console.log("Minutes over closing time:", minutesOverClosing);
 
       // Find the next operating day
       let nextDayIndex = (startTime.getUTCDay() + 1) % 7;
       let daysToAdd = 1;
 
-      console.log("Starting search for next operating day");
-      console.log("Initial nextDayIndex:", nextDayIndex, "->", daysOfWeek[nextDayIndex]);
-      console.log("Initial daysToAdd:", daysToAdd);
-
       while (!garage.operating_days.includes(daysOfWeek[nextDayIndex])) {
-        console.log(`${daysOfWeek[nextDayIndex]} is not an operating day, checking next day`);
         nextDayIndex = (nextDayIndex + 1) % 7;
         daysToAdd++;
-        console.log("Updated nextDayIndex:", nextDayIndex, "->", daysOfWeek[nextDayIndex]);
-        console.log("Updated daysToAdd:", daysToAdd);
       }
-
-      console.log("Found next operating day:", daysOfWeek[nextDayIndex]);
-      console.log("Days to add:", daysToAdd);
 
       // Create the next operating day's opening time
       const nextDayOpenTime = new Date(startTime);
       nextDayOpenTime.setUTCDate(nextDayOpenTime.getUTCDate() + daysToAdd);
       nextDayOpenTime.setUTCHours(openHour, openMinute, 0, 0);
-      console.log("Next day opening time:", nextDayOpenTime);
 
       // Set end time to opening time of next day + remaining minutes
       endTime = new Date(nextDayOpenTime.getTime() + minutesOverClosing * 60000);
-      console.log("Final calculated endTime:", endTime);
     }
 
     return {
@@ -206,7 +172,6 @@ const convertAndValidateDateTime = async (start, serviceIds) => {
       error: null,
     };
   } catch (error) {
-    console.error("Validation error:", error.message);
     return {
       startTime: null,
       endTime: null,
@@ -728,35 +693,35 @@ export const updateAppointmentService = async (appointmentId, userId, updateData
   const newDisplayStartTime = formatTimeDisplay(startTime);
   const newDisplayEndTime = formatTimeDisplay(endTime);
 
-  // Send email about the update
-  await transporter.sendMail({
-    from: process.env.MAIL_USER,
-    to: user.email,
-    subject: "Thông báo cập nhật lịch hẹn",
-    html: `
-      <h2>Xin chào ${user.name},</h2>
-      <p>Lịch hẹn của bạn đã được cập nhật thành công.</p>
-
-      <h3>Thông tin cũ:</h3>
-      <ul>
-        <li><strong>Ngày hẹn:</strong> ${oldDisplayDate}</li>
-        <li><strong>Thời gian:</strong> ${oldDisplayStartTime} - ${oldDisplayEndTime}</li>
-      </ul>
-
-      <h3>Thông tin mới:</h3>
-      <ul>
-        <li><strong>Garage:</strong> ${garageInfo.name}</li>
-        <li><strong>Địa chỉ:</strong> ${garageInfo.address}</li>
-        <li><strong>Ngày hẹn:</strong> ${newDisplayDate}</li>
-        <li><strong>Thời gian:</strong> ${newDisplayStartTime} - ${newDisplayEndTime}</li>
-        <li><strong>Trạng thái:</strong> Đang chờ xác nhận</li>
-      </ul>
-
-      <p>Xem chi tiết lịch hẹn của bạn <a href="http://localhost:${process.env.PORT}/api/appointment/${updatedAppointment._id}">tại đây</a>.</p>
-      <p>Garage sẽ xem xét và xác nhận lịch hẹn của bạn sớm nhất có thể.</p>
-      <p>Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>
-    `
-  });
+  // // Send email about the update
+  // await transporter.sendMail({
+  //   from: process.env.MAIL_USER,
+  //   to: user.email,
+  //   subject: "Thông báo cập nhật lịch hẹn",
+  //   html: `
+  //     <h2>Xin chào ${user.name},</h2>
+  //     <p>Lịch hẹn của bạn đã được cập nhật thành công.</p>
+  //
+  //     <h3>Thông tin cũ:</h3>
+  //     <ul>
+  //       <li><strong>Ngày hẹn:</strong> ${oldDisplayDate}</li>
+  //       <li><strong>Thời gian:</strong> ${oldDisplayStartTime} - ${oldDisplayEndTime}</li>
+  //     </ul>
+  //
+  //     <h3>Thông tin mới:</h3>
+  //     <ul>
+  //       <li><strong>Garage:</strong> ${garageInfo.name}</li>
+  //       <li><strong>Địa chỉ:</strong> ${garageInfo.address}</li>
+  //       <li><strong>Ngày hẹn:</strong> ${newDisplayDate}</li>
+  //       <li><strong>Thời gian:</strong> ${newDisplayStartTime} - ${newDisplayEndTime}</li>
+  //       <li><strong>Trạng thái:</strong> Đang chờ xác nhận</li>
+  //     </ul>
+  //
+  //     <p>Xem chi tiết lịch hẹn của bạn <a href="http://localhost:${process.env.PORT}/api/appointment/${updatedAppointment._id}">tại đây</a>.</p>
+  //     <p>Garage sẽ xem xét và xác nhận lịch hẹn của bạn sớm nhất có thể.</p>
+  //     <p>Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>
+  //   `
+  // });
 
   return updatedAppointment;
 };
