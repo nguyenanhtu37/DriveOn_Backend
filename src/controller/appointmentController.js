@@ -3,7 +3,7 @@ import * as appointmentService from "../service/appointmentService.js";
 export const createAppointment = async (req, res) => {
   const userId = req.user.id;
   // Extract from URL
-  const { garage, date, start, end, note, service, vehicle } = req.body;
+  const { garage, start, note, service, vehicle } = req.body;
 
   try {
     // Create appointment
@@ -12,9 +12,7 @@ export const createAppointment = async (req, res) => {
       userId,
       service,
       vehicle,
-      date,
       start,
-      end,
       tag: "Normal", // Default tag value
       note: note || "", // Default note value if not provided
     });
