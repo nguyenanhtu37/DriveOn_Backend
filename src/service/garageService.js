@@ -144,6 +144,7 @@ const getGarageRegistrationById = async (garageId) => {
 
 const approveGarageRegistration = async (garageId) => {
   try {
+    // const garage = await Garage.findById(garageId); 
     const garage = await Garage.findById(garageId).populate("user", "name email"); 
     if (!garage) {
       throw new Error("Garage not found");
