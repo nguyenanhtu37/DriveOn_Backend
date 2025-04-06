@@ -4,7 +4,11 @@ import payos from "../utils/payos.js";
 dotenv.config();
 
 export const createPaymentLink = async (garageId, orderCode, amount, description) => {
-    if (amount > 10000000000) {
+    if (!garageId) {
+        throw new Error("No garage found to upgrade.");
+    }
+
+    if (amount > 10000000000) { // 10 tỏi
         throw new Error(`Amount must not be greater than ${amount}`);
     }
 

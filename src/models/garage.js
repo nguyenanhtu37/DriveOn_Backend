@@ -109,5 +109,19 @@ const garageSchema = new mongoose.Schema({
   ],
 });
 
+garageSchema.index({ location: "2dsphere" });
+/*
+Vdu: db.garages.getIndexes();
+[
+  { v: 2, key: { _id: 1 }, name: '_id_' },
+  {
+    v: 2,
+    key: { location: '2dsphere' },
+    name: 'location_2dsphere',
+    '2dsphereIndexVersion': 3
+  }
+]
+*/
+
 const Garage = mongoose.model("Garage", garageSchema);
 export default Garage;
