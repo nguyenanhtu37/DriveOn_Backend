@@ -82,7 +82,7 @@ const garageSchema = new mongoose.Schema({
   ],
   status: {
     type: [String],
-    enum: ["pending", "approved", "rejected", "enabled", "disabled"], // dùng chung cho cả enable/disable garage và approve/reject garage
+    enum: ["pending", "approved", "rejected", "approved", "disabled"], // dùng chung cho cả enable/disable garage và approve/reject garage
     default: "pending",
   },
   location: {
@@ -108,6 +108,20 @@ const garageSchema = new mongoose.Schema({
     },
   ],
 });
+
+garageSchema.index({ location: "2dsphere" });
+/*
+Vdu: db.garages.getIndexes();
+[
+  { v: 2, key: { _id: 1 }, name: '_id_' },
+  {
+    v: 2,
+    key: { location: '2dsphere' },
+    name: 'location_2dsphere',
+    '2dsphereIndexVersion': 3
+  }
+]
+*/
 
 const Garage = mongoose.model("Garage", garageSchema);
 export default Garage;

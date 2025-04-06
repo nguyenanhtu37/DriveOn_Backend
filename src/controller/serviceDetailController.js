@@ -13,26 +13,26 @@ const addServiceDetail = async (req, res) => {
 };
 
 const getServiceDetailsByGarage = async (req, res) => {
-    const { garageId } = req.params;
-    try {
-      const serviceDetails = await serviceDetailService.getServiceDetailsByGarage(garageId);
-      res.status(200).json(serviceDetails);
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
+  const { garageId } = req.params;
+  try {
+    const serviceDetails = await serviceDetailService.getServiceDetailsByGarage(garageId);
+    res.status(200).json(serviceDetails);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 };
 
 const updateServiceDetail = async (req, res) => {
-    const { id } = req.params;
-    try {
-      const updatedServiceDetail = await serviceDetailService.updateServiceDetail(id, req.body);
-      res.status(200).json({
-        message: "Service detail updated successfully",
-        serviceDetail: updatedServiceDetail,
-      });
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
+  const { id } = req.params;
+  try {
+    const updatedServiceDetail = await serviceDetailService.updateServiceDetail(id, req.body);
+    res.status(200).json({
+      message: "Service detail updated successfully",
+      serviceDetail: updatedServiceDetail,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 };
 
 const deleteServiceDetail = async (req, res) => {
@@ -45,15 +45,33 @@ const deleteServiceDetail = async (req, res) => {
   }
 };
 export const getServiceDetailById = async (req, res) => {
-    const { id } = req.params;
-    try {
-        const serviceDetail = await serviceDetailService.getServiceDetailById(id);
-        if (!serviceDetail) {
-            return res.status(404).json({ message: "Service detail not found" });
-        }
-        res.status(200).json(serviceDetail);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
+  const { id } = req.params;
+  try {
+    const serviceDetail = await serviceDetailService.getServiceDetailById(id);
+    if (!serviceDetail) {
+      return res.status(404).json({ message: "Service detail not found" });
     }
+    res.status(200).json(serviceDetail);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 };
+
+export const searchServices = async (req, res) => {
+  try {
+    const { name, location } = req.query;
+
+    if (!name) {
+      return res.status(400).json({ error: "Service name is required" });
+    }
+
+    const services = await serviceDetailService.searchServices(name, location);
+    // console.log("Services returned to controller:", services);
+    res.status(200).json({ services });
+  } catch (error) {
+    console.error("Error searching services:", error);
+    res.status(500).json({ error: "Failed to search services" });
+  }
+};
+
 export { addServiceDetail, getServiceDetailsByGarage, updateServiceDetail, deleteServiceDetail };
