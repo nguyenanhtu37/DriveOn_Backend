@@ -8,7 +8,7 @@ import {
 import { validateSignup } from "../validator/authValidator.js";
 import Role from "../models/role.js";
 import Feedback from "../models/feedback.js";
-import {haversineDistance, getDrivingDistance} from "../utils/distanceHelper.js";
+import {haversineDistance, getDrivingDistance, getDistancesToGarages} from "../utils/distanceHelper.js";
 
 const registerGarage = async (user, garageData) => {
   console.log(garageData);
@@ -445,7 +445,7 @@ export const findGarages = async ({
 // lam theo distanmatrix.ai
 const enhanceGarageInfo = async (garage, userAddress, userOpenTime, userCloseTime, userOperatingDays) => {
   const garageAddress = garage.address;
-  const distance = await getDrivingDistance(userAddress, garageAddress);
+  const distance = await getDistancesToGarages(userAddress, garageAddress);
 
   return {
     ...garage.toObject(),
