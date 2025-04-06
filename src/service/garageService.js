@@ -10,6 +10,7 @@ import { validateSignup } from "../validator/authValidator.js";
 import Role from "../models/role.js";
 import Feedback from "../models/feedback.js";
 import { haversineDistance } from "../utils/distanceHelper.js";
+import transporter from "../config/mailer.js";
 
 const registerGarage = async (user, garageData) => {
   console.log(garageData);
@@ -143,12 +144,39 @@ const getGarageRegistrationById = async (garageId) => {
 
 const approveGarageRegistration = async (garageId) => {
   try {
-    const garage = await Garage.findById(garageId);
+    const garage = await Garage.findById(garageId).populate("user", "name email"); 
     if (!garage) {
       throw new Error("Garage not found");
     }
+
     garage.status = ["enabled", "approved"];
     await garage.save();
+
+    // Gửi email xác nhận đến user
+    const user = garage.user[0]; // Lấy thông tin user đầu tiên trong danh sách
+    if (user && user.email) { // Kiểm tra nếu user và email tồn tại
+      await transporter.sendMail({
+        from: process.env.MAIL_USER,
+        to: user.email,
+        subject: "Garage Registration Approved",
+        html: `
+          <h2>Hello ${user.name},</h2>
+          <p>Your garage registration has been successfully approved!</p>
+          <h3>Information Details:</h3>
+          <ul>
+            <li><strong>Garage Name:</strong> ${garage.name}</li>
+            <li><strong>Address:</strong> ${garage.address}</li>
+            <li><strong>Phone Number:</strong> ${garage.phone}</li>
+            <li><strong>Email:</strong> ${garage.email}</li>
+          </ul>
+          <p>You can now start managing your garage on our system.</p>
+          <p>Thank you for using our service!</p>
+        `,
+      });
+    } else {
+      console.error("User or email not found for garage:", garageId);
+    }
+
     return { message: "Garage registration approved successfully" };
   } catch (err) {
     throw new Error(err.message);
@@ -157,12 +185,39 @@ const approveGarageRegistration = async (garageId) => {
 
 const rejectGarageRegistration = async (garageId) => {
   try {
-    const garage = await Garage.findById(garageId);
+    const garage = await Garage.findById(garageId).populate("user", "name email");
     if (!garage) {
       throw new Error("Garage not found");
     }
+
     garage.status = "rejected";
     await garage.save();
+
+    // Gửi email thông báo từ chối đến user
+    const user = garage.user[0]; // Lấy thông tin user đầu tiên trong danh sách
+    if (user && user.email) { 
+      await transporter.sendMail({
+        from: process.env.MAIL_USER,
+        to: user.email,
+        subject: "Garage Registration Rejected",
+        html: `
+          <h2>Hello ${user.name},</h2>
+          <p>We regret to inform you that your garage registration has been rejected.</p>
+          <h3>Information Details:</h3>
+          <ul>
+            <li><strong>Garage Name:</strong> ${garage.name}</li>
+            <li><strong>Address:</strong> ${garage.address}</li>
+            <li><strong>Phone Number:</strong> ${garage.phone}</li>
+            <li><strong>Email:</strong> ${garage.email}</li>
+          </ul>
+          <p>If you have any questions, please contact us for further assistance.</p>
+          <p>Thank you for using our service!</p>
+        `,
+      });
+    } else {
+      console.error("User or email not found for garage:", garageId);
+    }
+
     return { message: "Garage registration rejected successfully" };
   } catch (err) {
     throw new Error(err.message);
