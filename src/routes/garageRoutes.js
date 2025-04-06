@@ -5,7 +5,6 @@ import {
     registerGarage,
     viewGarages,
     updateGarage,
-    deleteGarage,
     getGarageById,
     viewGarageRegistrations,
     approveGarageRegistration,
@@ -19,8 +18,13 @@ import {
     enableGarage,
     disableGarage,
     viewGarageExisting,
-    filterGaragesByRating,
-    viewGarage
+    viewGarage,
+    findGarages,
+    // getCoordinates,
+    // getGaragesWithinRadius,
+    // filterGarages,
+    // filterGaragesByRating,,
+    viewAllGaragesByAdmin
 } from '../controller/garageController.js';
 
 const router = express.Router();
@@ -31,8 +35,17 @@ router.get("/:id/staff", authMiddleware, viewStaff);
 router.get("/:id/staff/:staffId", authMiddleware, getStaffById);
 router.put("/:id/staff/disable", authMiddleware, disableStaff);
 router.put("/:id/staff/enable", authMiddleware, enableStaff);
-//filter
-router.get('/filter-by-rating', filterGaragesByRating);
+
+// filter garage:
+router.get("/filter", findGarages);
+
+// lấy kinh độ, vĩ độ khi ng dùng nhập text
+// router.get("/get-coordinates", getCoordinates);
+
+// API để lấy danh sách garage trong phạm vi
+// router.get("/filter", getGaragesWithinRadius);
+// router.get('/filter', filterGarages);
+// router.get('/filter-by-rating', filterGaragesByRating);
 
 router.post("/register-garage", authMiddleware, registerGarage); // register new garage
 router.get("/garages/:id", getGarageById); // view garage details
@@ -49,4 +62,6 @@ router.put('/:id/enable', adminMiddleware, enableGarage);
 router.put('/:id/disable', adminMiddleware, disableGarage);
 
 router.get('/viewGarage' , viewGarage)
+router.get("/view-all-garages-by-admin", adminMiddleware, viewAllGaragesByAdmin); // Admin xem toàn bộ garage
+
 export default router;

@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import Garage from '../models/garage.js';
 import * as garageService from '../service/garageService.js';
 
 const registerGarage = async (req, res) => {
@@ -10,6 +11,7 @@ const registerGarage = async (req, res) => {
       garage: newGarage,
     });
   } catch (err) {
+    console.log(err);
     res.status(500).json({ error: err.message });
   }
 };
@@ -217,16 +219,62 @@ const disableGarage = async (req, res) => {
   }
 };
 
-export const filterGaragesByRating = async (req, res) => {
-  const { rating } = req.query;
-  const minRating = rating ? parseFloat(rating) : 0;
-
-  if (rating && (isNaN(minRating) || !/^\d+(\.\d+)?$/.test(rating) || minRating < 0 || minRating > 5)) {
-    return res.status(400).json({ error: "Invalid rating parameter. Rating must be a number between 0 and 5." });
-  }
+const findGarages = async (req, res) => {
+  let {address, openTime, closeTime, operating_days, rating, distance} = req.query;
+  // console.log(req.query);
 
   try {
-    const garages = await garageService.filterGaragesByRating(minRating);
+    const operatingDaysArray = operating_days ? operating_days.split(",") : [];
+    // console.log("operatingDaysArray: ", operatingDaysArray);
+    const garageList = await garageService.findGarages({address, openTime, closeTime, operatingDaysArray, rating, distance});
+    res.status(200).json({
+      message: "Success",
+      garageList: garageList,
+    });
+  } catch (error) {
+    res.status(500).json({error: error.message});
+  }
+};
+
+// export const getCoordinates = async (req, res) => {
+//   try {
+//       const { address } = req.query;
+//       if (!address) {
+//           return res.status(400).json({ message: "Vui lòng nhập địa chỉ." });
+//       }
+
+//       const coordinates = await garageService.getCoordinatesFromAddress(address);
+//       return res.status(200).json(coordinates);
+//   } catch (error) {
+//       return res.status(500).json({ message: error.message });
+//   }
+// };
+
+// export const getGaragesWithinRadius = async (req, res) => {
+//   try {
+//       const { latitude, longitude, radius } = req.query;
+//       if (!latitude || !longitude || !radius) {
+//           return res.status(400).json({ message: "Thiếu thông tin tọa độ hoặc phạm vi tìm kiếm" });
+//       }
+
+//       // Lấy danh sách garage từ DB
+//       const garages = await Garage.find();
+
+//       // Lọc và sắp xếp garage
+//       const sortedGarages = garageService.filterGaragesByDistance(parseFloat(latitude), parseFloat(longitude), garages, parseFloat(radius));
+
+//       res.status(200).json(sortedGarages);
+//   } catch (error) {
+//       res.status(500).json({ message: error.message });
+//   }
+// };
+
+const viewAllGaragesByAdmin = async (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+
+  try {
+    const garages = await garageService.viewAllGaragesByAdmin(page, limit);
     res.status(200).json(garages);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -234,13 +282,13 @@ export const filterGaragesByRating = async (req, res) => {
 };
 
 const viewGarage = async (req, res) => {
-  const { services, province, district, rating , keySearch } = req.query;
+  const { services, province, district, rating , keySearch , operating_days } = req.query;
 
   try {
-    const garages = await garageService.viewGaragesWithSearchParams({ services, province, district, rating, keySearch });
+    const garages = await garageService.viewGaragesWithSearchParams({ services, province, district, rating, keySearch, operating_days });
     res.status(200).json(garages);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
-export { registerGarage, viewGarages, updateGarage, deleteGarage, getGarageById, viewGarageRegistrations, approveGarageRegistration, rejectGarageRegistration, getGarageRegistrationById, addStaff, viewStaff, disableStaff, enableStaff, getStaffById, enableGarage, disableGarage, viewGarageExisting , viewGarage};
+export { registerGarage, viewGarages, updateGarage, deleteGarage, getGarageById, viewGarageRegistrations, approveGarageRegistration, rejectGarageRegistration, getGarageRegistrationById, addStaff, viewStaff, disableStaff, enableStaff, getStaffById, enableGarage, disableGarage, viewGarageExisting, findGarages, viewAllGaragesByAdmin ,viewGarage};

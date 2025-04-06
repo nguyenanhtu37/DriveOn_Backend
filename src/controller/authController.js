@@ -1,5 +1,7 @@
 import * as authService from '../service/authService.js';
 
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
+
 const signup = async (req, res) => {
   try {
     const result = await authService.signup(req.body);
@@ -12,7 +14,7 @@ const signup = async (req, res) => {
 const verifyEmail = async (req, res) => {
   try {
     const result = await authService.verifyEmail(req.query.token);
-    res.status(200).json(result);
+    res.redirect(`${FRONTEND_URL}/login`);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
