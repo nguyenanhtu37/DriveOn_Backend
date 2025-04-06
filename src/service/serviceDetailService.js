@@ -1,6 +1,11 @@
+import axios from 'axios';
+import dotenv from 'dotenv';
+
 import ServiceDetail from "../models/serviceDetail.js";
+import Garage from '../models/garage.js';
 import { validateAddServiceDetail, validateUpdateServiceDetail } from "../validator/serviceDetailValidator.js";
 
+dotenv.config();
 
 const addServiceDetail = async (serviceDetailData) => {
   // Validate service detail data
@@ -26,53 +31,156 @@ const addServiceDetail = async (serviceDetailData) => {
 const getServiceDetailsByGarage = async (garageId) => {
   const garageExists = await ServiceDetail.exists({ garage: garageId });
   if (!garageExists) {
-      throw new Error("Garage not found");
+    throw new Error("Garage not found");
   }
   const serviceDetails = await ServiceDetail.find({ garage: garageId }).populate("service").populate("garage");
   return serviceDetails;
 };
 
 const updateServiceDetail = async (serviceDetailId, updateData) => {
-    // Validate update service detail
-    validateUpdateServiceDetail(updateData);
-  
-    const serviceDetail = await ServiceDetail.findById(serviceDetailId);
-    if (!serviceDetail) {
-      throw new Error("Service detail not found");
-    }
-    serviceDetail.name = updateData.name || serviceDetail.name;
-    serviceDetail.description = updateData.description || serviceDetail.description;
-    serviceDetail.images = updateData.images || serviceDetail.images;
-    serviceDetail.price = updateData.price || serviceDetail.price;
-    serviceDetail.duration = updateData.duration || serviceDetail.duration;
-    serviceDetail.warranty = updateData.warranty || serviceDetail.warranty;
-    serviceDetail.updatedAt = new Date();
-    await serviceDetail.save();
-    return serviceDetail;
+  // Validate update service detail
+  validateUpdateServiceDetail(updateData);
+
+  const serviceDetail = await ServiceDetail.findById(serviceDetailId);
+  if (!serviceDetail) {
+    throw new Error("Service detail not found");
+  }
+  serviceDetail.name = updateData.name || serviceDetail.name;
+  serviceDetail.description = updateData.description || serviceDetail.description;
+  serviceDetail.images = updateData.images || serviceDetail.images;
+  serviceDetail.price = updateData.price || serviceDetail.price;
+  serviceDetail.duration = updateData.duration || serviceDetail.duration;
+  serviceDetail.warranty = updateData.warranty || serviceDetail.warranty;
+  serviceDetail.updatedAt = new Date();
+  await serviceDetail.save();
+  return serviceDetail;
 };
 
 const deleteServiceDetail = async (serviceDetailId) => {
-    const serviceDetail = await ServiceDetail.findById(serviceDetailId);
-    if (!serviceDetail) {
-      throw new Error("Service detail not found");
-    }
-    await serviceDetail.deleteOne();
-    return { message: "Service detail deleted successfully" };
+  const serviceDetail = await ServiceDetail.findById(serviceDetailId);
+  if (!serviceDetail) {
+    throw new Error("Service detail not found");
+  }
+  await serviceDetail.deleteOne();
+  return { message: "Service detail deleted successfully" };
 };
 
- export const getServiceDetailById = async (serviceDetailId) => {
-     const serviceDetail = await ServiceDetail.findById(serviceDetailId)
-         .populate("service")
-         .populate("garage",'name address phone');
+export const getServiceDetailById = async (serviceDetailId) => {
+  const serviceDetail = await ServiceDetail.findById(serviceDetailId)
+    .populate("service")
+    .populate("garage", 'name address phone');
 
-     if (!serviceDetail) {
-         console.log("Service detail not found");
-     } else {
-         console.log("Service detail found:", serviceDetail);
-     }
+  if (!serviceDetail) {
+    console.log("Service detail not found");
+  } else {
+    console.log("Service detail found:", serviceDetail);
+  }
 
-     return serviceDetail;
- };
+  return serviceDetail;
+};
 
+export const searchServices = async (name, location) => {
+  try {
+    let garages = [];
+
+    // Nếu có location, tìm kiếm garage gần vị trí
+    if (location) {
+      let parsedLocation;
+      try {
+        // Sử dụng DistanceMatrix.ai để chuyển đổi địa chỉ thành tọa độ
+        const apiKey = process.env.DISTANCEMATRIX_API_KEY;
+        const url = `https://api.distancematrix.ai/maps/api/geocode/json?address=${encodeURIComponent(location)}&key=${apiKey}`;
+
+        const response = await axios.get(url);
+
+        // Kiểm tra nếu không tìm thấy kết quả
+        if (!response.data || response.data.status !== "OK" || !response.data.result || response.data.result.length === 0) {
+          throw new Error("Invalid location. Unable to find coordinates.");
+        }
+
+        // Lấy tọa độ từ kết quả trả về
+        const { lat, lng } = response.data.result[0].geometry.location;
+        parsedLocation = { lat, lon: lng };
+      } catch (error) {
+        console.error("Error fetching coordinates from DistanceMatrix.ai:", error.message);
+        throw new Error("Failed to fetch coordinates from location.");
+      }
+
+      const { lat, lon } = parsedLocation;
+
+      // Tìm kiếm garage gần vị trí
+      garages = await Garage.aggregate([
+        {
+          $geoNear: {
+            near: { type: "Point", coordinates: [parseFloat(lon), parseFloat(lat)] },
+            distanceField: "distance",
+            maxDistance: 10000, // 10km
+            spherical: true,
+          },
+        },
+        {
+          $match: {
+            status: { $all: ["enabled", "approved"] },
+          },
+        },
+      ]);
+    }
+
+    const garageIds = garages.length > 0 ? garages.map((garage) => garage._id) : null;
+
+    const query = {
+      name: { $regex: name, $options: "i" },
+    };
+    if (garageIds) {
+      query.garage = { $in: garageIds };
+    }
+
+    let services = await ServiceDetail.find(query).populate("garage", "name address location tag ratingAverage openTime closeTime operating_days");
+    // console.log("Services before filter:", services);
+
+    const currentHour = new Date().getHours();
+    const currentDay = new Date().toLocaleString("en-US", { weekday: "long" });
+
+    services = services.filter((service) => {
+      const garage = service.garage;
+      // console.log("Garage operating_days:", garage.operating_days);
+      // console.log("Current day:", currentDay);
+      if (!garage) return false;
+
+      if (!garage.operating_days.includes(currentDay)) return false;
+
+      const openHour = parseInt(garage.openTime.split(":")[0], 10);
+      const closeHour = parseInt(garage.closeTime.split(":")[0], 10);
+      return currentHour >= openHour && currentHour < closeHour;
+    });
+    // console.log("Services after filter:", services);
+
+    services.sort((a, b) => {
+      const garageA = a.garage;
+      const garageB = b.garage;
+
+      if (garageA.tag === "pro" && garageB.tag !== "pro") return -1;
+      if (garageA.tag !== "pro" && garageB.tag === "pro") return 1;
+
+      return garageB.ratingAverage - garageA.ratingAverage;
+    });
+
+    if (location) {
+      services = services.map((service) => {
+        const garage = garages.find((g) => g._id.toString() === service.garage._id.toString());
+        return {
+          ...service.toObject(),
+          distance: garage ? garage.distance : null,
+        };
+      });
+    }
+    // console.log("Services after map:", services);
+
+    return services;
+  } catch (error) {
+    console.error("Error in searchServices:", error);
+    throw new Error("Failed to search services");
+  }
+};
 
 export { addServiceDetail, getServiceDetailsByGarage, updateServiceDetail, deleteServiceDetail };
