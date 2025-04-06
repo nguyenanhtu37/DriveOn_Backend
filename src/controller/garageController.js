@@ -1,6 +1,6 @@
-import mongoose from 'mongoose';
-import Garage from '../models/garage.js';
-import * as garageService from '../service/garageService.js';
+import mongoose from "mongoose";
+import Garage from "../models/garage.js";
+import * as garageService from "../service/garageService.js";
 
 const registerGarage = async (req, res) => {
   const user = req.user;
@@ -42,8 +42,14 @@ const getGarageById = async (req, res) => {
 const updateGarage = async (req, res) => {
   const { id } = req.params;
   try {
-    const updatedGarage = await garageService.updateGarage(req.user.id, id, req.body);
-    res.status(200).json({ message: "Garage updated successfully", garage: updatedGarage });
+    const updatedGarage = await garageService.updateGarage(
+      req.user.id,
+      id,
+      req.body
+    );
+    res
+      .status(200)
+      .json({ message: "Garage updated successfully", garage: updatedGarage });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -125,7 +131,11 @@ const disableStaff = async (req, res) => {
   const { id } = req.params; // garage id
   const { staffId } = req.body;
   try {
-    const updatedStaff = await garageService.disableStaff(req.user.id, id, staffId);
+    const updatedStaff = await garageService.disableStaff(
+      req.user.id,
+      id,
+      staffId
+    );
     res.status(200).json({
       message: "Staff disabled successfully",
       staff: updatedStaff,
@@ -139,7 +149,11 @@ const enableStaff = async (req, res) => {
   const { id } = req.params; // garage id
   const { staffId } = req.body;
   try {
-    const updatedStaff = await garageService.enableStaff(req.user.id, id, staffId);
+    const updatedStaff = await garageService.enableStaff(
+      req.user.id,
+      id,
+      staffId
+    );
     res.status(200).json({
       message: "Staff enabled successfully",
       staff: updatedStaff,
@@ -220,19 +234,27 @@ const disableGarage = async (req, res) => {
 };
 
 const findGarages = async (req, res) => {
-  let {address, openTime, closeTime, operating_days, rating, distance} = req.query;
+  let { address, openTime, closeTime, operating_days, rating, distance } =
+    req.query;
   // console.log(req.query);
 
   try {
     const operatingDaysArray = operating_days ? operating_days.split(",") : [];
     // console.log("operatingDaysArray: ", operatingDaysArray);
-    const garageList = await garageService.findGarages({address, openTime, closeTime, operatingDaysArray, rating, distance});
+    const garageList = await garageService.findGarages({
+      address,
+      openTime,
+      closeTime,
+      operatingDaysArray,
+      rating,
+      distance,
+    });
     res.status(200).json({
       message: "Success",
       garageList: garageList,
     });
   } catch (error) {
-    res.status(500).json({error: error.message});
+    res.status(500).json({ error: error.message });
   }
 };
 
@@ -282,13 +304,58 @@ const viewAllGaragesByAdmin = async (req, res) => {
 };
 
 const viewGarage = async (req, res) => {
-  const { services, province, district, rating , keySearch , operating_days } = req.query;
+  const {
+    services,
+    province,
+    district,
+    rating,
+    keySearch,
+    operating_days,
+    tag,
+    openTime,
+    closeTime,
+    distance,
+    currentLocation,
+  } = req.query;
 
   try {
-    const garages = await garageService.viewGaragesWithSearchParams({ services, province, district, rating, keySearch, operating_days });
+    const garages = await garageService.viewGaragesWithSearchParams({
+      services,
+      province,
+      district,
+      rating,
+      keySearch,
+      operating_days,
+      tag,
+      openTime,
+      closeTime,
+      distance,
+      currentLocation,
+    });
     res.status(200).json(garages);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
-export { registerGarage, viewGarages, updateGarage, deleteGarage, getGarageById, viewGarageRegistrations, approveGarageRegistration, rejectGarageRegistration, getGarageRegistrationById, addStaff, viewStaff, disableStaff, enableStaff, getStaffById, enableGarage, disableGarage, viewGarageExisting, findGarages, viewAllGaragesByAdmin ,viewGarage};
+export {
+  registerGarage,
+  viewGarages,
+  updateGarage,
+  deleteGarage,
+  getGarageById,
+  viewGarageRegistrations,
+  approveGarageRegistration,
+  rejectGarageRegistration,
+  getGarageRegistrationById,
+  addStaff,
+  viewStaff,
+  disableStaff,
+  enableStaff,
+  getStaffById,
+  enableGarage,
+  disableGarage,
+  viewGarageExisting,
+  findGarages,
+  viewAllGaragesByAdmin,
+  viewGarage,
+};

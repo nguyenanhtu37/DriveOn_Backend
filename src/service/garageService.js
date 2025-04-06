@@ -599,54 +599,76 @@ const viewGaragesWithSearchParams = async ({
   rating,
   keySearch,
   operating_days,
+  tag,
+  openTime,
+  closeTime,
+  distance,
+  currentLocation,
 }) => {
   try {
     const query = { status: { $in: ["enabled"] } };
 
-    if (keySearch) {
-      query.name = { $regex: keySearch, $options: "i" };
-    }
-    if (operating_days) {
-      const operatingDaysArray = operating_days.split(",");
-      query.operating_days = { $in: operatingDaysArray };
-    }
-    if (rating) {
-      query.ratingAverage = { $gte: rating };
+    if (keySearch) query.name = { $regex: keySearch, $options: "i" };
+    if (operating_days)
+      query.operating_days = { $in: operating_days.split(",") };
+    if (rating) query.ratingAverage = { $gte: rating };
+    if (tag) query.tag = tag;
+
+    if (openTime && closeTime) {
+      query.$and = [
+        { openTime: { $lte: openTime } },
+        { closeTime: { $gte: closeTime } },
+      ];
     }
 
     if (province || district) {
-      const addressQuery = [];
-      if (province) {
-        addressQuery.push({ address: { $regex: new RegExp(province, "i") } });
-      }
+      query.$and = [];
+      if (province)
+        query.$and.push({ address: { $regex: new RegExp(province, "i") } });
       if (district) {
         const cleanedDistrict = district.split(/\s+/).slice(1).join(" ");
-        addressQuery.push({
+        query.$and.push({
           address: { $regex: new RegExp(cleanedDistrict, "i") },
         });
-      }
-      if (addressQuery.length > 0) {
-        query.$and = addressQuery;
       }
     }
 
     let garages = await Garage.find(query).populate("user", "name email phone");
 
     if (services) {
-      const serviceIdArray = services.split(",");
-
       const serviceDetails = await ServiceDetail.find({
-        service: { $in: serviceIdArray },
+        service: { $in: services.split(",") },
       }).distinct("garage");
 
-      console.log("serviceDetails: ", serviceDetails);
-
       garages = garages.filter((garage) =>
-        serviceDetails.some((id) => id.toString() === garage._id.toString())
+        serviceDetails.includes(garage._id.toString())
       );
     }
 
+    if (currentLocation && distance && garages.length > 0) {
+      const destinations = garages
+        .map(
+          (garage) =>
+            `${garage.location.coordinates[1]},${garage.location.coordinates[0]}`
+        )
+        .join("|");
 
+      const apiUrl = `https://api.distancematrix.ai/maps/api/distancematrix/json?origins=${currentLocation}&destinations=${destinations}&key=hUvifHIuGWgvi1aCIh6Pvzp9oJlNiIq3Q6F497ytNdPkgsXGnTiEdp0bbHKZmFTq`;
+
+      const response = await axios.get(apiUrl);
+
+      if (response.data.status !== "OK") {
+        throw new Error(
+          response.data.error_message || "Error fetching distances"
+        );
+      }
+
+      const distances = response.data.rows[0].elements.map(
+        (element) => element.distance.value / 1000
+      );
+
+      garages = garages.filter((_, index) => distances[index] <= distance);
+    }
 
     return garages;
   } catch (err) {
