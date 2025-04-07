@@ -1,4 +1,3 @@
-import axios from "axios";
 import Garage from "../models/garage.js";
 import User from "../models/user.js";
 import bcrypt from "bcrypt";
@@ -9,7 +8,13 @@ import {
 import { validateSignup } from "../validator/authValidator.js";
 import Role from "../models/role.js";
 import Feedback from "../models/feedback.js";
-import { haversineDistance } from "../utils/distanceHelper.js";
+import ServiceDetail from "../models/serviceDetail.js";
+import axios from "axios";
+import {
+  haversineDistance,
+  getDrivingDistance,
+} from "../utils/distanceHelper.js";
+import transporter from "../config/mailer.js";
 
 const registerGarage = async (user, garageData) => {
   console.log(garageData);
@@ -143,12 +148,44 @@ const getGarageRegistrationById = async (garageId) => {
 
 const approveGarageRegistration = async (garageId) => {
   try {
-    const garage = await Garage.findById(garageId);
+    // const garage = await Garage.findById(garageId);
+    const garage = await Garage.findById(garageId).populate(
+      "user",
+      "name email"
+    );
     if (!garage) {
       throw new Error("Garage not found");
     }
+
     garage.status = ["enabled", "approved"];
     await garage.save();
+
+    // Gửi email xác nhận đến user
+    const user = garage.user[0]; // Lấy thông tin user đầu tiên trong danh sách
+    if (user && user.email) {
+      // Kiểm tra nếu user và email tồn tại
+      await transporter.sendMail({
+        from: process.env.MAIL_USER,
+        to: user.email,
+        subject: "Garage Registration Approved",
+        html: `
+          <h2>Hello ${user.name},</h2>
+          <p>Your garage registration has been successfully approved!</p>
+          <h3>Information Details:</h3>
+          <ul>
+            <li><strong>Garage Name:</strong> ${garage.name}</li>
+            <li><strong>Address:</strong> ${garage.address}</li>
+            <li><strong>Phone Number:</strong> ${garage.phone}</li>
+            <li><strong>Email:</strong> ${garage.email}</li>
+          </ul>
+          <p>You can now start managing your garage on our system.</p>
+          <p>Thank you for using our service!</p>
+        `,
+      });
+    } else {
+      console.error("User or email not found for garage:", garageId);
+    }
+
     return { message: "Garage registration approved successfully" };
   } catch (err) {
     throw new Error(err.message);
@@ -157,12 +194,42 @@ const approveGarageRegistration = async (garageId) => {
 
 const rejectGarageRegistration = async (garageId) => {
   try {
-    const garage = await Garage.findById(garageId);
+    const garage = await Garage.findById(garageId).populate(
+      "user",
+      "name email"
+    );
     if (!garage) {
       throw new Error("Garage not found");
     }
+
     garage.status = "rejected";
     await garage.save();
+
+    // Gửi email thông báo từ chối đến user
+    const user = garage.user[0]; // Lấy thông tin user đầu tiên trong danh sách
+    if (user && user.email) {
+      await transporter.sendMail({
+        from: process.env.MAIL_USER,
+        to: user.email,
+        subject: "Garage Registration Rejected",
+        html: `
+          <h2>Hello ${user.name},</h2>
+          <p>We regret to inform you that your garage registration has been rejected.</p>
+          <h3>Information Details:</h3>
+          <ul>
+            <li><strong>Garage Name:</strong> ${garage.name}</li>
+            <li><strong>Address:</strong> ${garage.address}</li>
+            <li><strong>Phone Number:</strong> ${garage.phone}</li>
+            <li><strong>Email:</strong> ${garage.email}</li>
+          </ul>
+          <p>If you have any questions, please contact us for further assistance.</p>
+          <p>Thank you for using our service!</p>
+        `,
+      });
+    } else {
+      console.error("User or email not found for garage:", garageId);
+    }
+
     return { message: "Garage registration rejected successfully" };
   } catch (err) {
     throw new Error(err.message);
@@ -335,7 +402,7 @@ export const calculateAverageRating = async (garageId) => {
 
   const averageRating =
     feedbacks.reduce((acc, feedback) => acc + feedback.rating, 0) /
-    feedbacks.length || 0;
+      feedbacks.length || 0;
   return averageRating;
 };
 
@@ -374,7 +441,7 @@ export const calculateAverageRating = async (garageId) => {
 //     // sort
 //     garages.sort(compareGarages);
 
-//     return garages; 
+//     return garages;
 //   } catch (error) {
 //     throw new Error("Lỗi khi tìm garage: " + error.message);
 //   }
@@ -387,7 +454,7 @@ export const calculateAverageRating = async (garageId) => {
 //   return {
 //     ...garage.toObject(),
 //     distance,
-//     isOpen: checkGarageOpen(garage, openTime, closeTime), 
+//     isOpen: checkGarageOpen(garage, openTime, closeTime),
 //     isPro: garage.tag === "pro",
 //   };
 // };
@@ -404,20 +471,37 @@ export const calculateAverageRating = async (garageId) => {
 //   }
 // };
 
-
-// xe chạy (distancematrix.ai) 
+// xe chạy (distancematrix.ai)
 export const findGarages = async ({
-  address, 
-  openTime, 
-  closeTime, 
-  operatingDaysArray = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"], 
-  rating, 
-  distance, 
+  address,
+  openTime,
+  closeTime,
+  operatingDaysArray = [
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday",
+  ],
+  rating,
+  distance,
 }) => {
   try {
-    openTime = openTime || "00:00"; 
+    openTime = openTime || "00:00";
     closeTime = closeTime || "23:59";
-    operatingDaysArray = operatingDaysArray.length ? operatingDaysArray : ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+    operatingDaysArray = operatingDaysArray.length
+      ? operatingDaysArray
+      : [
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday",
+          "Saturday",
+          "Sunday",
+        ];
     rating = rating || 0;
     distance = distance || 10;
 
@@ -429,7 +513,13 @@ export const findGarages = async ({
 
     const enhancedGarages = [];
     for (const garage of garages) {
-      const enhancedGarage = await enhanceGarageInfo(garage, address, openTime, closeTime, operatingDaysArray);
+      const enhancedGarage = await enhanceGarageInfo(
+        garage,
+        address,
+        openTime,
+        closeTime,
+        operatingDaysArray
+      );
       if (enhancedGarage.isOpen && enhancedGarage.distance <= distance) {
         enhancedGarages.push(enhancedGarage);
       }
@@ -443,45 +533,38 @@ export const findGarages = async ({
   }
 };
 
-// get coordinates theo distanmatrix.ai
-const getDrivingDistance = async (origin, destination) => {
-  try {
-    const apiKey = process.env.DISTANCEMATRIX_API_KEY;
-    const url = `https://api.distancematrix.ai/maps/api/distancematrix/json?origins=${encodeURIComponent(
-      origin
-    )}&destinations=${encodeURIComponent(destination)}&key=${apiKey}`;
-
-    const response = await axios.get(url);
-
-    if (response.data.status === "OK") {
-      const distance = response.data.rows[0].elements[0].distance.value; // kcach tính theo met
-      return distance / 1000; // convert sang km
-    } else {
-      console.error("Error from DistanceMatrix.ai:", response.data.error_message);
-      return null;
-    }
-  } catch (error) {
-    console.error("Error calling DistanceMatrix.ai API:", error.message);
-    return null;
-  }
-};
-
 // lam theo distanmatrix.ai
-const enhanceGarageInfo = async (garage, userAddress, userOpenTime, userCloseTime, userOperatingDays) => {
+const enhanceGarageInfo = async (
+  garage,
+  userAddress,
+  userOpenTime,
+  userCloseTime,
+  userOperatingDays
+) => {
   const garageAddress = garage.address;
   const distance = await getDrivingDistance(userAddress, garageAddress);
 
   return {
     ...garage.toObject(),
     distance,
-    isOpen: checkGarageOpen(garage, userOpenTime, userCloseTime, userOperatingDays),
+    isOpen: checkGarageOpen(
+      garage,
+      userOpenTime,
+      userCloseTime,
+      userOperatingDays
+    ),
     isPro: garage.tag === "pro",
   };
 };
 
-const checkGarageOpen = (garage, userOpenTime, userCloseTime, userOperatingDays) => {
+const checkGarageOpen = (
+  garage,
+  userOpenTime,
+  userCloseTime,
+  userOperatingDays
+) => {
   const now = new Date();
-  const today = now.toLocaleString('en-US', { weekday: 'long' }); 
+  const today = now.toLocaleString("en-US", { weekday: "long" });
 
   userOpenTime = userOpenTime || "00:00";
   userCloseTime = userCloseTime || "23:59";
@@ -496,8 +579,12 @@ const checkGarageOpen = (garage, userOpenTime, userCloseTime, userOperatingDays)
   }
 
   // check openTime, closeTime
-  const [garageOpenHour, garageOpenMinute] = garage.openTime.split(":").map(Number);
-  const [garageCloseHour, garageCloseMinute] = garage.closeTime.split(":").map(Number);
+  const [garageOpenHour, garageOpenMinute] = garage.openTime
+    .split(":")
+    .map(Number);
+  const [garageCloseHour, garageCloseMinute] = garage.closeTime
+    .split(":")
+    .map(Number);
   const [userOpenHour, userOpenMinute] = userOpenTime.split(":").map(Number);
   const [userCloseHour, userCloseMinute] = userCloseTime.split(":").map(Number);
 
@@ -508,7 +595,8 @@ const checkGarageOpen = (garage, userOpenTime, userCloseTime, userOperatingDays)
   const garageEnd = garageCloseHour * 60 + garageCloseMinute; // closeTime của garage (min)
 
   // check overlap giua user req vs giờ garage hoạt động
-  const hasOverlap = Math.max(userStart, garageStart) < Math.min(userEnd, garageEnd);
+  const hasOverlap =
+    Math.max(userStart, garageStart) < Math.min(userEnd, garageEnd);
   // console.log("hasOverlap: ", hasOverlap);
 
   if (!hasOverlap) {
@@ -525,11 +613,11 @@ const compareGarages = (a, b) => {
   if (a.isPro && !b.isPro) return -1;
   if (!a.isPro && b.isPro) return 1;
   // 3rd priotiry
-  if (a.ratingAverage !== b.ratingAverage) return b.ratingAverage - a.ratingAverage;
-  // final priority while sorting 
+  if (a.ratingAverage !== b.ratingAverage)
+    return b.ratingAverage - a.ratingAverage;
+  // final priority while sorting
   return a.distance - b.distance;
 };
-
 
 const viewAllGaragesByAdmin = async (page = 1, limit = 10) => {
   try {
@@ -539,6 +627,91 @@ const viewAllGaragesByAdmin = async (page = 1, limit = 10) => {
       .limit(limit);
     return garages;
   } catch (err) {
+    throw new Error(err.message);
+  }
+};
+
+const viewGaragesWithSearchParams = async ({
+  services,
+  province,
+  district,
+  rating,
+  keySearch,
+  operating_days,
+  tag,
+  openTime,
+  closeTime,
+  distance,
+  currentLocation,
+}) => {
+  try {
+    const query = { status: { $in: ["enabled"] } };
+
+    if (keySearch) query.name = { $regex: keySearch, $options: "i" };
+    if (operating_days)
+      query.operating_days = { $in: operating_days.split(",") };
+    if (rating) query.ratingAverage = { $gte: rating };
+    if (tag) query.tag = tag;
+
+    if (openTime && closeTime) {
+      query.$and = [
+        { openTime: { $lte: openTime } },
+        { closeTime: { $gte: closeTime } },
+      ];
+    }
+
+    if (province || district) {
+      query.$and = [];
+      if (province)
+        query.$and.push({ address: { $regex: new RegExp(province, "i") } });
+      if (district) {
+        const cleanedDistrict = district.split(/\s+/).slice(1).join(" ");
+        query.$and.push({
+          address: { $regex: new RegExp(cleanedDistrict, "i") },
+        });
+      }
+    }
+
+    let garages = await Garage.find(query).populate("user", "name email phone");
+
+    if (services) {
+      const serviceDetails = await ServiceDetail.find({
+        service: { $in: services.split(",") },
+      }).distinct("garage");
+
+      garages = garages.filter((garage) =>
+        serviceDetails.includes(garage._id.toString())
+      );
+    }
+
+    if (currentLocation && distance && garages.length > 0) {
+      const destinations = garages
+        .map(
+          (garage) =>
+            `${garage.location.coordinates[1]},${garage.location.coordinates[0]}`
+        )
+        .join("|");
+
+      const apiUrl = `https://api.distancematrix.ai/maps/api/distancematrix/json?origins=${currentLocation}&destinations=${destinations}&key=hUvifHIuGWgvi1aCIh6Pvzp9oJlNiIq3Q6F497ytNdPkgsXGnTiEdp0bbHKZmFTq`;
+
+      const response = await axios.get(apiUrl);
+
+      if (response.data.status !== "OK") {
+        throw new Error(
+          response.data.error_message || "Error fetching distances"
+        );
+      }
+
+      const distances = response.data.rows[0].elements.map(
+        (element) => element.distance.value / 1000
+      );
+
+      garages = garages.filter((_, index) => distances[index] <= distance);
+    }
+
+    return garages;
+  } catch (err) {
+    console.error("Error in viewGaragesWithSearchParams:", err.message);
     throw new Error(err.message);
   }
 };
@@ -561,5 +734,6 @@ export {
   enableGarage,
   disableGarage,
   viewGarageExisting,
-  viewAllGaragesByAdmin
+  viewGaragesWithSearchParams,
+  viewAllGaragesByAdmin,
 };

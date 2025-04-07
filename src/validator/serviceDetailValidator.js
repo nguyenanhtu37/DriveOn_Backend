@@ -14,18 +14,22 @@ const addServiceDetailSchema = z.object({
   images: z
     .array(z.string().url("Each image URL must be a valid URL"))
     .nonempty("Service detail images must be an array with at least one image"),
-  price: z.number().optional().refine((price) => price >= 0, {
-    message: "Service detail price must be a positive number",
-  }),
- duration: z.number().optional().refine((duration) => duration > 0, {
-    message: "Service detail duration must be a positive number",
-  }),
+  price: z
+    .number()
+    .optional()
+    .refine((price) => price >= 0, {
+      message: "Service detail price must be a positive number",
+    }),
+  duration: z
+    .number()
+    .optional()
+    .refine((duration) => duration > 0, {
+      message: "Service detail duration must be a positive number",
+    }),
   warranty: z.string().optional(),
 });
 
-
 const updateServiceDetailSchema = addServiceDetailSchema.partial(); // Tất cả các trường đều là optional
-
 
 export const validateAddServiceDetail = (serviceDetailData) => {
   try {
@@ -35,7 +39,6 @@ export const validateAddServiceDetail = (serviceDetailData) => {
   }
 };
 
-
 export const validateUpdateServiceDetail = (serviceDetailData) => {
   try {
     updateServiceDetailSchema.parse(serviceDetailData);
@@ -43,4 +46,3 @@ export const validateUpdateServiceDetail = (serviceDetailData) => {
     throw new Error(e.errors.map((err) => err.message).join(", "));
   }
 };
-
