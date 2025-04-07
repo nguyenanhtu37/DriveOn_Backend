@@ -243,64 +243,64 @@ export const createAppointmentService = async ({
   const displayDate = validatedStartTime.toLocaleDateString('vi-VN');
   const displayStartTime = formatTimeDisplay(validatedStartTime);
   const displayEndTime = formatTimeDisplay(endTime);
-  // // Send confirmation email to customer
-  // await transporter.sendMail({
-  //   from: process.env.MAIL_USER,
-  //   to: user.email,
-  //   subject: "Xác nhận đặt lịch hẹn",
-  //   html: `
-  //     <h2>Xin chào ${user.name},</h2>
-  //     <p>Bạn đã đặt lịch hẹn thành công tại hệ thống của chúng tôi.</p>
-  //     <h3>Chi tiết lịch hẹn:</h3>
-  //     <ul>
-  //       <li><strong>Garage:</strong> ${garageInfo.name}</li>
-  //       <li><strong>Địa chỉ:</strong> ${garageInfo.address}</li>
-  //       <li><strong>Ngày hẹn:</strong> ${displayDate}</li>
-  //       <li><strong>Thời gian:</strong> ${displayStartTime} - ${displayEndTime}</li>
-  //       <li><strong>Trạng thái:</strong> Đang chờ xác nhận</li>
-  //     </ul>
-  //     <p>Garage sẽ xem xét và xác nhận lịch hẹn của bạn sớm nhất có thể.</p>
-  //     <p>Xem chi tiết lịch hẹn của bạn <a href="http://localhost:${process.env.PORT}/api/appointment/${newAppointment._id}">tại đây</a>.</p>
-  //     <p>Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>
-  //   `
-  // });
-  //
-  // // In createAppointmentService, modify the garage notification part:
-  // const roleManager = await Role.findOne({ roleName: "manager" });
-  // if (!roleManager) {
-  //   console.log('Role "manager" not found');
-  //   return newAppointment;
-  // }
-  //
-  // const garageManagers = await User.find({
-  //   garageList: garage,
-  //   roles: roleManager._id // Find users with "manager" role
-  // });
-  //
-  // if (garageManagers && garageManagers.length > 0) {
-  //   for (const manager of garageManagers) {
-  //     await transporter.sendMail({
-  //       from: process.env.MAIL_USER,
-  //       to: manager.email,
-  //       subject: "Thông báo lịch hẹn mới",
-  //       html: `
-  //       <h2>Xin chào ${manager.name},</h2>
-  //       <p>Garage của bạn vừa nhận được một lịch hẹn mới.</p>
-  //       <h3>Chi tiết lịch hẹn:</h3>
-  //       <ul>
-  //         <li><strong>Khách hàng:</strong> ${user.name}</li>
-  //         <li><strong>Số điện thoại:</strong> ${user.phone || 'Không có'}</li>
-  //         <li><strong>Xe:</strong> ${vehicleInfo.carName} (${vehicleInfo.carPlate})</li>
-  //         <li><strong>Ngày hẹn:</strong> ${displayDate}</li>
-  //         <li><strong>Thời gian:</strong> ${displayStartTime} - ${displayEndTime}</li>
-  //         <li><strong>Ghi chú:</strong> ${note || 'Không có'}</li>
-  //       </ul>
-  //       <p>Xem chi tiết lịch hẹn <a href="http://localhost:${process.env.PORT}/api/appointment/${newAppointment._id}">tại đây</a>.</p>
-  //       <p>Vui lòng kiểm tra và xác nhận lịch hẹn càng sớm càng tốt.</p>
-  //     `
-  //     });
-  //   }
-  // }
+  // Send confirmation email to customer
+  await transporter.sendMail({
+    from: process.env.MAIL_USER,
+    to: user.email,
+    subject: "Xác nhận đặt lịch hẹn",
+    html: `
+      <h2>Xin chào ${user.name},</h2>
+      <p>Bạn đã đặt lịch hẹn thành công tại hệ thống của chúng tôi.</p>
+      <h3>Chi tiết lịch hẹn:</h3>
+      <ul>
+        <li><strong>Garage:</strong> ${garageInfo.name}</li>
+        <li><strong>Địa chỉ:</strong> ${garageInfo.address}</li>
+        <li><strong>Ngày hẹn:</strong> ${displayDate}</li>
+        <li><strong>Thời gian:</strong> ${displayStartTime} - ${displayEndTime}</li>
+        <li><strong>Trạng thái:</strong> Đang chờ xác nhận</li>
+      </ul>
+      <p>Garage sẽ xem xét và xác nhận lịch hẹn của bạn sớm nhất có thể.</p>
+      <p>Xem chi tiết lịch hẹn của bạn <a href="http://localhost:${process.env.PORT}/api/appointment/${newAppointment._id}">tại đây</a>.</p>
+      <p>Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>
+    `
+  });
+
+  // In createAppointmentService, modify the garage notification part:
+  const roleManager = await Role.findOne({ roleName: "manager" });
+  if (!roleManager) {
+    console.log('Role "manager" not found');
+    return newAppointment;
+  }
+
+  const garageManagers = await User.find({
+    garageList: garage,
+    roles: roleManager._id // Find users with "manager" role
+  });
+
+  if (garageManagers && garageManagers.length > 0) {
+    for (const manager of garageManagers) {
+      await transporter.sendMail({
+        from: process.env.MAIL_USER,
+        to: manager.email,
+        subject: "Thông báo lịch hẹn mới",
+        html: `
+        <h2>Xin chào ${manager.name},</h2>
+        <p>Garage của bạn vừa nhận được một lịch hẹn mới.</p>
+        <h3>Chi tiết lịch hẹn:</h3>
+        <ul>
+          <li><strong>Khách hàng:</strong> ${user.name}</li>
+          <li><strong>Số điện thoại:</strong> ${user.phone || 'Không có'}</li>
+          <li><strong>Xe:</strong> ${vehicleInfo.carName} (${vehicleInfo.carPlate})</li>
+          <li><strong>Ngày hẹn:</strong> ${displayDate}</li>
+          <li><strong>Thời gian:</strong> ${displayStartTime} - ${displayEndTime}</li>
+          <li><strong>Ghi chú:</strong> ${note || 'Không có'}</li>
+        </ul>
+        <p>Xem chi tiết lịch hẹn <a href="http://localhost:${process.env.PORT}/api/appointment/${newAppointment._id}">tại đây</a>.</p>
+        <p>Vui lòng kiểm tra và xác nhận lịch hẹn càng sớm càng tốt.</p>
+      `
+      });
+    }
+  }
 
   return newAppointment;
 };
@@ -693,35 +693,35 @@ export const updateAppointmentService = async (appointmentId, userId, updateData
   const newDisplayStartTime = formatTimeDisplay(startTime);
   const newDisplayEndTime = formatTimeDisplay(endTime);
 
-  // // Send email about the update
-  // await transporter.sendMail({
-  //   from: process.env.MAIL_USER,
-  //   to: user.email,
-  //   subject: "Thông báo cập nhật lịch hẹn",
-  //   html: `
-  //     <h2>Xin chào ${user.name},</h2>
-  //     <p>Lịch hẹn của bạn đã được cập nhật thành công.</p>
-  //
-  //     <h3>Thông tin cũ:</h3>
-  //     <ul>
-  //       <li><strong>Ngày hẹn:</strong> ${oldDisplayDate}</li>
-  //       <li><strong>Thời gian:</strong> ${oldDisplayStartTime} - ${oldDisplayEndTime}</li>
-  //     </ul>
-  //
-  //     <h3>Thông tin mới:</h3>
-  //     <ul>
-  //       <li><strong>Garage:</strong> ${garageInfo.name}</li>
-  //       <li><strong>Địa chỉ:</strong> ${garageInfo.address}</li>
-  //       <li><strong>Ngày hẹn:</strong> ${newDisplayDate}</li>
-  //       <li><strong>Thời gian:</strong> ${newDisplayStartTime} - ${newDisplayEndTime}</li>
-  //       <li><strong>Trạng thái:</strong> Đang chờ xác nhận</li>
-  //     </ul>
-  //
-  //     <p>Xem chi tiết lịch hẹn của bạn <a href="http://localhost:${process.env.PORT}/api/appointment/${updatedAppointment._id}">tại đây</a>.</p>
-  //     <p>Garage sẽ xem xét và xác nhận lịch hẹn của bạn sớm nhất có thể.</p>
-  //     <p>Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>
-  //   `
-  // });
+  // Send email about the update
+  await transporter.sendMail({
+    from: process.env.MAIL_USER,
+    to: user.email,
+    subject: "Thông báo cập nhật lịch hẹn",
+    html: `
+      <h2>Xin chào ${user.name},</h2>
+      <p>Lịch hẹn của bạn đã được cập nhật thành công.</p>
+
+      <h3>Thông tin cũ:</h3>
+      <ul>
+        <li><strong>Ngày hẹn:</strong> ${oldDisplayDate}</li>
+        <li><strong>Thời gian:</strong> ${oldDisplayStartTime} - ${oldDisplayEndTime}</li>
+      </ul>
+
+      <h3>Thông tin mới:</h3>
+      <ul>
+        <li><strong>Garage:</strong> ${garageInfo.name}</li>
+        <li><strong>Địa chỉ:</strong> ${garageInfo.address}</li>
+        <li><strong>Ngày hẹn:</strong> ${newDisplayDate}</li>
+        <li><strong>Thời gian:</strong> ${newDisplayStartTime} - ${newDisplayEndTime}</li>
+        <li><strong>Trạng thái:</strong> Đang chờ xác nhận</li>
+      </ul>
+
+      <p>Xem chi tiết lịch hẹn của bạn <a href="http://localhost:${process.env.PORT}/api/appointment/${updatedAppointment._id}">tại đây</a>.</p>
+      <p>Garage sẽ xem xét và xác nhận lịch hẹn của bạn sớm nhất có thể.</p>
+      <p>Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>
+    `
+  });
 
   return updatedAppointment;
 };
