@@ -12,7 +12,7 @@ import ServiceDetail from "../models/serviceDetail.js";
 import axios from "axios";
 import {
   haversineDistance,
-  getDrivingDistance,
+  getDrivingDistance, getDistancesToGarages,
 } from "../utils/distanceHelper.js";
 import transporter from "../config/mailer.js";
 
@@ -157,7 +157,7 @@ const approveGarageRegistration = async (garageId) => {
       throw new Error("Garage not found");
     }
 
-    garage.status = ["enabled", "approved"];
+    garage.status = ["approved", "enabled"];
     await garage.save();
 
     // Gửi email xác nhận đến user
@@ -542,7 +542,7 @@ const enhanceGarageInfo = async (
   userOperatingDays
 ) => {
   const garageAddress = garage.address;
-  const distance = await getDrivingDistance(userAddress, garageAddress);
+  const distance = await getDistancesToGarages(userAddress, garageAddress);
 
   return {
     ...garage.toObject(),

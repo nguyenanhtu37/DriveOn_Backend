@@ -40,6 +40,20 @@ export const getDrivingDistance = async (origin, destination) => {
   }
 };
 
+export const getDistancesToGarages = async (userLocation, garageList) => {
+  const distancePromises = garageList.map((garage) =>
+    getDrivingDistance(userLocation, garage.address)
+  );
+
+  const distances = await Promise.all(distancePromises);
+
+  // Ghép lại để biết garage nào cách bao xa
+  return garageList.map((garage, idx) => ({
+    ...garage,
+    distance: distances[idx],
+  }));
+};
+
 export const getCoordinates = async (address) => {
   try {
     const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`;

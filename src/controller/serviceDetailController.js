@@ -8,6 +8,7 @@ const addServiceDetail = async (req, res) => {
       serviceDetail: newServiceDetail,
     });
   } catch (err) {
+    console.log("Error:", err.message);
     res.status(500).json({ error: err.message });
   }
 };
@@ -71,6 +72,23 @@ export const searchServices = async (req, res) => {
   } catch (error) {
     console.error("Error searching services:", error);
     res.status(500).json({ error: "Failed to search services" });
+  }
+};
+
+export const getEmergency = async (req, res) => {
+  try {
+    const { latitude, longitude } = req.query;
+
+    if (!latitude || !longitude) {
+      return res.status(400).json({ error: "Latitude and longitude are required" });
+    }
+
+    const emergencyGarages = await serviceDetailService.getEmergency(latitude, longitude);
+
+    res.status(200).json({ emergencyGarages });
+  } catch (error) {
+    console.error("Error in getEmergency controller:", error);
+    res.status(500).json({ error: "Failed to get emergency garages" });
   }
 };
 
