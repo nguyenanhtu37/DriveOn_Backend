@@ -462,7 +462,7 @@ export const denyAppointmentService = async (appointmentId, userId) => {
 };
 
 
-export const completeAppointmentService = async (appointmentId, userId) => {
+export const completeAppointmentService = async (appointmentId, userId, updatedEndTime = null) => {
   const appointment = await Appointment.findById(appointmentId);
   if (!appointment) {
     throw new Error("Appointment not found");
@@ -477,15 +477,56 @@ export const completeAppointmentService = async (appointmentId, userId) => {
     throw new Error("Only accepted appointments can be completed");
   }
 
+  // Update end time if provided
+  if (updatedEndTime) {
+    const endTime = typeof updatedEndTime === 'string' ? new Date(updatedEndTime) : updatedEndTime;
+    if (isNaN(endTime.getTime())) {
+      throw new Error("Invalid end time format");
+    }
+
+    // Get garage info for validation
+    const garage = await Garage.findById(appointment.garage);
+    if (!garage) {
+      throw new Error("Garage not found");
+    }
+
+    // Validate that updatedEndTime falls on an operating day
+    const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const endDayOfWeek = daysOfWeek[endTime.getUTCDay()];
+
+    if (!garage.operating_days.includes(endDayOfWeek)) {
+      throw new Error(`Cannot complete service on ${endDayOfWeek}s as garage is closed`);
+    }
+
+    // Validate that updatedEndTime is within operating hours
+    const [openHour, openMinute] = garage.openTime.split(':').map(Number);
+    const [closeHour, closeMinute] = garage.closeTime.split(':').map(Number);
+
+    // Create date objects for opening and closing times on the selected day
+    const openTimeOnDay = new Date(endTime);
+    openTimeOnDay.setUTCHours(openHour, openMinute, 0, 0);
+
+    const closeTimeOnDay = new Date(endTime);
+    closeTimeOnDay.setUTCHours(closeHour, closeMinute, 0, 0);
+
+    if (endTime < openTimeOnDay || endTime > closeTimeOnDay) {
+      throw new Error(`Updated end time must be between ${garage.openTime} and ${garage.closeTime}`);
+    }
+
+    appointment.end = endTime;
+  }
+
+  // Assign staff who completed the service
+  appointment.assignedStaff = userId;
   appointment.status = "Completed";
   await appointment.save();
 
   // Get user and garage info for email
   const customer = await User.findById(appointment.user);
-  const garageInfo = await Garage.findById(appointment.garage).select('name address');
+  const garageInfo = await Garage.findById(appointment.garage).select('name address phone');
+  const staffInfo = await User.findById(userId).select('name');
 
-  // Format date for display
-  // Format dates for display - format UTC time directly without timezone conversion
+  // Format dates for display
   const displayDate = appointment.start.toLocaleDateString('vi-VN');
   const displayStartTime = formatTimeDisplay(appointment.start);
   const displayEndTime = formatTimeDisplay(appointment.end);
@@ -498,22 +539,24 @@ export const completeAppointmentService = async (appointmentId, userId) => {
     html: `
       <h2>Xin chào ${customer.name},</h2>
       <p>Dịch vụ của bạn đã được hoàn thành.</p>
-      <h3>Chi tiết lịch hẹn:</h3>
+      <h3>Chi tiết dịch vụ:</h3>
       <ul>
         <li><strong>Garage:</strong> ${garageInfo.name}</li>
         <li><strong>Địa chỉ:</strong> ${garageInfo.address}</li>
-         <li><strong>Ngày hẹn:</strong> ${displayDate}</li>
+        <li><strong>Ngày hẹn:</strong> ${displayDate}</li>
         <li><strong>Thời gian:</strong> ${displayStartTime} - ${displayEndTime}</li>
+        <li><strong>Nhân viên phụ trách:</strong> ${staffInfo.name}</li>
         <li><strong>Trạng thái:</strong> Đã hoàn thành</li>
-      </ul>      
-      <p>Xem chi tiết lịch hẹn của bạn <a href="http://localhost:${process.env.PORT}/api/appointment/${appointment._id}">tại đây</a>.</p>
-
+      </ul>
       <p>Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>
+      <p>Xem chi tiết lịch hẹn của bạn <a href="http://localhost:${process.env.PORT}/api/appointment/${appointment._id}">tại đây</a>.</p>
     `
   });
 
   return appointment;
 };
+
+
 export const getAcceptedAppointmentsService = async (userId, garageId) => {
   const user = await User.findById(userId);
   if (!user) {

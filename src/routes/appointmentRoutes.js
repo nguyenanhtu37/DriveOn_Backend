@@ -37,13 +37,13 @@ router.get(
 ); // Get appointments by garage
 router.put(
   "/:appointmentId/confirm",
-  authorizeRoles(["staff"]),
+  authorizeRoles(["manager"]),
   confirmAppointment
 ); // Confirm appointment
 router.put("/:appointmentId/deny", authorizeRoles(["staff"]), denyAppointment); // Deny appointment
 router.put(
   "/:appointmentId/complete",
-  authorizeRoles(["staff"]),
+  authorizeRoles(["staff","manager"]),
   completeAppointment
 ); // Complete appointment
 router.get(

@@ -48,6 +48,11 @@ const appointmentSchema = new mongoose.Schema({
             default: "Normal",
             required: true,
         },
+        assignedStaff: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+            default: null
+        },
         note: {
             type: String,
             default: "",

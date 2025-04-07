@@ -12,7 +12,8 @@ import ServiceDetail from "../models/serviceDetail.js";
 import axios from "axios";
 import {
   haversineDistance,
-  getDrivingDistance, getDistancesToGarages,
+  getDrivingDistance,
+  getDistancesToGarages,
 } from "../utils/distanceHelper.js";
 import transporter from "../config/mailer.js";
 
