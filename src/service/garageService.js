@@ -148,7 +148,6 @@ const getGarageRegistrationById = async (garageId) => {
 
 const approveGarageRegistration = async (garageId) => {
   try {
-    // const garage = await Garage.findById(garageId);
     const garage = await Garage.findById(garageId).populate(
       "user",
       "name email"
@@ -157,13 +156,17 @@ const approveGarageRegistration = async (garageId) => {
       throw new Error("Garage not found");
     }
 
-    garage.status = ["approved", "enabled"];
+    if (!garage.status.includes("approved")) {
+      garage.status.push("approved");
+    }
+    if (!garage.status.includes("enabled")) {
+      garage.status.push("enabled");
+    }
     await garage.save();
 
-    // Gửi email xác nhận đến user
-    const user = garage.user[0]; // Lấy thông tin user đầu tiên trong danh sách
+    // Send confirmation email to the user
+    const user = garage.user[0]; // Get the first user in the list
     if (user && user.email) {
-      // Kiểm tra nếu user và email tồn tại
       await transporter.sendMail({
         from: process.env.MAIL_USER,
         to: user.email,
