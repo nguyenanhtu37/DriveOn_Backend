@@ -18,6 +18,7 @@ import {
     enableGarage,
     disableGarage,
     viewGarageExisting,
+    viewGarage,
     findGarages,
     // getCoordinates,
     // getGaragesWithinRadius,
@@ -47,7 +48,7 @@ router.get("/filter", findGarages);
 // router.get('/filter-by-rating', filterGaragesByRating);
 
 router.post("/register-garage", authMiddleware, registerGarage); // register new garage
-router.get("/garages/:id", getGarageById); // view garage details  
+router.get("/garages/:id", getGarageById); // view garage details
 router.get('/garage-registrations', adminMiddleware, viewGarageRegistrations); // view garage registration list
 router.get('/garage-registrations/:id', adminMiddleware, getGarageRegistrationById); // view garage registration details
 router.post('/garage-registrations/:id/approve', adminMiddleware, approveGarageRegistration); // approve garage registration
@@ -60,6 +61,7 @@ router.get('/existing', viewGarageExisting);
 router.put('/:id/enable', adminMiddleware, enableGarage);
 router.put('/:id/disable', adminMiddleware, disableGarage);
 
+router.get('/viewGarage' , viewGarage)
 router.get("/view-all-garages-by-admin", adminMiddleware, viewAllGaragesByAdmin); // Admin xem toàn bộ garage
 
 export default router;
