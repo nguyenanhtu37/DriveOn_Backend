@@ -3,11 +3,13 @@ import dotenv from 'dotenv';
 
 import ServiceDetail from "../models/serviceDetail.js";
 import Garage from '../models/garage.js';
+import Service from '../models/service.js';
 import { validateAddServiceDetail, validateUpdateServiceDetail } from "../validator/serviceDetailValidator.js";
 
 dotenv.config();
 
 const addServiceDetail = async (serviceDetailData) => {
+  // console.log(serviceDetailData);
   // Validate service detail data
   validateAddServiceDetail(serviceDetailData);
 
@@ -180,6 +182,107 @@ export const searchServices = async (name, location) => {
   } catch (error) {
     console.error("Error in searchServices:", error);
     throw new Error("Failed to search services");
+  }
+};
+
+export const getEmergency = async (latitude, longitude) => {
+  try {
+    if (!latitude || !longitude) {
+      throw new Error("Latitude and longitude are required");
+    }
+
+    const emergencyService = await Service.findOne({ name: "Emergency" });
+    if (!emergencyService) {
+      console.error("Emergency service not found");
+      throw new Error("Emergency service not found");
+    }
+    console.log("Emergency service found:", emergencyService);
+
+    const serviceDetails = await ServiceDetail.find({ service: emergencyService._id }).populate("garage");
+    console.log("Service details linked to Emergency:", serviceDetails);
+
+    // Tìm các garage gần vị trí người dùng
+    const garages = await Garage.aggregate([
+      {
+        $geoNear: {
+          near: { type: "Point", coordinates: [parseFloat(longitude), parseFloat(latitude)] },
+          distanceField: "distance",
+          maxDistance: 10000, // 10km
+          spherical: true,
+        },
+      },
+      {
+        $match: {
+          status: { $all: ["enabled", "approved"] },
+        },
+      },
+    ]);
+    console.log("Nearby garages:", garages);
+
+    // Lấy danh sách garageId từ kết quả tìm kiếm
+    const nearbyGarageIds = garages.map((garage) => garage._id.toString());
+
+    // Lọc các ServiceDetail có garage nằm trong danh sách garage gần vị trí người dùng
+    const filteredServices = serviceDetails.filter((serviceDetail) =>
+      nearbyGarageIds.includes(serviceDetail.garage._id.toString())
+    );
+    console.log("Filtered services:", filteredServices);
+
+    // Lọc các garage đang mở cửa
+    const currentHour = new Date().getHours();
+    const currentDay = new Date().toLocaleString("en-US", { weekday: "long" });
+
+    const openServices = filteredServices.filter((serviceDetail) => {
+      const garage = serviceDetail.garage;
+      if (!garage) return false;
+
+      console.log(`Checking garage: ${garage.name}`);
+      console.log("Garage operating days:", garage.operating_days);
+      console.log("Garage open time:", garage.openTime);
+      console.log("Garage close time:", garage.closeTime);
+
+      // Kiểm tra ngày hoạt động
+      if (!garage.operating_days.includes(currentDay)) {
+        console.log(`Garage ${garage.name} is not operating on ${currentDay}`);
+        return false;
+      }
+
+      // Kiểm tra giờ hoạt động
+      const openHour = parseInt(garage.openTime.split(":")[0], 10);
+      const closeHour = parseInt(garage.closeTime.split(":")[0], 10) || 24; 
+      if (currentHour < openHour || currentHour >= closeHour) {
+        console.log(`Garage ${garage.name} is closed at ${currentHour}:00`);
+        return false;
+      }
+
+      return true;
+    });
+    console.log("Open services:", openServices);
+
+    openServices.sort((a, b) => {
+      const garageA = a.garage;
+      const garageB = b.garage;
+
+      if (garageA.tag === "pro" && garageB.tag !== "pro") return -1;
+      if (garageA.tag !== "pro" && garageB.tag === "pro") return 1;
+
+      return garageB.ratingAverage - garageA.ratingAverage;
+    });
+
+    const result = openServices.map((serviceDetail) => {
+      const garage = garages.find((g) => g._id.toString() === serviceDetail.garage._id.toString());
+      return {
+        ...serviceDetail.toObject(),
+        distance: garage ? garage.distance : null,
+      };
+    });
+
+    console.log("Final result:", result);
+
+    return result;
+  } catch (error) {
+    console.error("Error in getEmergency:", error);
+    throw new Error("Failed to get emergency garages");
   }
 };
 

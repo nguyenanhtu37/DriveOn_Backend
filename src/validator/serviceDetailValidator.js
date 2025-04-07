@@ -26,7 +26,6 @@ const addServiceDetailSchema = z.object({
 
 const updateServiceDetailSchema = addServiceDetailSchema.partial(); // Tất cả các trường đều là optional
 
-
 export const validateAddServiceDetail = (serviceDetailData) => {
   try {
     addServiceDetailSchema.parse(serviceDetailData);
