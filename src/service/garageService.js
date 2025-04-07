@@ -157,7 +157,7 @@ const approveGarageRegistration = async (garageId) => {
       throw new Error("Garage not found");
     }
 
-    garage.status = "approved";
+    garage.status = ["approved", "enabled"];
     await garage.save();
 
     // Gửi email xác nhận đến user
