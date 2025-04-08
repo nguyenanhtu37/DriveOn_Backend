@@ -17,7 +17,9 @@ const createAppointmentSchema = z.object({
     vehicle: objectIdOrStringSchema,
     // Start time as ISO string or Date object
     start: z.union([
-        z.string().datetime("Start time must be a valid ISO datetime string"),
+        z.string().refine((val) => !isNaN(Date.parse(val)), {
+            message: "Start time must be a valid ISO datetime string"
+        }),
         z.date()
     ]),
     tag: z.enum(["Normal", "Emergency"]).default("Normal"),

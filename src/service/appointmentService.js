@@ -7,6 +7,7 @@ import Vehicle from "../models/vehicle.js";
 import ServiceDetail
   from "../models/serviceDetail.js";
 import Role from "../models/role.js";
+
 // Helper function to format time directly from UTC without timezone conversion
 const formatTimeDisplay = (date) => {
   return `${date.getUTCHours()}:${String(date.getUTCMinutes()).padStart(2, '0')}`;
@@ -20,10 +21,15 @@ const checkBooking = async (vehicleId, garageId, start, end, currentAppointmentI
     };
   }
 
-  // Fix: use getUTCDay() for consistency with convertAndValidateDateTime
+  console.log("checkBooking - Original start:", start.toISOString());
+  console.log("checkBooking - Original end:", end.toISOString());
+  console.log("checkBooking - Server timezone:", Intl.DateTimeFormat().resolvedOptions().timeZone);
+
+  // Using getDay() for consistent UTC handling
   const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-  const appointmentDay = daysOfWeek[start.getUTCDay()];
-  console.log(`CheckBooking - day of week: ${appointmentDay} (index: ${start.getUTCDay()})`);
+  const appointmentDay = daysOfWeek[start.getDay()];
+
+  console.log("checkBooking - Day of week (getDay):", start.getDay(), "->", appointmentDay);
 
   // Check if garage operates on start day
   if (!garage.operating_days.includes(appointmentDay)) {
@@ -33,24 +39,24 @@ const checkBooking = async (vehicleId, garageId, start, end, currentAppointmentI
     };
   }
 
-  // Get operating hours for the start day
+  // Get opening hours for the start day
   const [garageOpenHour, garageOpenMinute] = garage.openTime.split(":").map(Number);
-  const [garageCloseHour, garageCloseMinute] = garage.closeTime.split(":").map(Number);
+  console.log("checkBooking - Garage hours - Open:", garageOpenHour + ":" + garageOpenMinute);
 
-  // Create proper UTC times for garage hours on appointment day
+  // Create time for garage opening on appointment day using setHours
   const garageOpenTime = new Date(start);
-  garageOpenTime.setUTCHours(garageOpenHour, garageOpenMinute, 0, 0);
+  console.log("checkBooking - Before setHours - garageOpenTime:", garageOpenTime.toISOString());
+  garageOpenTime.setHours(garageOpenHour, garageOpenMinute, 0, 0);
+  console.log("checkBooking - After setHours - garageOpenTime:", garageOpenTime.toISOString());
 
   // Check if appointment starts before opening time
+  console.log("checkBooking - Is start < garageOpenTime?", start < garageOpenTime);
   if (start < garageOpenTime) {
     return {
       hasConflict: true,
       conflictMessage: `Garage opens at ${garage.openTime}`
     };
   }
-
-  // For appointments that span to the next day, we don't need to check closing time
-  // because convertAndValidateDateTime already handled that
 
   // Check for existing appointments
   const overlappingAppointments = await Appointment.find({
@@ -82,21 +88,13 @@ const checkBooking = async (vehicleId, garageId, start, end, currentAppointmentI
 
 const convertAndValidateDateTime = async (start, serviceIds) => {
   try {
-    // Log input parameters
-    console.log("Input - start:", start);
-    console.log("Input - serviceIds:", JSON.stringify(serviceIds));
-
     // Define days of week array
     const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
-    // Parse start time and ensure it's in UTC
+    // Parse start time
     const startTime = typeof start === 'string' ? new Date(start) : start;
-    console.log("Parsed startTime:", startTime.toISOString());
-
-    // Get day of week using getUTCDay to ensure consistency
-    const dayIndex = startTime.getUTCDay();
-    const dayOfWeek = daysOfWeek[dayIndex];
-    console.log(`Day of week (UTC): ${dayOfWeek} (index: ${dayIndex})`);
+    console.log("convertValidate - Original startTime:", startTime.toISOString());
+    console.log("convertValidate - Server timezone:", Intl.DateTimeFormat().resolvedOptions().timeZone);
 
     if (isNaN(startTime.getTime())) {
       throw new Error("Invalid date format. Please provide a valid date and time.");
@@ -108,22 +106,21 @@ const convertAndValidateDateTime = async (start, serviceIds) => {
       throw new Error("Appointment time must be in the future");
     }
 
+    // Get day of week using getDay() for UTC consistency
+    const dayOfWeek = daysOfWeek[startTime.getDay()];
+    console.log("convertValidate - Day of week (getDay):", startTime.getDay(), "->", dayOfWeek);
+
     // Find the first service to get the garage
-    console.log("Looking up first service with ID:", serviceIds[0]);
     const firstService = await ServiceDetail.findById(serviceIds[0]);
     if (!firstService) {
       throw new Error("Service not found");
     }
 
     // Look up the garage
-    console.log("Looking up garage with ID:", firstService.garage);
     const garage = await Garage.findById(firstService.garage);
     if (!garage) {
       throw new Error("Garage not found");
     }
-
-    console.log("Garage operating days:", garage.operating_days);
-    console.log(`Checking if garage operates on ${dayOfWeek}`);
 
     // Check if garage operates on the appointment day
     if (!garage.operating_days.includes(dayOfWeek)) {
@@ -143,60 +140,57 @@ const convertAndValidateDateTime = async (start, serviceIds) => {
     // Parse garage operating hours
     const [openHour, openMinute] = garage.openTime.split(":").map(Number);
     const [closeHour, closeMinute] = garage.closeTime.split(":").map(Number);
+    console.log("convertValidate - Garage hours - Open:", openHour + ":" + openMinute, "Close:", closeHour + ":" + closeMinute);
 
-    // Create garage open and close times for the appointment day
+    // Create garage open and close times for the appointment day using setHours
     const garageOpenTime = new Date(startTime);
-    garageOpenTime.setUTCHours(openHour, openMinute, 0, 0);
+    console.log("convertValidate - Before setHours - garageOpenTime:", garageOpenTime.toISOString());
+    garageOpenTime.setHours(openHour, openMinute, 0, 0);
+    console.log("convertValidate - After setHours - garageOpenTime:", garageOpenTime.toISOString());
 
     const garageCloseTime = new Date(startTime);
-    garageCloseTime.setUTCHours(closeHour, closeMinute, 0, 0);
+    console.log("convertValidate - Before setHours - garageCloseTime:", garageCloseTime.toISOString());
+    garageCloseTime.setHours(closeHour, closeMinute, 0, 0);
+    console.log("convertValidate - After setHours - garageCloseTime:", garageCloseTime.toISOString());
 
     // Check if appointment starts before opening time
+    console.log("convertValidate - Is startTime < garageOpenTime?", startTime < garageOpenTime);
     if (startTime < garageOpenTime) {
       throw new Error(`Garage opens at ${garage.openTime}`);
     }
 
     // Calculate initial end time
     let endTime = new Date(startTime.getTime() + totalDurationMinutes * 60000);
+    console.log("convertValidate - Initial endTime:", endTime.toISOString());
 
     // If appointment would end after closing time, extend to next operating day
+    console.log("convertValidate - Is endTime > garageCloseTime?", endTime > garageCloseTime);
     if (endTime > garageCloseTime) {
-      console.log("Appointment extends past closing time");
-      console.log("Current endTime:", endTime);
-      console.log("Garage closing time:", garageCloseTime);
-
       // Calculate remaining minutes after closing time
       const minutesOverClosing = Math.floor((endTime - garageCloseTime) / 60000);
-      console.log("Minutes over closing time:", minutesOverClosing);
+      console.log("convertValidate - Minutes over closing:", minutesOverClosing);
 
-      // Find the next operating day
-      let nextDayIndex = (startTime.getUTCDay() + 1) % 7;
+      // Find the next operating day using getDay
+      let nextDayIndex = (startTime.getDay() + 1) % 7;
       let daysToAdd = 1;
 
-      console.log("Starting search for next operating day");
-      console.log("Initial nextDayIndex:", nextDayIndex, "->", daysOfWeek[nextDayIndex]);
-      console.log("Initial daysToAdd:", daysToAdd);
-
       while (!garage.operating_days.includes(daysOfWeek[nextDayIndex])) {
-        console.log(`${daysOfWeek[nextDayIndex]} is not an operating day, checking next day`);
         nextDayIndex = (nextDayIndex + 1) % 7;
         daysToAdd++;
-        console.log("Updated nextDayIndex:", nextDayIndex, "->", daysOfWeek[nextDayIndex]);
-        console.log("Updated daysToAdd:", daysToAdd);
       }
+      console.log("convertValidate - Next day index:", nextDayIndex, "Days to add:", daysToAdd);
 
-      console.log("Found next operating day:", daysOfWeek[nextDayIndex]);
-      console.log("Days to add:", daysToAdd);
-
-      // Create the next operating day's opening time
+      // Create the next operating day's opening time using setUTCDate and setHours
       const nextDayOpenTime = new Date(startTime);
-      nextDayOpenTime.setUTCDate(nextDayOpenTime.getUTCDate() + daysToAdd);
-      nextDayOpenTime.setUTCHours(openHour, openMinute, 0, 0);
-      console.log("Next day opening time:", nextDayOpenTime);
+      console.log("convertValidate - Before setUTCDate - nextDayOpenTime:", nextDayOpenTime.toISOString());
+      nextDayOpenTime.setUTCDate(nextDayOpenTime.getDate() + daysToAdd);
+      console.log("convertValidate - After setUTCDate - nextDayOpenTime:", nextDayOpenTime.toISOString());
+      nextDayOpenTime.setHours(openHour, openMinute, 0, 0);
+      console.log("convertValidate - After setHours - nextDayOpenTime:", nextDayOpenTime.toISOString());
 
       // Set end time to opening time of next day + remaining minutes
       endTime = new Date(nextDayOpenTime.getTime() + minutesOverClosing * 60000);
-      console.log("Final calculated endTime:", endTime);
+      console.log("convertValidate - Final endTime after adjustment:", endTime.toISOString());
     }
 
     return {
@@ -206,7 +200,6 @@ const convertAndValidateDateTime = async (start, serviceIds) => {
       error: null,
     };
   } catch (error) {
-    console.error("Validation error:", error.message);
     return {
       startTime: null,
       endTime: null,
@@ -227,6 +220,7 @@ export const createAppointmentService = async ({
 
   // Convert start to Date if it's a string
   const startTime = typeof start === 'string' ? new Date(start) : start;
+  console.log("createAppointment - Original startTime:", startTime.toISOString());
 
   // Calculate end time based on service durations
   const { startTime: validatedStartTime, endTime, isValid, error } =
@@ -235,6 +229,9 @@ export const createAppointmentService = async ({
   if (!isValid) {
     throw new Error(error);
   }
+
+  console.log("createAppointment - Validated startTime:", validatedStartTime.toISOString());
+  console.log("createAppointment - Calculated endTime:", endTime.toISOString());
 
   // Get the first service to use its garage ID (if needed)
   const firstService = await ServiceDetail.findById(service[0]);
@@ -245,7 +242,7 @@ export const createAppointmentService = async ({
   // Check for booking conflicts - pass directly to checkBooking with UTC times
   const bookingCheck = await checkBooking(
       vehicle,
-      garage, // Use the garage ID passed to the function
+      garage,
       validatedStartTime,
       endTime
   );
@@ -274,71 +271,85 @@ export const createAppointmentService = async ({
   const vehicleInfo = await Vehicle.findById(vehicle).select(' carName carPlate');
 
 
-  // Format dates for display - format UTC time directly without timezone conversion
+  // Format dates for email display in local time (Vietnam timezone)
+  // Using toLocaleString to convert UTC to local time for display
   const displayDate = validatedStartTime.toLocaleDateString('vi-VN');
-  const displayStartTime = formatTimeDisplay(validatedStartTime);
-  const displayEndTime = formatTimeDisplay(endTime);
-  // // Send confirmation email to customer
-  // await transporter.sendMail({
-  //   from: process.env.MAIL_USER,
-  //   to: user.email,
-  //   subject: "Xác nhận đặt lịch hẹn",
-  //   html: `
-  //     <h2>Xin chào ${user.name},</h2>
-  //     <p>Bạn đã đặt lịch hẹn thành công tại hệ thống của chúng tôi.</p>
-  //     <h3>Chi tiết lịch hẹn:</h3>
-  //     <ul>
-  //       <li><strong>Garage:</strong> ${garageInfo.name}</li>
-  //       <li><strong>Địa chỉ:</strong> ${garageInfo.address}</li>
-  //       <li><strong>Ngày hẹn:</strong> ${displayDate}</li>
-  //       <li><strong>Thời gian:</strong> ${displayStartTime} - ${displayEndTime}</li>
-  //       <li><strong>Trạng thái:</strong> Đang chờ xác nhận</li>
-  //     </ul>
-  //     <p>Garage sẽ xem xét và xác nhận lịch hẹn của bạn sớm nhất có thể.</p>
-  //     <p>Xem chi tiết lịch hẹn của bạn <a href="http://localhost:${process.env.PORT}/api/appointment/${newAppointment._id}">tại đây</a>.</p>
-  //     <p>Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>
-  //   `
-  // });
-  //
-  // // In createAppointmentService, modify the garage notification part:
-  // const roleManager = await Role.findOne({ roleName: "manager" });
-  // if (!roleManager) {
-  //   console.log('Role "manager" not found');
-  //   return newAppointment;
-  // }
-  //
-  // const garageManagers = await User.find({
-  //   garageList: garage,
-  //   roles: roleManager._id // Find users with "manager" role
-  // });
-  //
-  // if (garageManagers && garageManagers.length > 0) {
-  //   for (const manager of garageManagers) {
-  //     await transporter.sendMail({
-  //       from: process.env.MAIL_USER,
-  //       to: manager.email,
-  //       subject: "Thông báo lịch hẹn mới",
-  //       html: `
-  //       <h2>Xin chào ${manager.name},</h2>
-  //       <p>Garage của bạn vừa nhận được một lịch hẹn mới.</p>
-  //       <h3>Chi tiết lịch hẹn:</h3>
-  //       <ul>
-  //         <li><strong>Khách hàng:</strong> ${user.name}</li>
-  //         <li><strong>Số điện thoại:</strong> ${user.phone || 'Không có'}</li>
-  //         <li><strong>Xe:</strong> ${vehicleInfo.carName} (${vehicleInfo.carPlate})</li>
-  //         <li><strong>Ngày hẹn:</strong> ${displayDate}</li>
-  //         <li><strong>Thời gian:</strong> ${displayStartTime} - ${displayEndTime}</li>
-  //         <li><strong>Ghi chú:</strong> ${note || 'Không có'}</li>
-  //       </ul>
-  //       <p>Xem chi tiết lịch hẹn <a href="http://localhost:${process.env.PORT}/api/appointment/${newAppointment._id}">tại đây</a>.</p>
-  //       <p>Vui lòng kiểm tra và xác nhận lịch hẹn càng sớm càng tốt.</p>
-  //     `
-  //     });
-  //   }
-  // }
+  const displayStartTime = validatedStartTime.toLocaleTimeString('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
+  const displayEndTime = endTime.toLocaleTimeString('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
 
-  return newAppointment;
-};
+  // Send confirmation email to customer
+  await transporter.sendMail({
+    from: process.env.MAIL_USER,
+    to: user.email,
+    subject: "Xác nhận đặt lịch hẹn",
+    html: `
+      <h2>Xin chào ${user.name},</h2>
+      <p>Bạn đã đặt lịch hẹn thành công tại hệ thống của chúng tôi.</p>
+      <h3>Chi tiết lịch hẹn:</h3>
+      <ul>
+        <li><strong>Garage:</strong> ${garageInfo.name}</li>
+        <li><strong>Địa chỉ:</strong> ${garageInfo.address}</li>
+        <li><strong>Xe:</strong> ${vehicleInfo.carName} (${vehicleInfo.carPlate})</li>
+        <li><strong>Ngày hẹn:</strong> ${displayDate}</li>
+        <li><strong>Thời gian:</strong> ${displayStartTime} - ${displayEndTime}</li>
+        <li><strong>Trạng thái:</strong> Đang chờ xác nhận</li>
+      </ul>
+      <p>Garage sẽ xem xét và xác nhận lịch hẹn của bạn sớm nhất có thể.</p>
+      <p>Xem chi tiết lịch hẹn của bạn <a href="http://localhost:${process.env.PORT}/api/appointment/${newAppointment._id}">tại đây</a>.</p>
+      <p>Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>
+    `
+  });
+
+  // In createAppointmentService, modify the garage notification part:
+  const roleManager = await Role.findOne({ roleName: "manager" });
+  if (!roleManager) {
+    console.log('Role "manager" not found');
+    return newAppointment;
+  }
+
+  const garageManagers = await User.find({
+    garageList: garage,
+    roles: roleManager._id // Find users with "manager" role
+  });
+
+  if (garageManagers && garageManagers.length > 0) {
+    for (const manager of garageManagers) {
+      await transporter.sendMail({
+        from: process.env.MAIL_USER,
+        to: manager.email,
+        subject: "Thông báo lịch hẹn mới",
+        html: `
+        <h2>Xin chào ${manager.name},</h2>
+        <p>Garage của bạn vừa nhận được một lịch hẹn mới.</p>
+        <h3>Chi tiết lịch hẹn:</h3>
+        <ul>
+          <li><strong>Khách hàng:</strong> ${user.name}</li>
+          <li><strong>Số điện thoại:</strong> ${user.phone ||
+        'Không có'}</li>
+          <li><strong>Xe:</strong> ${vehicleInfo.carName} (${vehicleInfo.carPlate})</li>
+          <li><strong>Ngày hẹn:</strong> ${displayDate}</li>
+          <li><strong>Thời gian:</strong> ${displayStartTime} - ${displayEndTime}</li>
+          <li><strong>Ghi chú:</strong> ${note ||
+        'Không có'}</li>
+        </ul>
+        <p>Xem chi tiết lịch hẹn <a href="http://localhost:${process.env.PORT}/api/appointment/${newAppointment._id}">tại đây</a>.</p>
+        <p>Vui lòng kiểm tra và xác nhận lịch hẹn càng sớm càng tốt.</p>
+      `
+      });
+    }
+
+      return newAppointment;
+    }
+
+  }
 
 export const getAppointmentsByUserService = async (userId) => {
   return await Appointment.find({ user: userId })
@@ -350,10 +361,11 @@ export const getAppointmentsByUserService = async (userId) => {
 
 export const getAppointmentByIdService = async (appointmentId) => {
   return await Appointment.findById(appointmentId)
-    .populate("user", "avatar name email locale phone") // Select basic user information
-    .populate("garage", "name address") // Select basic garage information
-    .populate("vehicle", "carBrand carName carPlate") // Select basic vehicle information
-    .populate("service"); // Populate service details
+      .populate("user", "avatar name email locale phone") // Select basic user information
+      .populate("garage", "name address") // Select basic garage information
+      .populate("vehicle", "carBrand carName carPlate") // Select basic vehicle information
+      .populate("service") // Populate service details
+      .populate("assignedStaff", "name avatar"); // Add staff information
 };
 
 export const getAppointmentsByGarageService = async (garageId) => {
@@ -492,7 +504,7 @@ export const completeAppointmentService = async (appointmentId, userId, updatedE
 
     // Validate that updatedEndTime falls on an operating day
     const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-    const endDayOfWeek = daysOfWeek[endTime.getUTCDay()];
+    const endDayOfWeek = daysOfWeek[endTime.getDay()];
 
     if (!garage.operating_days.includes(endDayOfWeek)) {
       throw new Error(`Cannot complete service on ${endDayOfWeek}s as garage is closed`);
@@ -504,10 +516,10 @@ export const completeAppointmentService = async (appointmentId, userId, updatedE
 
     // Create date objects for opening and closing times on the selected day
     const openTimeOnDay = new Date(endTime);
-    openTimeOnDay.setUTCHours(openHour, openMinute, 0, 0);
+    openTimeOnDay.setHours(openHour, openMinute, 0, 0);
 
     const closeTimeOnDay = new Date(endTime);
-    closeTimeOnDay.setUTCHours(closeHour, closeMinute, 0, 0);
+    closeTimeOnDay.setHours(closeHour, closeMinute, 0, 0);
 
     if (endTime < openTimeOnDay || endTime > closeTimeOnDay) {
       throw new Error(`Updated end time must be between ${garage.openTime} and ${garage.closeTime}`);
