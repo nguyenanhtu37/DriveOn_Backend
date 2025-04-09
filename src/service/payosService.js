@@ -42,7 +42,7 @@ export const webHook = async (webhookBody) => {
             return { success: false, message: "Invalid webhook payload" };
         }
 
-        const secretKey = process.env.PAYOS_API_KEY;
+        const secretKey = process.env.PAYOS_CHECKSUM_KEY;
         if (!isValidSignature(data, secretKey, signature)) {
             console.warn("Webhook signature invalid.");
             return { success: false, message: "Invalid or missing signature", data };
