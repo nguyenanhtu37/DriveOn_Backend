@@ -1,15 +1,42 @@
 import express from 'express';
-import payos from '../utils/payos.js';
 import * as payosService from '../service/payosService.js';
+import Subscription from "../models/subscription.js";
+import Garage from '../models/garage.js';
+import Transaction from '../models/transaction.js';
 
 const router = express.Router();
 
 export const createPaymentLink = async (req, res) => {
-    const { garageId, amount, description } = req.body;
+    const { garageId, subscriptionCode, month } = req.body;
     try {
+        if (!garageId || !subscriptionCode || !month) {
+            return res.status(400).json({ message: "Missing required fields!" });
+        }
+
+        const garage = await Garage.findById(garageId);
+        if (!garage) return res.status(404).json({ message: "Garage not found" });
+
+        const subscription = await Subscription.findOne({ code: subscriptionCode });
+        if (!subscription) return res.status(404).json({ message: "Subscription not found" });
+
+        const amount = subscription.pricePerMonth * month;
         const orderCode = Number(String(Date.now()).slice(-6));
+        const garageNameShort = garage.name.length > 15 ? garage.name.slice(0, 15) + "…" : garage.name;
+        const description = `Upgrade ${garageNameShort} (${month}m)`;
+
         const paymentLink = await payosService.createPaymentLink(garageId, orderCode, amount, description);
-        res.status(201).json({ message: "Payment link created!", paymentLink: paymentLink });
+
+        res.status(201).json({
+            message: "Payment link created!",
+            paymentLink: {
+                checkoutUrl: paymentLink.checkoutUrl,
+                amount,
+                orderCode,
+                description,
+                subscription: subscription.name,
+                garage: garage.name
+            }
+        });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -17,26 +44,23 @@ export const createPaymentLink = async (req, res) => {
 
 export const webHook = async (req, res) => {
     try {
-        console.log("Webhook headers:", req.headers);
-        console.log("Webhook body:", req.body);
+        console.log("Webhook received:", req.body);
 
-        // Nếu body rỗng, trả về HTTP 200 để PayOS xác thực webhook
+        // Nếu body rỗng, chỉ xác minh webhook
         if (!req.body || Object.keys(req.body).length === 0) {
-            console.warn("Webhook body is empty, returning HTTP 200 for validation");
             return res.status(200).json({ message: "Webhook validated successfully" });
         }
 
-        // Xử lý webhook khi có body
-        const webhookResponse = await payosService.webHook(req.body);
+        const result = await payosService.webHook(req.body);
 
-        if (webhookResponse.success) {
-            res.status(200).json({ message: webhookResponse.message, data: webhookResponse.data });
+        if (result.success) {
+            return res.status(200).json({ message: result.message, data: result.data });
         } else {
-            res.status(400).json({ message: webhookResponse.message, data: webhookResponse.data });
+            return res.status(400).json({ message: result.message, data: result.data });
         }
     } catch (error) {
-        console.error("Error in webhook controller:", error);
-        res.status(500).json({ error: "Failed to process webhook" });
+        console.error("Webhook controller error:", error);
+        return res.status(500).json({ error: "Failed to process webhook" });
     }
 };
 

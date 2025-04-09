@@ -1,5 +1,8 @@
 import dotenv from "dotenv";
-import payos from "../utils/payos.js";
+import Transaction from "../models/transaction.js";
+import Garage from "../models/garage.js";
+import { isValidSignature } from '../utils/payos.js';
+import dayjs from "dayjs";
 
 dotenv.config();
 
@@ -30,59 +33,50 @@ export const createPaymentLink = async (garageId, orderCode, amount, description
     }
 };
 
-export const webHook = (webhookBody) => {
+export const webHook = async (webhookBody) => {
     try {
-        console.log("Webhook body received:", webhookBody);
+        const { data, signature } = webhookBody;
 
-        // Kiểm tra dữ liệu webhook
-        if (!webhookBody || !webhookBody.data) {
-            throw new Error("Invalid webhook data: Missing 'data' field");
+        if (!data || !data.code || !data.orderCode || !signature) {
+            return { success: false, message: "Invalid webhook payload" };
         }
 
-        const webhookData = webhookBody.data;
-
-        // Kiểm tra nếu trường 'code' không tồn tại
-        if (!webhookData.code) {
-            console.warn("Webhook data does not contain 'code' field");
-            return {
-                success: false,
-                message: "Missing 'code' field in webhook data",
-                data: webhookData,
-            };
+        const secretKey = process.env.PAYOS_API_KEY;
+        if (!isValidSignature(data, secretKey, signature)) {
+            console.warn("Webhook signature invalid.");
+            return { success: false, message: "Invalid or missing signature", data };
         }
 
-        // Xử lý trạng thái thanh toán dựa trên 'code'
-        switch (webhookData.code) {
-            case "00": // Thành công
-                console.log(`Payment successful for orderCode: ${webhookData.orderCode}`);
-                return {
-                    success: true,
-                    message: "Payment successful",
-                    data: webhookData,
-                };
-
-            case "01": // Thất bại
-                console.error(`Payment failed for orderCode: ${webhookData.orderCode}`);
-                return {
-                    success: false,
-                    message: "Payment failed",
-                    data: webhookData,
-                };
-
-            default: // Trạng thái không xác định
-                console.warn(`Unhandled payment code: ${webhookData.code}`);
-                return {
-                    success: false,
-                    message: `Unhandled payment code: ${webhookData.code}`,
-                    data: webhookData,
-                };
+        if (data.code !== "00") {
+            return { success: false, message: "Payment not successful", data };
         }
+
+        const transaction = await Transaction.findOne({ orderCode: data.orderCode });
+        if (!transaction) return { success: false, message: "Transaction not found", data };
+
+        if (transaction.status === "PAID") {
+            return { success: true, message: "Transaction already processed", data };
+        }
+
+        const garage = await Garage.findById(transaction.garageId);
+        if (!garage) return { success: false, message: "Garage not found", data };
+
+        const now = dayjs();
+        const currentExpiration = garage.subscriptionExpired;
+        const baseTime = currentExpiration && dayjs(currentExpiration).isAfter(now) ? dayjs(currentExpiration) : now;
+        const newExpiration = baseTime.add(transaction.month, "month");
+
+        garage.subscription = transaction.subscriptionCode;
+        garage.subscriptionExpired = newExpiration.toDate();
+        await garage.save();
+
+        transaction.status = "PAID";
+        transaction.paidAt = new Date();
+        await transaction.save();
+
+        return { success: true, message: "Payment processed successfully", data };
     } catch (error) {
-        console.error("Error processing webhook:", error);
-        return {
-            success: false,
-            message: "Failed to process webhook",
-            error: error.message,
-        };
+        console.error("payosService.webHook error:", error);
+        return { success: false, message: "Webhook processing error", error: error.message };
     }
 };

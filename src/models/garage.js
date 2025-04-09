@@ -107,6 +107,14 @@ const garageSchema = new mongoose.Schema({
       ref: "Appointment",
     },
   ],
+  expiredTime: {
+    type: Date,
+    default: null
+  },
+  transaction: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Transaction", // Tham chiếu đến transaction
+  },
 });
 
 garageSchema.index({ location: "2dsphere" });

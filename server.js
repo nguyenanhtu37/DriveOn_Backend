@@ -17,7 +17,7 @@ import appointmentRoutes from "./src/routes/appointmentRoutes.js";
 import serviceRoutes from "./src/routes/serviceRoutes.js";
 import serviceDetailRoutes from "./src/routes/serviceDetailRoutes.js";
 import payosRoutes from "./src/routes/payosRoutes.js";
-import payos from './src/utils/payos.js';
+import subscriptionRoutes from './src/routes/subscriptionRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -67,6 +67,7 @@ app.use("/api/service", serviceRoutes);
 app.use("/api/service-detail", serviceDetailRoutes);
 app.use("/api/appointment", appointmentRoutes);
 app.use("/api/payos", payosRoutes);
+app.use('/api/subscription', subscriptionRoutes);
 
 // Test Route
 app.get("/", (req, res) => {

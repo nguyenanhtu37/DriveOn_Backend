@@ -1,8 +1,23 @@
-import PayOS from "@payos/node";
-import dotenv from "dotenv";
+import crypto from 'crypto';
 
-dotenv.config();
+/**
+ * Xác minh chữ ký từ webhook PayOS
+ * @param {object} data - Object `data` trong webhook
+ * @param {string} secretKey - PAYOS_CLIENT_SECRET từ môi trường
+ * @param {string} receivedSignature - Signature từ webhook gửi đến
+ * @returns {boolean} true nếu hợp lệ, false nếu không
+ */
+export const isValidSignature = (data, secretKey, receivedSignature) => {
+  // Sắp xếp key theo thứ tự a-z
+  const sortedKeys = Object.keys(data).sort();
 
-const payosInstance = new PayOS(process.env.PAYOS_CLIENT_ID, process.env.PAYOS_API_KEY, process.env.PAYOS_CHECKSUM_KEY);
+  // Ghép từng phần tử thành key=value nối nhau bởi &
+  const rawData = sortedKeys.map(key => `${key}=${data[key]}`).join('&');
 
-export default payosInstance;
+  // Tạo signature dùng secret key
+  const hmac = crypto.createHmac('sha256', secretKey);
+  const expectedSignature = hmac.update(rawData).digest('hex');
+
+  // So sánh với signature nhận được
+  return expectedSignature === receivedSignature;
+};
