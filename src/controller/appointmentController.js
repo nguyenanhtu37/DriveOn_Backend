@@ -3,7 +3,7 @@ import * as appointmentService from "../service/appointmentService.js";
 export const createAppointment = async (req, res) => {
   const userId = req.user.id;
   // Extract from URL
-  const { garage, date, start, end, note, service, vehicle } = req.body;
+  const { garage, start, note, service, vehicle } = req.body;
 
   try {
     // Create appointment
@@ -12,9 +12,7 @@ export const createAppointment = async (req, res) => {
       userId,
       service,
       vehicle,
-      date,
       start,
-      end,
       tag: "Normal", // Default tag value
       note: note || "", // Default note value if not provided
     });
@@ -112,17 +110,24 @@ export const denyAppointment = async (req, res) => {
 export const completeAppointment = async (req, res) => {
   const { appointmentId } = req.params;
   const userId = req.user.id;
+  const { updatedEndTime } = req.body;
+
   try {
     const appointment = await appointmentService.completeAppointmentService(
-      appointmentId,
-      userId
+        appointmentId,
+        userId,
+        updatedEndTime
     );
+
     if (!appointment) {
       return res.status(404).json({ message: "Appointment not found" });
     }
-    res
-      .status(200)
-      .json({ message: "Appointment completed successfully", appointment });
+
+    res.status(200).json({
+      message: "Appointment completed successfully",
+      appointment
+    });
+
   } catch (err) {
     if (err.message === "Unauthorized") {
       return res.status(403).json({
