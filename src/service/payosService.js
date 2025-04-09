@@ -3,6 +3,7 @@ import Transaction from "../models/transaction.js";
 import Garage from "../models/garage.js";
 import { isValidSignature } from '../utils/payos.js';
 import dayjs from "dayjs";
+import payos from '../config/payos.js';
 
 dotenv.config();
 
