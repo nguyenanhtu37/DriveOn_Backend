@@ -1,43 +1,24 @@
 import crypto from 'crypto';
 
 /**
- * Generate raw data string used for HMAC signature.
- * Ensure all fields (even null) are included in the correct order.
+ * Verify PayOS signature - fix chuẩn theo định dạng thực tế PayOS gửi về.
  */
 export function isValidSignature(data, key, signature) {
-    // Danh sách keys đúng theo định dạng PayOS yêu cầu (không được thiếu key nào)
-    const expectedKeys = [
-        'accountNumber',
-        'amount',
-        'code',
-        'counterAccountBankId',
-        'counterAccountBankName',
-        'counterAccountName',
-        'counterAccountNumber',
-        'currency',
-        'desc',
-        'description',
-        'orderCode',
-        'paymentLinkId',
-        'reference',
-        'transactionDateTime',
-        'virtualAccountName',
-        'virtualAccountNumber'
-    ];
+    const sortedKeys = Object.keys(data).sort();
 
-    const rawData = expectedKeys.map(k => {
+    const rawData = sortedKeys.map(k => {
         let value = data[k];
 
-        // Convert undefined to 'null', trim nếu là string
         if (value === undefined || value === null) {
-            value = 'null';
+            value = 'null'; // PayOS dùng string "null"
         } else {
-            value = String(value).replace(/\s+/g, ' ').trim(); // normalize space
+            value = String(value).trim(); // remove leading/trailing whitespace
         }
 
         return `${k}=${value}`;
     }).join('&');
 
+    console.log("🔑 Sorted keys:", sortedKeys);
     console.log("🧾 Raw data string for HMAC:", rawData);
 
     const expectedSignature = crypto
