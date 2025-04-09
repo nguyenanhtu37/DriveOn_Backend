@@ -21,15 +21,9 @@ const checkBooking = async (vehicleId, garageId, start, end, currentAppointmentI
     };
   }
 
-  console.log("checkBooking - Original start:", start.toISOString());
-  console.log("checkBooking - Original end:", end.toISOString());
-  console.log("checkBooking - Server timezone:", Intl.DateTimeFormat().resolvedOptions().timeZone);
-
-  // Using getDay() for consistent UTC handling
+  // Using getDay for day of week calculations
   const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
   const appointmentDay = daysOfWeek[start.getDay()];
-
-  console.log("checkBooking - Day of week (getDay):", start.getDay(), "->", appointmentDay);
 
   // Check if garage operates on start day
   if (!garage.operating_days.includes(appointmentDay)) {
@@ -41,16 +35,12 @@ const checkBooking = async (vehicleId, garageId, start, end, currentAppointmentI
 
   // Get opening hours for the start day
   const [garageOpenHour, garageOpenMinute] = garage.openTime.split(":").map(Number);
-  console.log("checkBooking - Garage hours - Open:", garageOpenHour + ":" + garageOpenMinute);
 
   // Create time for garage opening on appointment day using setHours
   const garageOpenTime = new Date(start);
-  console.log("checkBooking - Before setHours - garageOpenTime:", garageOpenTime.toISOString());
   garageOpenTime.setHours(garageOpenHour, garageOpenMinute, 0, 0);
-  console.log("checkBooking - After setHours - garageOpenTime:", garageOpenTime.toISOString());
 
   // Check if appointment starts before opening time
-  console.log("checkBooking - Is start < garageOpenTime?", start < garageOpenTime);
   if (start < garageOpenTime) {
     return {
       hasConflict: true,
@@ -93,8 +83,6 @@ const convertAndValidateDateTime = async (start, serviceIds) => {
 
     // Parse start time
     const startTime = typeof start === 'string' ? new Date(start) : start;
-    console.log("convertValidate - Original startTime:", startTime.toISOString());
-    console.log("convertValidate - Server timezone:", Intl.DateTimeFormat().resolvedOptions().timeZone);
 
     if (isNaN(startTime.getTime())) {
       throw new Error("Invalid date format. Please provide a valid date and time.");
@@ -106,9 +94,8 @@ const convertAndValidateDateTime = async (start, serviceIds) => {
       throw new Error("Appointment time must be in the future");
     }
 
-    // Get day of week using getDay() for UTC consistency
+    // Get day of week using getDay()
     const dayOfWeek = daysOfWeek[startTime.getDay()];
-    console.log("convertValidate - Day of week (getDay):", startTime.getDay(), "->", dayOfWeek);
 
     // Find the first service to get the garage
     const firstService = await ServiceDetail.findById(serviceIds[0]);
@@ -140,35 +127,26 @@ const convertAndValidateDateTime = async (start, serviceIds) => {
     // Parse garage operating hours
     const [openHour, openMinute] = garage.openTime.split(":").map(Number);
     const [closeHour, closeMinute] = garage.closeTime.split(":").map(Number);
-    console.log("convertValidate - Garage hours - Open:", openHour + ":" + openMinute, "Close:", closeHour + ":" + closeMinute);
 
     // Create garage open and close times for the appointment day using setHours
     const garageOpenTime = new Date(startTime);
-    console.log("convertValidate - Before setHours - garageOpenTime:", garageOpenTime.toISOString());
     garageOpenTime.setHours(openHour, openMinute, 0, 0);
-    console.log("convertValidate - After setHours - garageOpenTime:", garageOpenTime.toISOString());
 
     const garageCloseTime = new Date(startTime);
-    console.log("convertValidate - Before setHours - garageCloseTime:", garageCloseTime.toISOString());
     garageCloseTime.setHours(closeHour, closeMinute, 0, 0);
-    console.log("convertValidate - After setHours - garageCloseTime:", garageCloseTime.toISOString());
 
     // Check if appointment starts before opening time
-    console.log("convertValidate - Is startTime < garageOpenTime?", startTime < garageOpenTime);
     if (startTime < garageOpenTime) {
       throw new Error(`Garage opens at ${garage.openTime}`);
     }
 
     // Calculate initial end time
     let endTime = new Date(startTime.getTime() + totalDurationMinutes * 60000);
-    console.log("convertValidate - Initial endTime:", endTime.toISOString());
 
     // If appointment would end after closing time, extend to next operating day
-    console.log("convertValidate - Is endTime > garageCloseTime?", endTime > garageCloseTime);
     if (endTime > garageCloseTime) {
       // Calculate remaining minutes after closing time
       const minutesOverClosing = Math.floor((endTime - garageCloseTime) / 60000);
-      console.log("convertValidate - Minutes over closing:", minutesOverClosing);
 
       // Find the next operating day using getDay
       let nextDayIndex = (startTime.getDay() + 1) % 7;
@@ -178,19 +156,14 @@ const convertAndValidateDateTime = async (start, serviceIds) => {
         nextDayIndex = (nextDayIndex + 1) % 7;
         daysToAdd++;
       }
-      console.log("convertValidate - Next day index:", nextDayIndex, "Days to add:", daysToAdd);
 
-      // Create the next operating day's opening time using setUTCDate and setHours
+      // Create the next operating day's opening time
       const nextDayOpenTime = new Date(startTime);
-      console.log("convertValidate - Before setUTCDate - nextDayOpenTime:", nextDayOpenTime.toISOString());
-      nextDayOpenTime.setUTCDate(nextDayOpenTime.getDate() + daysToAdd);
-      console.log("convertValidate - After setUTCDate - nextDayOpenTime:", nextDayOpenTime.toISOString());
+      nextDayOpenTime.setDate(nextDayOpenTime.getDate() + daysToAdd);
       nextDayOpenTime.setHours(openHour, openMinute, 0, 0);
-      console.log("convertValidate - After setHours - nextDayOpenTime:", nextDayOpenTime.toISOString());
 
       // Set end time to opening time of next day + remaining minutes
       endTime = new Date(nextDayOpenTime.getTime() + minutesOverClosing * 60000);
-      console.log("convertValidate - Final endTime after adjustment:", endTime.toISOString());
     }
 
     return {
@@ -220,7 +193,6 @@ export const createAppointmentService = async ({
 
   // Convert start to Date if it's a string
   const startTime = typeof start === 'string' ? new Date(start) : start;
-  console.log("createAppointment - Original startTime:", startTime.toISOString());
 
   // Calculate end time based on service durations
   const { startTime: validatedStartTime, endTime, isValid, error } =
@@ -230,8 +202,7 @@ export const createAppointmentService = async ({
     throw new Error(error);
   }
 
-  console.log("createAppointment - Validated startTime:", validatedStartTime.toISOString());
-  console.log("createAppointment - Calculated endTime:", endTime.toISOString());
+
 
   // Get the first service to use its garage ID (if needed)
   const firstService = await ServiceDetail.findById(service[0]);
@@ -398,10 +369,18 @@ export const confirmAppointmentService = async (appointmentId, userId) => {
   const customer = await User.findById(appointment.user);
   const garageInfo = await Garage.findById(appointment.garage).select('name address');
 
-  // Format dates for display - format UTC time directly without timezone conversion
+  // Format dates for email display in local time (Vietnam timezone)
   const displayDate = appointment.start.toLocaleDateString('vi-VN');
-  const displayStartTime = formatTimeDisplay(appointment.start);
-  const displayEndTime = formatTimeDisplay(appointment.end);
+  const displayStartTime = appointment.start.toLocaleTimeString('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
+  const displayEndTime = appointment.end.toLocaleTimeString('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
   // Send confirmation email to customer
   await transporter.sendMail({
     from: process.env.MAIL_USER,
@@ -444,10 +423,18 @@ export const denyAppointmentService = async (appointmentId, userId) => {
   const customer = await User.findById(appointment.user);
   const garageInfo = await Garage.findById(appointment.garage).select('name address');
 
-  // Format dates for display - format UTC time directly without timezone conversion
+  // Format dates for email display in local time (Vietnam timezone)
   const displayDate = appointment.start.toLocaleDateString('vi-VN');
-  const displayStartTime = formatTimeDisplay(appointment.start);
-  const displayEndTime = formatTimeDisplay(appointment.end);
+  const displayStartTime = appointment.start.toLocaleTimeString('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
+  const displayEndTime = appointment.end.toLocaleTimeString('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
 
   // Send rejection email to customer
   await transporter.sendMail({
@@ -538,10 +525,18 @@ export const completeAppointmentService = async (appointmentId, userId, updatedE
   const garageInfo = await Garage.findById(appointment.garage).select('name address phone');
   const staffInfo = await User.findById(userId).select('name');
 
-  // Format dates for display
+  // Format dates for email display in local time (Vietnam timezone)
   const displayDate = appointment.start.toLocaleDateString('vi-VN');
-  const displayStartTime = formatTimeDisplay(appointment.start);
-  const displayEndTime = formatTimeDisplay(appointment.end);
+  const displayStartTime = appointment.start.toLocaleTimeString('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
+  const displayEndTime = appointment.end.toLocaleTimeString('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
 
   // Send completion email to customer
   await transporter.sendMail({
@@ -603,10 +598,18 @@ export const cancelAppointmentService = async (appointmentId, userId) => {
   const customer = await User.findById(appointment.user);
   const garageInfo = await Garage.findById(appointment.garage).select('name address phone');
 
-  // Format dates for display - format UTC time directly without timezone conversion
+  // Format dates for email display in local time (Vietnam timezone)
   const displayDate = appointment.start.toLocaleDateString('vi-VN');
-  const displayStartTime = formatTimeDisplay(appointment.start);
-  const displayEndTime = formatTimeDisplay(appointment.end);
+  const displayStartTime = appointment.start.toLocaleTimeString('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
+  const displayEndTime = appointment.end.toLocaleTimeString('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
 
   // Send cancellation email to customer
   await transporter.sendMail({
@@ -707,8 +710,7 @@ export const updateAppointmentService = async (appointmentId, userId, updateData
   // Determine which service IDs to use for calculation
   const serviceIds = allowedUpdates.service || appointment.service;
 
-  console.log("Update - original startTime:", oldStart.toISOString());
-  console.log("Update - service IDs:", JSON.stringify(serviceIds));
+
 
   // Always recalculate end time if service or start is being updated
   if (allowedUpdates.service || allowedUpdates.start) {
@@ -716,7 +718,6 @@ export const updateAppointmentService = async (appointmentId, userId, updateData
         (typeof allowedUpdates.start === 'string' ? new Date(allowedUpdates.start) : allowedUpdates.start) :
         oldStart;
 
-    console.log("Update - new startTime:", newStartTime.toISOString());
 
     // Use convertAndValidateDateTime for consistent date validation
     const validationResult = await convertAndValidateDateTime(newStartTime, serviceIds);
@@ -727,8 +728,6 @@ export const updateAppointmentService = async (appointmentId, userId, updateData
     startTime = validationResult.startTime;
     endTime = validationResult.endTime;
 
-    console.log("Update - validated startTime:", startTime.toISOString());
-    console.log("Update - calculated endTime:", endTime.toISOString());
 
     // Check for booking conflicts with consistent UTC date handling
     const bookingCheck = await checkBooking(
@@ -768,20 +767,35 @@ export const updateAppointmentService = async (appointmentId, userId, updateData
       { new: true, runValidators: true }
   );
 
-  console.log("Update - appointment updated successfully");
 
   // Send email notification about the update
   const user = await User.findById(userId);
   const garageInfo = await Garage.findById(updatedAppointment.garage).select('name address');
 
-  // Format dates for email using formatTimeDisplay
+  // Format dates for email using toLocaleDateString and toLocaleTimeString for proper timezone conversion
   const oldDisplayDate = oldStart.toLocaleDateString('vi-VN');
-  const oldDisplayStartTime = formatTimeDisplay(oldStart);
-  const oldDisplayEndTime = formatTimeDisplay(oldEnd);
+  const oldDisplayStartTime = oldStart.toLocaleTimeString('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
+  const oldDisplayEndTime = oldEnd.toLocaleTimeString('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
 
   const newDisplayDate = startTime.toLocaleDateString('vi-VN');
-  const newDisplayStartTime = formatTimeDisplay(startTime);
-  const newDisplayEndTime = formatTimeDisplay(endTime);
+  const newDisplayStartTime = startTime.toLocaleTimeString('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
+  const newDisplayEndTime = endTime.toLocaleTimeString('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
 
   // Send email about the update
   await transporter.sendMail({
