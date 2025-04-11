@@ -21,6 +21,7 @@ export const createPaymentLink = async (req, res) => {
             Garage.findById(garageId),
             Subscription.findById(subscriptionId)
         ]);
+
         if (!garage) return res.status(404).json({ message: `Garage not found with id: ${garageId}` });
         if (!subscription) return res.status(404).json({ message: `Subscription not found with id: ${subscriptionId}` });
 
@@ -48,8 +49,7 @@ export const createPaymentLink = async (req, res) => {
             }
         }
 
-        const orderCode = Date.now() % 9007199254740991; 
-
+        const orderCode = Date.now() % 9007199254740991;
         const garageNameShort = garage.name.length > 15 ? garage.name.slice(0, 15) + "…" : garage.name;
         const description = `Upgrade ${garageNameShort} (${parsedMonth}M)`;
 
@@ -86,11 +86,11 @@ export const webHook = async (req, res) => {
         const { rawBody } = req;
         const webhookBody = JSON.parse(rawBody);
 
-        const { code, data } = webhookBody;
-        const { orderCode, garageId, amount, month } = data;
+        const { code, data, idempotencyKey } = webhookBody;
+        const { orderCode, amount } = data;
 
-        if (webhookBody.idempotencyKey) {
-            const existingTransaction = await Transaction.findOne({ idempotencyKey: webhookBody.idempotencyKey });
+        if (idempotencyKey) {
+            const existingTransaction = await Transaction.findOne({ idempotencyKey });
             if (existingTransaction) {
                 return res.status(200).json({
                     success: true,
@@ -99,43 +99,23 @@ export const webHook = async (req, res) => {
             }
         }
 
-        const transaction = await Transaction.findOne({ orderCode, status: "PENDING" });
-        if (!transaction) {
-            return res.status(404).json({ success: false, message: "Transaction not found or already processed" });
+        if (code !== "00") {
+            console.error(`Payment failed with code: ${code}`);
+            return res.status(400).json({
+                success: false,
+                message: `Payment failed with error code: ${code}`
+            });
         }
 
-        const result = await payosService.processPayment({ orderCode, code, garageId, amount, month });
-
-        if (result.success) {
-            const [garage, subscription] = await Promise.all([
-                Garage.findById(garageId),
-                Subscription.findById(transaction.subscriptionId)
-            ]);
-
-            if (!garage || !subscription) {
-                return res.status(404).json({ success: false, message: "Garage or Subscription not found" });
-            }
-
-            const currentExpiration = garage.expiredTime ? dayjs(garage.expiredTime) : dayjs();
-            const newExpiration = currentExpiration.add(month, "month");
-
-            await Transaction.findOneAndUpdate(
-                { orderCode, status: "PENDING" },
-                { status: "PAID", paidAt: new Date() }
-            );
-
-            garage.tag = "pro";
-            garage.expiredTime = newExpiration.toDate();
-            garage.subscription = subscription._id;
-
-            await garage.save();
-
-            console.log(`Updated garage ${garageId} to 'pro' with new expiration time: ${newExpiration.toDate()}`);
-        }
+        const result = await payosService.processPayment({ orderCode, amount });
 
         return res.status(200).json(result);
     } catch (error) {
         console.error("Error handling webhook:", error);
-        return res.status(500).json({ success: false, message: "Internal server error", error: error.message });
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error",
+            error: error.message
+        });
     }
 };
