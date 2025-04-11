@@ -1,8 +1,10 @@
-import PayOS from "@payos/node";
-import dotenv from "dotenv";
+// import crypto from 'crypto';
+// export const isValidSignature = (data, secretKey, receivedSignature) => {
+//   const sortedKeys = Object.keys(data).sort();
+//   const rawData = sortedKeys.map(key => `${key}=${data[key]}`).join('&');
 
-dotenv.config();
+//   const hmac = crypto.createHmac('sha256', secretKey);
+//   const expectedSignature = hmac.update(rawData).digest('hex');
 
-const payosInstance = new PayOS(process.env.PAYOS_CLIENT_ID, process.env.PAYOS_API_KEY, process.env.PAYOS_CHECKSUM_KEY);
-
-export default payosInstance;
+//   return expectedSignature === receivedSignature;
+// };

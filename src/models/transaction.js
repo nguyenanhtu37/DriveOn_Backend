@@ -1,50 +1,49 @@
 import mongoose from "mongoose";
 
 const transactionSchema = new mongoose.Schema({
-    // user: {
-    //     type: mongoose.Schema.Types.ObjectId,
-    //     ref: "User",
-    // },
-    garage: {
+    orderCode: {
+        type: String,
+        required: true,
+        unique: true,
+    },
+    subscriptionId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Subscription",
+        required: true,
+    },
+    garageId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Garage",
-    },
-    transactionResponseId: {
-        type: String,
+        required: true,
     },
     amount: {
         type: Number,
+        required: true,
     },
-    currency: {
+    description: {
+        type: String
+    },
+    month: {
+        type: Number,
+        required: true
+    },
+    status: {
         type: String,
+        enum: ["PENDING", "PAID", "FAILED"],
+        default: "PENDING",
     },
-    paymentMethod: {
+    checkoutUrl: {
+        type: String
+    },
+    idempotencyKey: {
         type: String,
+        unique: true,
+        sparse: true
     },
-    customerName: {
-        type: String,
-    },
-    customerEmail: {
-        type: String,
-    },
-    signature: {
-        type: String,
-    },
-    timestamp: {
-        type: String,
-    },
-    createdAt: {
+    paidAt: {
         type: Date,
-        default: Date.now,
     },
-    updatedAt: {
-        type: Date,
-        default: Date.now,
-    },
-    paymentStatus: {
-        type: String,
-    }
-});
+}, { timestamps: true });
 
 const Transaction = mongoose.model("Transaction", transactionSchema);
-module.exports = Transaction;
+export default Transaction;

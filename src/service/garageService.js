@@ -403,7 +403,7 @@ export const calculateAverageRating = async (garageId) => {
 
   const averageRating =
     feedbacks.reduce((acc, feedback) => acc + feedback.rating, 0) /
-      feedbacks.length || 0;
+    feedbacks.length || 0;
   return averageRating;
 };
 
@@ -495,14 +495,14 @@ export const findGarages = async ({
     operatingDaysArray = operatingDaysArray.length
       ? operatingDaysArray
       : [
-          "Monday",
-          "Tuesday",
-          "Wednesday",
-          "Thursday",
-          "Friday",
-          "Saturday",
-          "Sunday",
-        ];
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday",
+      ];
     rating = rating || 0;
     distance = distance || 10;
 
@@ -680,8 +680,11 @@ const viewGaragesWithSearchParams = async ({
         service: { $in: services.split(",") },
       }).distinct("garage");
 
+      // garages = garages.filter((garage) =>
+      //   serviceDetails.includes(garage._id.toString())
+      // );
       garages = garages.filter((garage) =>
-        serviceDetails.includes(garage._id.toString())
+        serviceDetails.some((serviceId) => serviceId.equals(garage._id))
       );
     }
 
