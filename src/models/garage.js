@@ -113,7 +113,7 @@ const garageSchema = new mongoose.Schema({
   },
   transaction: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Transaction", // Tham chiếu đến transaction
+    ref: "Transaction", 
   },
 });
 

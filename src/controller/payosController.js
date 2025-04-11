@@ -1,138 +1,141 @@
-import express from 'express';
 import * as payosService from '../service/payosService.js';
 import Subscription from "../models/subscription.js";
-import Garage from '../models/garage.js';
 import Transaction from '../models/transaction.js';
-
-const router = express.Router();
+import Garage from '../models/garage.js';
+import dayjs from 'dayjs';
 
 export const createPaymentLink = async (req, res) => {
-    const { garageId, subscriptionCode, month } = req.body;
+    const { garageId, subscriptionId, amount, month, idempotencyKey } = req.body;
+
     try {
-        if (!garageId || !subscriptionCode || !month) {
+        if (!garageId || !subscriptionId || !month) {
             return res.status(400).json({ message: "Missing required fields!" });
         }
 
-        const garage = await Garage.findById(garageId);
-        if (!garage) return res.status(404).json({ message: "Garage not found" });
+        const parsedMonth = parseInt(month, 10);
+        if (isNaN(parsedMonth) || parsedMonth <= 0 || parsedMonth > 24) {
+            return res.status(400).json({ message: "Invalid month value! Must be 1-24." });
+        }
 
-        const subscription = await Subscription.findOne({ code: subscriptionCode });
-        if (!subscription) return res.status(404).json({ message: "Subscription not found" });
+        const [garage, subscription] = await Promise.all([
+            Garage.findById(garageId),
+            Subscription.findById(subscriptionId)
+        ]);
+        if (!garage) return res.status(404).json({ message: `Garage not found with id: ${garageId}` });
+        if (!subscription) return res.status(404).json({ message: `Subscription not found with id: ${subscriptionId}` });
 
-        const amount = subscription.pricePerMonth * month;
-        const orderCode = Number(String(Date.now()).slice(-6));
+        if (!subscription.pricePerMonth || typeof subscription.pricePerMonth !== "number") {
+            return res.status(400).json({ message: "Invalid subscription price per month" });
+        }
+
+        const calculatedAmount = amount || subscription.pricePerMonth * parsedMonth;
+
+        if (idempotencyKey) {
+            const existingTransaction = await Transaction.findOne({ idempotencyKey });
+            if (existingTransaction) {
+                return res.status(200).json({
+                    message: "Transaction already exists",
+                    paymentLink: {
+                        checkoutUrl: existingTransaction.checkoutUrl,
+                        amount: existingTransaction.amount,
+                        orderCode: existingTransaction.orderCode,
+                        description: existingTransaction.description,
+                        subscription: subscription.name,
+                        garage: garage.name,
+                        transactionId: existingTransaction._id
+                    }
+                });
+            }
+        }
+
+        const orderCode = Date.now() % 9007199254740991; 
+
         const garageNameShort = garage.name.length > 15 ? garage.name.slice(0, 15) + "…" : garage.name;
-        const description = `Upgrade ${garageNameShort} (${month}m)`;
+        const description = `Upgrade ${garageNameShort} (${parsedMonth}M)`;
 
-        const paymentLink = await payosService.createPaymentLink(garageId, orderCode, amount, description);
+        const paymentLink = await payosService.createPaymentLink(
+            garageId,
+            orderCode,
+            subscriptionId,
+            calculatedAmount,
+            description,
+            parsedMonth,
+            idempotencyKey
+        );
 
-        res.status(201).json({
+        return res.status(201).json({
             message: "Payment link created!",
             paymentLink: {
                 checkoutUrl: paymentLink.checkoutUrl,
-                amount,
+                amount: calculatedAmount,
                 orderCode,
                 description,
                 subscription: subscription.name,
-                garage: garage.name
+                garage: garage.name,
+                transactionId: paymentLink.transactionId
             }
         });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error("Error creating payment link:", error);
+        res.status(500).json({ message: "Failed to create payment link", error: error.message });
     }
 };
 
 export const webHook = async (req, res) => {
     try {
-        console.log("Webhook received:", req.body);
+        const { rawBody } = req;
+        const webhookBody = JSON.parse(rawBody);
 
-        // Nếu body rỗng, chỉ xác minh webhook
-        if (!req.body || Object.keys(req.body).length === 0) {
-            return res.status(200).json({ message: "Webhook validated successfully" });
+        const { code, data } = webhookBody;
+        const { orderCode, garageId, amount, month } = data;
+
+        if (webhookBody.idempotencyKey) {
+            const existingTransaction = await Transaction.findOne({ idempotencyKey: webhookBody.idempotencyKey });
+            if (existingTransaction) {
+                return res.status(200).json({
+                    success: true,
+                    message: "Webhook already processed."
+                });
+            }
         }
 
-        const result = await payosService.webHook(req.body);
+        const transaction = await Transaction.findOne({ orderCode, status: "PENDING" });
+        if (!transaction) {
+            return res.status(404).json({ success: false, message: "Transaction not found or already processed" });
+        }
+
+        const result = await payosService.processPayment({ orderCode, code, garageId, amount, month });
 
         if (result.success) {
-            return res.status(200).json({ message: result.message, data: result.data });
-        } else {
-            return res.status(400).json({ message: result.message, data: result.data });
+            const [garage, subscription] = await Promise.all([
+                Garage.findById(garageId),
+                Subscription.findById(transaction.subscriptionId)
+            ]);
+
+            if (!garage || !subscription) {
+                return res.status(404).json({ success: false, message: "Garage or Subscription not found" });
+            }
+
+            const currentExpiration = garage.expiredTime ? dayjs(garage.expiredTime) : dayjs();
+            const newExpiration = currentExpiration.add(month, "month");
+
+            await Transaction.findOneAndUpdate(
+                { orderCode, status: "PENDING" },
+                { status: "PAID", paidAt: new Date() }
+            );
+
+            garage.tag = "pro";
+            garage.expiredTime = newExpiration.toDate();
+            garage.subscription = subscription._id;
+
+            await garage.save();
+
+            console.log(`Updated garage ${garageId} to 'pro' with new expiration time: ${newExpiration.toDate()}`);
         }
+
+        return res.status(200).json(result);
     } catch (error) {
-        console.error("Webhook controller error:", error);
-        return res.status(500).json({ error: "Failed to process webhook" });
+        console.error("Error handling webhook:", error);
+        return res.status(500).json({ success: false, message: "Internal server error", error: error.message });
     }
 };
-
-// router.get("/:orderId", async function (req, res) {
-//     try {
-//         const order = await payos.getPaymentLinkInfomation(req.params.orderId);
-//         if (!order) {
-//             return res.json({
-//                 error: -1,
-//                 message: "failed",
-//                 data: null,
-//             });
-//         }
-//         return res.json({
-//             error: 0,
-//             message: "ok",
-//             data: order,
-//         });
-//     } catch (error) {
-//         console.log(error);
-//         return res.json({
-//             error: -1,
-//             message: "failed",
-//             data: null,
-//         });
-//     }
-// });
-
-// router.put("/:orderId", async function (req, res) {
-//     try {
-//         const { orderId } = req.params;
-//         const body = req.body;
-//         const order = await payos.cancelPaymentLink(orderId, body.cancellationReason);
-//         if (!order) {
-//             return res.json({
-//                 error: -1,
-//                 message: "failed",
-//                 data: null,
-//             });
-//         }
-//         return res.json({
-//             error: 0,
-//             message: "ok",
-//             data: order,
-//         });
-//     } catch (error) {
-//         console.error(error);
-//         return res.json({
-//             error: -1,
-//             message: "failed",
-//             data: null,
-//         });
-//     }
-// });
-
-// router.post("/confirm-webhook", async (req, res) => {
-//     const { webhookUrl } = req.body;
-//     try {
-//         await payos.confirmWebhook(webhookUrl);
-//         return res.json({
-//             error: 0,
-//             message: "ok",
-//             data: null,
-//         });
-//     } catch (error) {
-//         console.error(error);
-//         return res.json({
-//             error: -1,
-//             message: "failed",
-//             data: null,
-//         });
-//     }
-// });
-
-export default router;

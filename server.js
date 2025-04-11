@@ -26,12 +26,16 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
-app.use(express.json());
-app.use(bodyParser.json());
+// app.use(express.json());
+// app.use(bodyParser.json());
+app.use(bodyParser.json({
+  verify: (req, res, buf) => {
+    req.rawBody = buf.toString(); 
+  }
+}));
 app.use(express.static('public'));
 // app.use(express.urlencoded({ extended: false }));
 app.use(express.urlencoded({ extended: true }));
-app.use(express.raw({ type: "*/*" }));
 
 // CORS Config
 app.use(cors({
@@ -73,15 +77,6 @@ app.use('/api/subscription', subscriptionRoutes);
 app.get("/", (req, res) => {
   res.send("Hello, DriveOn Backend!");
 });
-
-// (async () => {
-//   try {
-//     app.use('/payment', paymentController.default); // export default router;
-//     app.use('/order', orderController.default); // export default router;
-//   } catch (error) {
-//     console.error("Error importing controllers:", error);
-//   }
-// })();
 
 // Start Server
 app.listen(PORT, () => {

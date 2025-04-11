@@ -1,84 +1,118 @@
 import dotenv from "dotenv";
 import Transaction from "../models/transaction.js";
 import Garage from "../models/garage.js";
-import { isValidSignature } from '../utils/payos.js';
+import Subscription from '../models/subscription.js';
 import dayjs from "dayjs";
 import payos from '../config/payos.js';
 
 dotenv.config();
 
-export const createPaymentLink = async (garageId, orderCode, amount, description) => {
-    if (!garageId) {
-        throw new Error("No garage found to upgrade.");
+export const createPaymentLink = async (
+    garageId,
+    orderCode,
+    subscriptionId,
+    calculatedAmount,
+    description,
+    month,
+    idempotencyKey = null
+) => {
+    if (!garageId || typeof garageId !== "string") {
+        throw new Error("Invalid garageId. Garage ID is required and must be a string.");
     }
 
-    if (amount > 10000000000) { // 10 tỏi
-        throw new Error(`Amount must not be greater than ${amount}`);
+    if (typeof calculatedAmount !== "number" || calculatedAmount <= 0) {
+        throw new Error("Invalid amount. Amount must be a positive number.");
+    }
+
+    if (calculatedAmount > 10_000_000_000) {
+        throw new Error(`Amount must not exceed 10 billion. Provided amount: ${calculatedAmount}`);
     }
 
     const FRONTEND_URL = process.env.FRONTEND_URL;
+    if (!FRONTEND_URL) {
+        throw new Error("FRONTEND_URL is not defined in environment variables.");
+    }
+
+    const transaction = new Transaction({
+        orderCode,
+        garageId,
+        subscriptionId,
+        amount: calculatedAmount,
+        description,
+        month,
+        status: "PENDING",
+        idempotencyKey
+    });
+
     const body = {
         orderCode,
-        amount,
+        amount: calculatedAmount,
         description,
-        returnUrl: `${FRONTEND_URL}/`, // URL khi thanh toán thành công
-        cancelUrl: `${FRONTEND_URL}/` // URL khi thanh toán bị hủy
+        returnUrl: `${FRONTEND_URL}/payment-success`,
+        cancelUrl: `${FRONTEND_URL}/payment-cancel`
     };
 
     try {
         const paymentLinkResponse = await payos.createPaymentLink(body);
-        return { checkoutUrl: paymentLinkResponse.checkoutUrl }; // Trả về URL thanh toán
+
+        if (!paymentLinkResponse || !paymentLinkResponse.checkoutUrl) {
+            console.error("PayOS response missing checkoutUrl:", paymentLinkResponse);
+            throw new Error("Invalid response from PayOS. Missing checkout URL.");
+        }
+
+        transaction.checkoutUrl = paymentLinkResponse.checkoutUrl;
+        await transaction.save();
+
+        return {
+            checkoutUrl: paymentLinkResponse.checkoutUrl,
+            transactionId: transaction._id
+        };
     } catch (error) {
-        console.error("Error creating payment link:", error);
-        throw new Error("Failed to create payment link");
+        console.error("PayOS payment link error:", error.response?.data || error.message);
+        throw new Error("Failed to create payment link. Please try again later.");
     }
 };
 
-export const webHook = async (webhookBody) => {
+export const processPayment = async ({ orderCode, garageId, amount, month }) => {
     try {
-        const { data, signature } = webhookBody;
-
-        if (!data || !data.code || !data.orderCode || !signature) {
-            return { success: false, message: "Invalid webhook payload" };
+        const transaction = await Transaction.findOne({ orderCode, status: "PENDING" });
+        if (!transaction) {
+            throw new Error("Transaction not found or already processed");
         }
 
-        // const secretKey = process.env.PAYOS_CHECKSUM_KEY;
-        const secretKey = "087f3d73f8b52604611f662be7fdf7c5e4121434109b9e86be3c686cd7ed83f6";
-        if (!isValidSignature(data, secretKey, signature)) {
-            console.warn("Webhook signature invalid.");
-            return { success: false, message: "Invalid or missing signature", data };
+        const [garage, subscription] = await Promise.all([
+            Garage.findById(garageId),
+            Subscription.findById(transaction.subscriptionId)
+        ]);
+
+        if (!garage) {
+            throw new Error("Garage not found");
         }
 
-        if (data.code !== "00") {
-            return { success: false, message: "Payment not successful", data };
+        if (!subscription) {
+            throw new Error("Subscription not found");
         }
 
-        const transaction = await Transaction.findOne({ orderCode: data.orderCode });
-        if (!transaction) return { success: false, message: "Transaction not found", data };
-
-        if (transaction.status === "PAID") {
-            return { success: true, message: "Transaction already processed", data };
+        if (transaction.amount !== amount) {
+            throw new Error("Amount mismatch");
         }
 
-        const garage = await Garage.findById(transaction.garageId);
-        if (!garage) return { success: false, message: "Garage not found", data };
+        await Transaction.findOneAndUpdate(
+            { orderCode, status: "PENDING" },
+            { status: "PAID", paidAt: new Date() }
+        );
 
-        const now = dayjs();
-        const currentExpiration = garage.subscriptionExpired;
-        const baseTime = currentExpiration && dayjs(currentExpiration).isAfter(now) ? dayjs(currentExpiration) : now;
-        const newExpiration = baseTime.add(transaction.month, "month");
+        const currentExpiration = garage.expiredTime ? dayjs(garage.expiredTime) : dayjs();
+        const newExpiration = currentExpiration.add(month, "month");
 
-        garage.subscription = transaction.subscriptionCode;
-        garage.subscriptionExpired = newExpiration.toDate();
+        garage.subscription = subscription._id;
+        garage.expiredTime = newExpiration.toDate();
+
         await garage.save();
 
-        transaction.status = "PAID";
-        transaction.paidAt = new Date();
-        await transaction.save();
-
-        return { success: true, message: "Payment processed successfully", data };
+        return { success: true, message: "Payment processed successfully" };
     } catch (error) {
-        console.error("payosService.webHook error:", error);
-        return { success: false, message: "Webhook processing error", error: error.message };
+        console.error("Error processing payment:", error);
+        throw new Error("Failed to process payment: " + error.message);
     }
 };
