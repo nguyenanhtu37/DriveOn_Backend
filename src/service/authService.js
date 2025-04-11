@@ -112,7 +112,11 @@ const login = async (email, password) => {
       (role) => role.roleName
     )}`
   );
-  return { user, token };
+   return {
+    user,
+    token,
+    roles: user.roles.map((role) => role.roleName), 
+  };
 };
 
 const requestPasswordReset = async (email) => {
