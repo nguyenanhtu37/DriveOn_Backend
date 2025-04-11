@@ -50,8 +50,8 @@ export const createPaymentLink = async (
         orderCode,
         amount: calculatedAmount,
         description,
-        returnUrl: `${FRONTEND_URL}/payment-success`,
-        cancelUrl: `${FRONTEND_URL}/payment-cancel`
+        returnUrl: `${FRONTEND_URL}/`,
+        cancelUrl: `${FRONTEND_URL}/`, 
     };
 
     try {
