@@ -5,37 +5,38 @@ import Garage from '../models/garage.js';
 import dayjs from 'dayjs';
 
 export const createPaymentLink = async (req, res) => {
-    const { garageId, subscriptionId, amount, month, idempotencyKey } = req.body;
+    const { garageId, subscriptionId, idempotencyKey } = req.body;
+
+    if (!garageId || !subscriptionId) {
+        return res.status(400).json({ message: "Missing required fields: garageId or subscriptionId." });
+    }
 
     try {
-        if (!garageId || !subscriptionId || !month) {
-            return res.status(400).json({ message: "Missing required fields!" });
-        }
-
-        const parsedMonth = parseInt(month, 10);
-        if (isNaN(parsedMonth) || parsedMonth <= 0 || parsedMonth > 24) {
-            return res.status(400).json({ message: "Invalid month value! Must be 1-24." });
-        }
-
         const [garage, subscription] = await Promise.all([
             Garage.findById(garageId),
             Subscription.findById(subscriptionId)
         ]);
 
-        if (!garage) return res.status(404).json({ message: `Garage not found with id: ${garageId}` });
-        if (!subscription) return res.status(404).json({ message: `Subscription not found with id: ${subscriptionId}` });
-
-        if (!subscription.pricePerMonth || typeof subscription.pricePerMonth !== "number") {
-            return res.status(400).json({ message: "Invalid subscription price per month" });
+        if (!garage) {
+            return res.status(404).json({ message: `Garage not found: ${garageId}` });
         }
 
-        const calculatedAmount = amount || subscription.pricePerMonth * parsedMonth;
+        if (!subscription) {
+            return res.status(404).json({ message: `Subscription not found: ${subscriptionId}` });
+        }
+
+        const amount = subscription.price;
+        const month = subscription.month;
+
+        if (!amount || typeof amount !== "number") {
+            return res.status(400).json({ message: "Invalid subscription price." });
+        }
 
         if (idempotencyKey) {
             const existingTransaction = await Transaction.findOne({ idempotencyKey });
             if (existingTransaction) {
                 return res.status(200).json({
-                    message: "Transaction already exists",
+                    message: "Transaction already exists.",
                     paymentLink: {
                         checkoutUrl: existingTransaction.checkoutUrl,
                         amount: existingTransaction.amount,
@@ -49,25 +50,32 @@ export const createPaymentLink = async (req, res) => {
             }
         }
 
-        const orderCode = Date.now() % 9007199254740991;
-        const garageNameShort = garage.name.length > 15 ? garage.name.slice(0, 15) + "…" : garage.name;
-        const description = `Upgrade ${garageNameShort} (${parsedMonth}M)`;
+        const orderCode = Date.now() % Number.MAX_SAFE_INTEGER;
+        const fixedPart = `Upgrade  (${month}M)`;
+        const maxDescriptionLength = 25;
+        const maxNameLength = maxDescriptionLength - fixedPart.length;
 
-        const paymentLink = await payosService.createPaymentLink(
+        const shortGarageName = garage.name.length > maxNameLength
+            ? garage.name.slice(0, maxNameLength - 1) + "…"
+            : garage.name;
+
+        const description = `Upgrade ${shortGarageName} (${month}M)`;
+
+        const paymentLink = await payosService.createPaymentLink({
             garageId,
             orderCode,
             subscriptionId,
-            calculatedAmount,
+            calculatedAmount: amount,
             description,
-            parsedMonth,
+            month,
             idempotencyKey
-        );
+        });
 
         return res.status(201).json({
             message: "Payment link created!",
             paymentLink: {
                 checkoutUrl: paymentLink.checkoutUrl,
-                amount: calculatedAmount,
+                amount,
                 orderCode,
                 description,
                 subscription: subscription.name,
@@ -77,7 +85,7 @@ export const createPaymentLink = async (req, res) => {
         });
     } catch (error) {
         console.error("Error creating payment link:", error);
-        res.status(500).json({ message: "Failed to create payment link", error: error.message });
+        return res.status(500).json({ message: "Failed to create payment link", error: error.message });
     }
 };
 

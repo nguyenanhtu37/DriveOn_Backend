@@ -1,20 +1,18 @@
 import * as subscriptionService from "../service/subscriptionService.js";
 
 export const addSubscription = async (req, res) => {
-  const { name, code, description, pricePerMonth } = req.body;
+  const { name, code, description, price, month } = req.body;
 
   try {
     const newSubscription = await subscriptionService.addSubscription({
       name,
       code,
       description,
-      pricePerMonth,
+      price,
+      month,
     });
 
-    res.status(201).json({
-      message: "Subscription added successfully",
-      subscription: newSubscription,
-    });
+    res.status(201).json(newSubscription);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -22,16 +20,8 @@ export const addSubscription = async (req, res) => {
 
 export const getSubscriptions = async (req, res) => {
   try {
-    const subscriptionList = await subscriptionService.getSubscriptions();
-
-    if (!subscriptionList || subscriptionList.length === 0) {
-      return res.status(404).json({ message: "No subscriptions found!" });
-    }
-
-    res.status(200).json({
-      message: "Subscription list",
-      data: subscriptionList,
-    });
+    const subscriptions = await subscriptionService.getSubscriptions();
+    res.status(200).json(subscriptions);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -39,20 +29,22 @@ export const getSubscriptions = async (req, res) => {
 
 export const updateSubscription = async (req, res) => {
   const { id } = req.params;
-  const { name, code, description, pricePerMonth } = req.body;
+  const { name, code, description, price, month } = req.body;
 
   try {
-    const updatedSubscription = await subscriptionService.updateSubscription(id, {
+    const updated = await subscriptionService.updateSubscription(id, {
       name,
       code,
       description,
-      pricePerMonth,
+      price,
+      month,
     });
 
-    res.status(200).json({
-      message: "Subscription updated successfully!",
-      subscription: updatedSubscription,
-    });
+    if (!updated) {
+      return res.status(404).json({ error: "Subscription not found" });
+    }
+
+    res.status(200).json(updated);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -62,14 +54,14 @@ export const deleteSubscription = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const result = await subscriptionService.deleteSubscription(id);
+    const deleted = await subscriptionService.deleteSubscription(id);
 
-    if (!result) {
-      return res.status(404).json({ message: "Subscription not found!" });
+    if (!deleted) {
+      return res.status(404).json({ error: "Subscription not found" });
     }
 
-    res.status(200).json({ message: "Subscription deleted successfully!" });
+    res.sendStatus(204); // No Content
   } catch (err) {
-    res.status(500).json({ message: "Delete subscription failed!", error: err.message });
+    res.status(500).json({ error: err.message });
   }
 };
