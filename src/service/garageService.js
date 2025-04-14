@@ -139,6 +139,18 @@ const viewGarageRegistrations = async () => {
   }
 };
 
+const viewGarageRegistrationsCarOwner = async (id) => {
+  try {
+    const garages = await Garage.find({
+      user: id,
+      status: { $in: ["pending", "rejected"] },
+    }).populate("user", "email name phone");
+    return garages;
+  } catch (err) {
+    throw new Error(err.message);
+  }
+};
+
 const getGarageRegistrationById = async (garageId) => {
   const garage = await Garage.findById(garageId);
   if (!garage) {
@@ -403,7 +415,7 @@ export const calculateAverageRating = async (garageId) => {
 
   const averageRating =
     feedbacks.reduce((acc, feedback) => acc + feedback.rating, 0) /
-    feedbacks.length || 0;
+      feedbacks.length || 0;
   return averageRating;
 };
 
@@ -495,14 +507,14 @@ export const findGarages = async ({
     operatingDaysArray = operatingDaysArray.length
       ? operatingDaysArray
       : [
-        "Monday",
-        "Tuesday",
-        "Wednesday",
-        "Thursday",
-        "Friday",
-        "Saturday",
-        "Sunday",
-      ];
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday",
+          "Saturday",
+          "Sunday",
+        ];
     rating = rating || 0;
     distance = distance || 10;
 
@@ -740,4 +752,5 @@ export {
   viewGarageExisting,
   viewGaragesWithSearchParams,
   viewAllGaragesByAdmin,
+  viewGarageRegistrationsCarOwner,
 };
