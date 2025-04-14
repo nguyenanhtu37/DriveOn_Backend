@@ -110,13 +110,14 @@ export const denyAppointment = async (req, res) => {
 export const completeAppointment = async (req, res) => {
   const { appointmentId } = req.params;
   const userId = req.user.id;
-  const { updatedEndTime } = req.body;
+  const { updatedEndTime, nextMaintenance } = req.body;
 
   try {
     const appointment = await appointmentService.completeAppointmentService(
         appointmentId,
         userId,
-        updatedEndTime
+        updatedEndTime,
+        nextMaintenance
     );
 
     if (!appointment) {
@@ -127,7 +128,6 @@ export const completeAppointment = async (req, res) => {
       message: "Appointment completed successfully",
       appointment
     });
-
   } catch (err) {
     if (err.message === "Unauthorized") {
       return res.status(403).json({

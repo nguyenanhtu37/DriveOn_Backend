@@ -56,6 +56,9 @@ const appointmentSchema = new mongoose.Schema({
         note: {
             type: String,
             default: "",
+        },
+        nextMaintenance: {
+            type: Date
         }
     },
     {timestamps: true}
