@@ -692,9 +692,6 @@ const viewGaragesWithSearchParams = async ({
         service: { $in: services.split(",") },
       }).distinct("garage");
 
-      // garages = garages.filter((garage) =>
-      //   serviceDetails.includes(garage._id.toString())
-      // );
       garages = garages.filter((garage) =>
         serviceDetails.some((serviceId) => serviceId.equals(garage._id))
       );
@@ -722,9 +719,20 @@ const viewGaragesWithSearchParams = async ({
         (element) => element.distance.value / 1000
       );
 
-      garages = garages.filter((_, index) => distances[index] <= distance);
+      garages = garages
+        .map((garage, index) => ({
+          ...garage.toObject(),
+          distance: distances[index],
+        }))
+        .filter((garage) => garage.distance <= distance);
     }
 
+    garages.sort((a, b) => {
+      if (a.distance !== b.distance) return a.distance - b.distance;
+      if (a.tag === "pro" && b.tag !== "pro") return -1;
+      if (a.tag !== "pro" && b.tag === "pro") return 1;
+      return 0;
+    });
     return garages;
   } catch (err) {
     console.error("Error in viewGaragesWithSearchParams:", err.message);
