@@ -74,6 +74,15 @@ const viewGarageRegistrations = async (req, res) => {
   }
 };
 
+const viewGarageRegistrationsCarOwner = async (req, res) => {
+  try {
+    const garages = await garageService.viewGarageRegistrationsCarOwner(req.user.id);
+    res.status(200).json(garages);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 const getGarageRegistrationById = async (req, res) => {
   const { id } = req.params;
   try {
@@ -358,4 +367,5 @@ export {
   findGarages,
   viewAllGaragesByAdmin,
   viewGarage,
+  viewGarageRegistrationsCarOwner
 };

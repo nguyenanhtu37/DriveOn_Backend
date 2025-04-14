@@ -24,7 +24,8 @@ import {
     // getGaragesWithinRadius,
     // filterGarages,
     // filterGaragesByRating,,
-    viewAllGaragesByAdmin
+    viewAllGaragesByAdmin,
+    viewGarageRegistrationsCarOwner
 } from '../controller/garageController.js';
 
 const router = express.Router();
@@ -56,6 +57,7 @@ router.post('/garage-registrations/:id/reject', adminMiddleware, rejectGarageReg
 router.get("/garages", authMiddleware, viewGarages); // view all garages that are managed by the garage manager
 router.put("/garages/:id", authMiddleware, updateGarage);
 // router.delete('/garage/:id', deleteGarage);
+router.get('/garage-registrations-carOwner',  authMiddleware, viewGarageRegistrationsCarOwner);
 
 router.get('/existing', viewGarageExisting);
 router.put('/:id/enable', adminMiddleware, enableGarage);
