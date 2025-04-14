@@ -8,25 +8,34 @@ import ServiceDetail
   from "../models/serviceDetail.js";
 import Role from "../models/role.js";
 
-// Helper function to format time directly from UTC without timezone conversion
-const formatTimeDisplay = (date) => {
-  return `${date.getUTCHours()}:${String(date.getUTCMinutes()).padStart(2, '0')}`;
-};
+
 const checkBooking = async (vehicleId, garageId, start, end, currentAppointmentId = null) => {
+  console.log("checkBooking input:", {
+    vehicleId,
+    garageId,
+    start: start.toISOString(),
+    end: end.toISOString(),
+    currentAppointmentId
+  });
+
   const garage = await Garage.findById(garageId);
   if (!garage) {
+    console.log("Error: Garage not found");
     return {
       hasConflict: true,
       conflictMessage: "Garage not found"
     };
   }
 
-  // Using getDay for day of week calculations
+  // Using getUTCDay for day of week calculations in UTC
   const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-  const appointmentDay = daysOfWeek[start.getDay()];
+  const appointmentDay = daysOfWeek[start.getUTCDay()];
+  console.log("Appointment day (UTC):", appointmentDay);
+  console.log("Garage operating days:", garage.operating_days);
 
   // Check if garage operates on start day
   if (!garage.operating_days.includes(appointmentDay)) {
+    console.log(`Conflict: Garage is closed on ${appointmentDay}s`);
     return {
       hasConflict: true,
       conflictMessage: `Garage is closed on ${appointmentDay}s`
@@ -35,13 +44,47 @@ const checkBooking = async (vehicleId, garageId, start, end, currentAppointmentI
 
   // Get opening hours for the start day
   const [garageOpenHour, garageOpenMinute] = garage.openTime.split(":").map(Number);
+  const [garageCloseHour, garageCloseMinute] = garage.closeTime.split(":").map(Number);
 
-  // Create time for garage opening on appointment day using setHours
+  console.log("Garage hours (local Vietnam time):", {
+    openTime: garage.openTime,
+    parsedOpen: { hour: garageOpenHour, minute: garageOpenMinute },
+    closeTime: garage.closeTime,
+    parsedClose: { hour: garageCloseHour, minute: garageCloseMinute }
+  });
+
+  // Convert local Vietnam time (UTC+7) to UTC by subtracting 7 hours
+  const utcOpenHour = garageOpenHour - 7;
+  const utcOpenMinute = garageOpenMinute;
+  const utcCloseHour = garageCloseHour - 7;
+  const utcCloseMinute = garageCloseMinute;
+
+  // Handle day wraparound if UTC hour becomes negative
+  let openDayOffset = 0;
+  let utcAdjustedOpenHour = utcOpenHour;
+
+  if (utcAdjustedOpenHour < 0) {
+    utcAdjustedOpenHour += 24;
+    openDayOffset = -1; // Previous day in UTC
+  }
+
+  console.log("Converted garage hours (UTC):", {
+    openTime: `${utcAdjustedOpenHour}:${utcOpenMinute}`,
+    closeTime: utcCloseHour < 0 ? `${utcCloseHour + 24}:${utcCloseMinute}` : `${utcCloseHour}:${utcCloseMinute}`,
+    openDayOffset
+  });
+
+  // Create time for garage opening on appointment day using setUTCHours
   const garageOpenTime = new Date(start);
-  garageOpenTime.setHours(garageOpenHour, garageOpenMinute, 0, 0);
+  garageOpenTime.setUTCDate(garageOpenTime.getUTCDate() + openDayOffset);
+  garageOpenTime.setUTCHours(utcAdjustedOpenHour, utcOpenMinute, 0, 0);
+
+  console.log("Garage open time (UTC):", garageOpenTime.toISOString());
+  console.log("Appointment start time (UTC):", start.toISOString());
 
   // Check if appointment starts before opening time
   if (start < garageOpenTime) {
+    console.log("Conflict: Appointment starts before garage opens");
     return {
       hasConflict: true,
       conflictMessage: `Garage opens at ${garage.openTime}`
@@ -49,23 +92,24 @@ const checkBooking = async (vehicleId, garageId, start, end, currentAppointmentI
   }
 
   // Check for existing appointments
+  console.log("Checking for overlapping appointments...");
   const overlappingAppointments = await Appointment.find({
     vehicle: vehicleId,
     _id: { $ne: currentAppointmentId },
     $or: [
-      // Overlapping start
       { start: { $lte: start }, end: { $gt: start } },
-      // Overlapping end
       { start: { $lt: end }, end: { $gte: end } },
-      // Appointment within new booking
       { start: { $gte: start, $lt: end } }
     ],
     status: { $nin: ["Cancelled", "Rejected"] }
   });
 
+  console.log(`Found ${overlappingAppointments.length} overlapping appointments`);
+
   if (overlappingAppointments.length > 0) {
     const conflictGarage = await Garage.findById(overlappingAppointments[0].garage);
     const garageName = conflictGarage ? conflictGarage.name : "another garage";
+    console.log(`Conflict: Vehicle already scheduled at ${garageName}`);
 
     return {
       hasConflict: true,
@@ -73,16 +117,23 @@ const checkBooking = async (vehicleId, garageId, start, end, currentAppointmentI
     };
   }
 
+  console.log("No booking conflicts found");
   return { hasConflict: false };
 };
 
 const convertAndValidateDateTime = async (start, serviceIds) => {
+  console.log("convertAndValidateDateTime input:", {
+    start: start instanceof Date ? start.toISOString() : start,
+    serviceIds
+  });
+
   try {
     // Define days of week array
     const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
     // Parse start time
     const startTime = typeof start === 'string' ? new Date(start) : start;
+    console.log("Parsed startTime (UTC):", startTime.toISOString());
 
     if (isNaN(startTime.getTime())) {
       throw new Error("Invalid date format. Please provide a valid date and time.");
@@ -90,12 +141,15 @@ const convertAndValidateDateTime = async (start, serviceIds) => {
 
     // Get current time in UTC
     const nowUtc = new Date();
+    console.log("Current time (UTC):", nowUtc.toISOString());
+
     if (startTime <= nowUtc) {
       throw new Error("Appointment time must be in the future");
     }
 
-    // Get day of week using getDay()
-    const dayOfWeek = daysOfWeek[startTime.getDay()];
+    // Get day of week using getUTCDay()
+    const dayOfWeek = daysOfWeek[startTime.getUTCDay()];
+    console.log("Day of week (UTC):", dayOfWeek);
 
     // Find the first service to get the garage
     const firstService = await ServiceDetail.findById(serviceIds[0]);
@@ -108,63 +162,127 @@ const convertAndValidateDateTime = async (start, serviceIds) => {
     if (!garage) {
       throw new Error("Garage not found");
     }
+    console.log("Garage operating days:", garage.operating_days);
 
     // Check if garage operates on the appointment day
     if (!garage.operating_days.includes(dayOfWeek)) {
+      console.log(`Error: Garage is closed on ${dayOfWeek}s`);
       throw new Error(`Garage is closed on ${dayOfWeek}s`);
     }
 
     // Calculate total service duration
     let totalDurationMinutes = 0;
+    console.log("Calculating service duration...");
     for (const serviceId of serviceIds) {
       const serviceDetail = await ServiceDetail.findById(serviceId);
       if (!serviceDetail) {
         throw new Error(`Service with ID ${serviceId} not found`);
       }
       totalDurationMinutes += serviceDetail.duration || 60;
+      console.log(`Added service ${serviceId} with duration: ${serviceDetail.duration || 60} minutes`);
     }
+    console.log(`Total duration: ${totalDurationMinutes} minutes`);
 
     // Parse garage operating hours
     const [openHour, openMinute] = garage.openTime.split(":").map(Number);
     const [closeHour, closeMinute] = garage.closeTime.split(":").map(Number);
 
-    // Create garage open and close times for the appointment day using setHours
+    console.log("Garage hours (local Vietnam time):", {
+      openTime: garage.openTime,
+      parsedOpen: { openHour, openMinute },
+      closeTime: garage.closeTime,
+      parsedClose: { closeHour, closeMinute }
+    });
+
+    // Convert local Vietnam time (UTC+7) to UTC by subtracting 7 hours
+    const utcOpenHour = openHour - 7;
+    const utcOpenMinute = openMinute;
+    const utcCloseHour = closeHour - 7;
+    const utcCloseMinute = closeMinute;
+
+    // Handle day wraparound if UTC hour becomes negative
+    let openDayOffset = 0;
+    let utcAdjustedOpenHour = utcOpenHour;
+
+    if (utcAdjustedOpenHour < 0) {
+      utcAdjustedOpenHour += 24;
+      openDayOffset = -1; // Previous day in UTC
+    }
+
+    // Handle close time wraparound
+    let closeDayOffset = 0;
+    let utcAdjustedCloseHour = utcCloseHour;
+
+    if (utcAdjustedCloseHour < 0) {
+      utcAdjustedCloseHour += 24;
+      closeDayOffset = -1; // Previous day in UTC
+    }
+
+    console.log("Converted garage hours (UTC):", {
+      openTime: `${utcAdjustedOpenHour}:${utcOpenMinute}`,
+      closeTime: `${utcAdjustedCloseHour}:${utcCloseMinute}`,
+      openDayOffset,
+      closeDayOffset
+    });
+
+    // Create garage open and close times for the appointment day
     const garageOpenTime = new Date(startTime);
-    garageOpenTime.setHours(openHour, openMinute, 0, 0);
+    garageOpenTime.setUTCDate(garageOpenTime.getUTCDate() + openDayOffset);
+    garageOpenTime.setUTCHours(utcAdjustedOpenHour, utcOpenMinute, 0, 0);
 
     const garageCloseTime = new Date(startTime);
-    garageCloseTime.setHours(closeHour, closeMinute, 0, 0);
+    garageCloseTime.setUTCDate(garageCloseTime.getUTCDate() + closeDayOffset);
+    garageCloseTime.setUTCHours(utcAdjustedCloseHour, utcCloseMinute, 0, 0);
+
+    console.log("Garage open time (UTC):", garageOpenTime.toISOString());
+    console.log("Garage close time (UTC):", garageCloseTime.toISOString());
 
     // Check if appointment starts before opening time
     if (startTime < garageOpenTime) {
+      console.log("Error: Appointment starts before garage opens");
       throw new Error(`Garage opens at ${garage.openTime}`);
     }
 
     // Calculate initial end time
     let endTime = new Date(startTime.getTime() + totalDurationMinutes * 60000);
+    console.log("Initial end time (UTC):", endTime.toISOString());
 
     // If appointment would end after closing time, extend to next operating day
     if (endTime > garageCloseTime) {
+      console.log("Appointment would end after closing time, extending to next day");
+
       // Calculate remaining minutes after closing time
       const minutesOverClosing = Math.floor((endTime - garageCloseTime) / 60000);
+      console.log(`Minutes over closing: ${minutesOverClosing}`);
 
-      // Find the next operating day using getDay
-      let nextDayIndex = (startTime.getDay() + 1) % 7;
+      // Find the next operating day
+      let nextDayIndex = (startTime.getUTCDay() + 1) % 7;
       let daysToAdd = 1;
+      console.log(`Looking for next operating day after ${daysOfWeek[startTime.getUTCDay()]}`);
 
       while (!garage.operating_days.includes(daysOfWeek[nextDayIndex])) {
+        console.log(`${daysOfWeek[nextDayIndex]} is not an operating day, checking next day`);
         nextDayIndex = (nextDayIndex + 1) % 7;
         daysToAdd++;
       }
+      console.log(`Next operating day is ${daysOfWeek[nextDayIndex]}, ${daysToAdd} days later`);
 
       // Create the next operating day's opening time
       const nextDayOpenTime = new Date(startTime);
-      nextDayOpenTime.setDate(nextDayOpenTime.getDate() + daysToAdd);
-      nextDayOpenTime.setHours(openHour, openMinute, 0, 0);
+      nextDayOpenTime.setUTCDate(nextDayOpenTime.getUTCDate() + daysToAdd + openDayOffset);
+      nextDayOpenTime.setUTCHours(utcAdjustedOpenHour, utcOpenMinute, 0, 0);
+      console.log(`Next day open time (UTC): ${nextDayOpenTime.toISOString()}`);
 
       // Set end time to opening time of next day + remaining minutes
       endTime = new Date(nextDayOpenTime.getTime() + minutesOverClosing * 60000);
+      console.log(`Adjusted end time (UTC): ${endTime.toISOString()}`);
     }
+
+    console.log("Final result:", {
+      startTime: startTime.toISOString(),
+      endTime: endTime.toISOString(),
+      isValid: true
+    });
 
     return {
       startTime,
@@ -173,6 +291,7 @@ const convertAndValidateDateTime = async (start, serviceIds) => {
       error: null,
     };
   } catch (error) {
+    console.log("Validation error:", error.message);
     return {
       startTime: null,
       endTime: null,
@@ -185,32 +304,52 @@ const convertAndValidateDateTime = async (start, serviceIds) => {
 export const createAppointmentService = async ({
                                                  userId, garage, service, vehicle, start, tag, note,
                                                }) => {
+  console.log("createAppointmentService input:", {
+    userId,
+    garage,
+    service: Array.isArray(service) ? service : [service],
+    vehicle,
+    start: start instanceof Date ? start.toISOString() : start,
+    tag,
+    note
+  });
+
   // Validate with zod schema
   const validation = createAppointmentValidate({ garage, service, vehicle, start, tag, note });
   if (!validation.valid) {
-    throw new Error(`Validation error: ${JSON.stringify(validation.errors)}`);
+    const errorMsg = `Validation error: ${JSON.stringify(validation.errors)}`;
+    console.log(errorMsg);
+    throw new Error(errorMsg);
   }
 
   // Convert start to Date if it's a string
   const startTime = typeof start === 'string' ? new Date(start) : start;
+  console.log("Parsed startTime (UTC):", startTime.toISOString());
 
   // Calculate end time based on service durations
+  console.log("Calling convertAndValidateDateTime...");
   const { startTime: validatedStartTime, endTime, isValid, error } =
       await convertAndValidateDateTime(startTime, service);
 
   if (!isValid) {
+    console.log("Invalid date/time:", error);
     throw new Error(error);
   }
 
-
+  console.log("After validation:", {
+    validatedStartTime: validatedStartTime.toISOString(),
+    endTime: endTime.toISOString()
+  });
 
   // Get the first service to use its garage ID (if needed)
   const firstService = await ServiceDetail.findById(service[0]);
   if (!firstService) {
+    console.log("Service not found");
     throw new Error("Service not found");
   }
 
-  // Check for booking conflicts - pass directly to checkBooking with UTC times
+  // Check for booking conflicts
+  console.log("Checking for booking conflicts...");
   const bookingCheck = await checkBooking(
       vehicle,
       garage,
@@ -219,6 +358,7 @@ export const createAppointmentService = async ({
   );
 
   if (bookingCheck && bookingCheck.hasConflict) {
+    console.log("Booking conflict:", bookingCheck.conflictMessage);
     throw new Error(bookingCheck.conflictMessage || "Booking conflict detected");
   }
 
@@ -235,25 +375,35 @@ export const createAppointmentService = async ({
   });
 
   await newAppointment.save();
+  console.log("Appointment saved to DB:", {
+    id: newAppointment._id,
+    start: newAppointment.start.toISOString(),
+    end: newAppointment.end.toISOString()
+  });
 
   // Retrieve information for email
   const user = await User.findById(userId);
   const garageInfo = await Garage.findById(garage).select('name address');
-  const vehicleInfo = await Vehicle.findById(vehicle).select(' carName carPlate');
+  const vehicleInfo = await Vehicle.findById(vehicle).select('carName carPlate');
 
+  // Format dates for email with Asia/Ho_Chi_Minh timezone
+  console.log("Formatting dates for email...");
 
-  // Format dates for email display in local time (Vietnam timezone)
-  // Using toLocaleString to convert UTC to local time for display
-  const displayDate = validatedStartTime.toLocaleDateString('vi-VN');
+  // Fix: validatedStartTime is a Date object directly
+  const displayDate = validatedStartTime.toLocaleDateString('vi-VN', {
+    timeZone: 'Asia/Ho_Chi_Minh'
+  });
   const displayStartTime = validatedStartTime.toLocaleTimeString('vi-VN', {
     hour: '2-digit',
     minute: '2-digit',
-    hour12: false
+    hour12: false,
+    timeZone: 'Asia/Ho_Chi_Minh'
   });
   const displayEndTime = endTime.toLocaleTimeString('vi-VN', {
     hour: '2-digit',
     minute: '2-digit',
-    hour12: false
+    hour12: false,
+    timeZone: 'Asia/Ho_Chi_Minh'
   });
 
   // Send confirmation email to customer
