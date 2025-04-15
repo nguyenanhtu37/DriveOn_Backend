@@ -27,6 +27,7 @@
     "ioredis": "^5.4.2",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.10.1",
+    "node-cron": "^3.0.3",
     "nodemailer": "^6.9.16",
     "redis": "^4.7.0",
     "redis-cli": "^2.1.2",
