@@ -662,6 +662,64 @@ export const completeAppointmentService = async (appointmentId, userId, updatedE
   return appointment;
 };
 
+
+export const getNextMaintenanceListService = async (garageId, page = 1, limit = 10) => {
+  try {
+    // Lấy thông tin garage
+    const garage = await Garage.findById(garageId);
+    if (!garage) {
+      throw new Error("Garage not found");
+    }
+
+    // Kiểm tra nếu garage không có tag "pro"
+    if (garage.tag !== "pro") {
+      throw new Error("This feature is only available for garages with the 'pro' tag");
+    }
+
+    // Tính toán `skip` dựa trên `page` và `limit`
+    const skip = (page - 1) * limit;
+
+    // Lấy danh sách các lịch hẹn có `nextMaintenance` và thuộc về garage
+    const appointments = await Appointment.find({
+      garage: garageId,
+      nextMaintenance: { $exists: true, $ne: null },
+    })
+      .populate("vehicle", "carBrand carName carPlate")
+      .populate("user", "name phone email")
+      .sort({ nextMaintenance: 1 }) // Sắp xếp theo ngày gần nhất
+      .skip(skip)
+      .limit(limit);
+
+    // Tính số ngày còn lại cho mỗi lịch hẹn
+    const today = new Date();
+    const appointmentsWithDaysLeft = appointments.map((appointment) => {
+      const nextMaintenanceDate = new Date(appointment.nextMaintenance);
+      const timeDiff = nextMaintenanceDate - today; // Thời gian chênh lệch (ms)
+      const daysLeft = Math.ceil(timeDiff / (1000 * 60 * 60 * 24)); // Chuyển đổi sang ngày
+
+      return {
+        ...appointment.toObject(),
+        daysLeft: daysLeft > 0 ? daysLeft : 0, // Nếu đã qua ngày bảo dưỡng, đặt là 0
+      };
+    });
+
+    // Tính tổng số lịch hẹn để trả về tổng số trang
+    const totalAppointments = await Appointment.countDocuments({
+      garage: garageId,
+      nextMaintenance: { $exists: true, $ne: null },
+    });
+    const totalPages = Math.ceil(totalAppointments / limit);
+
+    return {
+      appointments: appointmentsWithDaysLeft,
+      totalPages,
+      currentPage: page,
+    };
+  } catch (error) {
+    throw new Error(error.message);
+  }
+};
+
 // Separate function to handle email sending in background
 async function sendCompletionEmail(appointmentId, customerId, garageId, staffId, startTime, endTime) {
   try {
