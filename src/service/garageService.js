@@ -139,6 +139,18 @@ const viewGarageRegistrations = async () => {
   }
 };
 
+const viewGarageRegistrationsCarOwner = async (id) => {
+  try {
+    const garages = await Garage.find({
+      user: id,
+      status: { $in: ["pending", "rejected"] },
+    }).populate("user", "email name phone");
+    return garages;
+  } catch (err) {
+    throw new Error(err.message);
+  }
+};
+
 const getGarageRegistrationById = async (garageId) => {
   const garage = await Garage.findById(garageId);
   if (!garage) {
@@ -403,7 +415,7 @@ export const calculateAverageRating = async (garageId) => {
 
   const averageRating =
     feedbacks.reduce((acc, feedback) => acc + feedback.rating, 0) /
-    feedbacks.length || 0;
+      feedbacks.length || 0;
   return averageRating;
 };
 
@@ -495,14 +507,14 @@ export const findGarages = async ({
     operatingDaysArray = operatingDaysArray.length
       ? operatingDaysArray
       : [
-        "Monday",
-        "Tuesday",
-        "Wednesday",
-        "Thursday",
-        "Friday",
-        "Saturday",
-        "Sunday",
-      ];
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday",
+          "Saturday",
+          "Sunday",
+        ];
     rating = rating || 0;
     distance = distance || 10;
 
@@ -680,9 +692,6 @@ const viewGaragesWithSearchParams = async ({
         service: { $in: services.split(",") },
       }).distinct("garage");
 
-      // garages = garages.filter((garage) =>
-      //   serviceDetails.includes(garage._id.toString())
-      // );
       garages = garages.filter((garage) =>
         serviceDetails.some((serviceId) => serviceId.equals(garage._id))
       );
@@ -710,9 +719,20 @@ const viewGaragesWithSearchParams = async ({
         (element) => element.distance.value / 1000
       );
 
-      garages = garages.filter((_, index) => distances[index] <= distance);
+      garages = garages
+        .map((garage, index) => ({
+          ...garage.toObject(),
+          distance: distances[index],
+        }))
+        .filter((garage) => garage.distance <= distance);
     }
 
+    garages.sort((a, b) => {
+      if (a.distance !== b.distance) return a.distance - b.distance;
+      if (a.tag === "pro" && b.tag !== "pro") return -1;
+      if (a.tag !== "pro" && b.tag === "pro") return 1;
+      return 0;
+    });
     return garages;
   } catch (err) {
     console.error("Error in viewGaragesWithSearchParams:", err.message);
@@ -740,4 +760,5 @@ export {
   viewGarageExisting,
   viewGaragesWithSearchParams,
   viewAllGaragesByAdmin,
+  viewGarageRegistrationsCarOwner,
 };
