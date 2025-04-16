@@ -134,7 +134,7 @@ const requestPasswordReset = async (email) => {
   await transporter.sendMail({
     from: process.env.MAIL_USER,
     to: email,
-    subject: "DriveOn password reset",
+    subject: "Yêu cầu đặt lại mật khẩu tài khoản DriveOn",
     html: `
   <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #f4f4f7; color: #333;">
     <div style="max-width: 600px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.05);">
