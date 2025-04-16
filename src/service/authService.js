@@ -36,19 +36,35 @@ const signup = async (userData) => {
   await transporter.sendMail({
     from: process.env.MAIL_USER,
     to: email,
-    subject: "DriveOn register verification",
+    subject: "Xác minh đăng ký tài khoản DriveOn",
     html: `
-      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-        <p style="font-size: 18px; margin-bottom: 10px;">Thank you for registering with <strong>DriveOn!</strong></p>
-        <p style="font-size: 16px; margin-bottom: 20px;">
-          Please click
-          <a href="${link}" style="color: #007BFF; text-decoration: none; font-weight: bold;">here</a>
-          to verify your account and complete your registration process.
-        </p>
-        <p style="font-size: 14px; font-style: italic; color: #777;">Best regards,</p>
-        <p style="font-size: 14px; font-weight: bold;">DriveOn Team</p>
+      <div style="font-family: Arial, sans-serif; background-color: #f4f4f7; padding: 20px; color: #333;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+          <h2 style="color: #4F46E5; margin-bottom: 20px;">🚗 Chào mừng đến với DriveOn!</h2>
+          <p style="font-size: 16px; margin-bottom: 12px;">
+            Cảm ơn bạn đã đăng ký tài khoản tại <strong>DriveOn</strong>.
+          </p>
+          <p style="font-size: 16px; margin-bottom: 24px;">
+            Vui lòng nhấn vào nút bên dưới để xác minh tài khoản và hoàn tất quá trình đăng ký:
+          </p>
+          <div style="text-align: center; margin-bottom: 30px;">
+            <a href="${link}" style="display: inline-block; background-color: #4F46E5; color: #fff; padding: 12px 24px; border-radius: 6px; font-size: 16px; text-decoration: none; font-weight: bold;">
+              Xác minh tài khoản
+            </a>
+          </div>
+          <p style="font-size: 14px; color: #555;">
+            Nếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email này.
+          </p>
+          <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;" />
+          <p style="font-size: 13px; color: #999; text-align: center;">
+            Mọi thắc mắc vui lòng liên hệ đội ngũ hỗ trợ của chúng tôi.
+            <br/>
+            Trân trọng,<br/>
+            <strong>Đội ngũ DriveOn</strong>
+          </p>
+        </div>
       </div>
-    `,
+    `
   });
   return { message: "Verification email sent" };
 };
