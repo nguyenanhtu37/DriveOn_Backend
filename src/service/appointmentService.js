@@ -359,7 +359,7 @@ async function sendAppointmentEmails(appointmentId, userId, garageId, vehicleId,
           <li><strong>Địa chỉ:</strong> ${garageInfo.address}</li>
           <li><strong>Xe:</strong> ${vehicleInfo.carName} (${vehicleInfo.carPlate})</li>
           <li><strong>Ngày hẹn:</strong> ${displayDate}</li>
-          <li><strong>Thời gian:</strong> ${displayStartTime} - ${displayEndTime}</li>
+          <li><strong>Thời gian:</strong> ${displayStartTime} </li>
           <li><strong>Ghi chú:</strong> ${note || 'Không có'}</li>
           <li><strong>Trạng thái:</strong> Đang chờ xác nhận</li>
         </ul>
@@ -393,7 +393,7 @@ async function sendAppointmentEmails(appointmentId, userId, garageId, vehicleId,
                 <li><strong>Email:</strong> ${user.email}</li>
                 <li><strong>Xe:</strong> ${vehicleInfo.carName} (${vehicleInfo.carPlate})</li>
                 <li><strong>Ngày hẹn:</strong> ${displayDate}</li>
-                <li><strong>Thời gian:</strong> ${displayStartTime} - ${displayEndTime}</li>
+                <li><strong>Thời gian:</strong> ${displayStartTime} </li>
                 <li><strong>Ghi chú:</strong> ${note || 'Không có'}</li>
               </ul>
               <p>Vui lòng đăng nhập vào hệ thống để xác nhận hoặc từ chối lịch hẹn này.</p>
@@ -476,12 +476,7 @@ async function sendConfirmationEmail(appointmentId, customerId, garageId, startT
       hour12: false,
       timeZone: 'Asia/Ho_Chi_Minh'
     });
-    const displayEndTime = endTime.toLocaleTimeString('vi-VN', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-      timeZone: 'Asia/Ho_Chi_Minh'
-    });
+    
 
     // Send confirmation email to customer
     await transporter.sendMail({
@@ -496,7 +491,7 @@ async function sendConfirmationEmail(appointmentId, customerId, garageId, startT
           <li><strong>Garage:</strong> ${garageInfo.name}</li>
           <li><strong>Địa chỉ:</strong> ${garageInfo.address}</li>
           <li><strong>Ngày hẹn:</strong> ${displayDate}</li>
-          <li><strong>Thời gian:</strong> ${displayStartTime} - ${displayEndTime}</li>
+          <li><strong>Thời gian:</strong> ${displayStartTime} </li>
           <li><strong>Trạng thái:</strong> Đã xác nhận</li>
         </ul>
         <p>Vui lòng đến đúng giờ để được phục vụ tốt nhất.</p>
@@ -548,12 +543,7 @@ async function sendRejectionEmail(appointmentId, customerId, garageId, startTime
       hour12: false,
       timeZone: 'Asia/Ho_Chi_Minh'
     });
-    const displayEndTime = endTime.toLocaleTimeString('vi-VN', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-      timeZone: 'Asia/Ho_Chi_Minh'
-    });
+    
 
     // Send rejection email to customer
     await transporter.sendMail({
@@ -568,7 +558,7 @@ async function sendRejectionEmail(appointmentId, customerId, garageId, startTime
           <li><strong>Garage:</strong> ${garageInfo.name}</li>
           <li><strong>Địa chỉ:</strong> ${garageInfo.address}</li>
           <li><strong>Ngày hẹn:</strong> ${displayDate}</li>
-          <li><strong>Thời gian:</strong> ${displayStartTime} - ${displayEndTime}</li>
+          <li><strong>Thời gian:</strong> ${displayStartTime} </li>
           <li><strong>Trạng thái:</strong> Đã từ chối</li>
         </ul>
         <p>Vui lòng liên hệ với garage để biết thêm thông tin hoặc đặt lịch hẹn mới.</p>
@@ -680,12 +670,7 @@ async function sendCompletionEmail(appointmentId, customerId, garageId, staffId,
       hour12: false,
       timeZone: 'Asia/Ho_Chi_Minh'
     });
-    const displayEndTime = endTime.toLocaleTimeString('vi-VN', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-      timeZone: 'Asia/Ho_Chi_Minh'
-    });
+    
 
     // Send completion email to customer
     await transporter.sendMail({
@@ -700,7 +685,7 @@ async function sendCompletionEmail(appointmentId, customerId, garageId, staffId,
           <li><strong>Garage:</strong> ${garageInfo.name}</li>
           <li><strong>Địa chỉ:</strong> ${garageInfo.address}</li>
           <li><strong>Ngày hẹn:</strong> ${displayDate}</li>
-          <li><strong>Thời gian:</strong> ${displayStartTime} - ${displayEndTime}</li>
+          <li><strong>Thời gian:</strong> ${displayStartTime} </li>
           <li><strong>Nhân viên phụ trách:</strong> ${staffInfo.name}</li>
           <li><strong>Trạng thái:</strong> Đã hoàn thành</li>
         </ul>
@@ -769,12 +754,7 @@ async function sendCancellationEmails(appointmentId, customerId, garageId, start
       hour12: false,
       timeZone: 'Asia/Ho_Chi_Minh'
     });
-    const displayEndTime = endTime.toLocaleTimeString('vi-VN', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-      timeZone: 'Asia/Ho_Chi_Minh'
-    });
+    
 
     // Send cancellation email to customer
     await transporter.sendMail({
@@ -789,7 +769,7 @@ async function sendCancellationEmails(appointmentId, customerId, garageId, start
           <li><strong>Garage:</strong> ${garageInfo.name}</li>
           <li><strong>Địa chỉ:</strong> ${garageInfo.address}</li>
           <li><strong>Ngày hẹn:</strong> ${displayDate}</li>
-          <li><strong>Thời gian:</strong> ${displayStartTime} - ${displayEndTime}</li>
+          <li><strong>Thời gian:</strong> ${displayStartTime} </li>
           <li><strong>Trạng thái:</strong> Đã hủy</li>
         </ul>
         <p>Xem chi tiết lịch hẹn của bạn <a href="${process.env.FRONTEND_URL}/appointments/${appointmentId}">tại đây</a>.</p>
@@ -820,7 +800,7 @@ async function sendCancellationEmails(appointmentId, customerId, garageId, start
                 <li><strong>Khách hàng:</strong> ${customer.name}</li>
                 <li><strong>Email:</strong> ${customer.email}</li>
                 <li><strong>Ngày hẹn:</strong> ${displayDate}</li>
-                <li><strong>Thời gian:</strong> ${displayStartTime} - ${displayEndTime}</li>
+                <li><strong>Thời gian:</strong> ${displayStartTime} </li>
                 <li><strong>Trạng thái:</strong> Đã hủy</li>
               </ul>
               <p>Xem chi tiết lịch hẹn <a href="${process.env.FRONTEND_URL}/manager/appointment/${appointmentId}">tại đây</a>.</p>
@@ -970,12 +950,6 @@ async function sendUpdateNotificationEmails(
       hour12: false,
       timeZone: 'Asia/Ho_Chi_Minh'
     });
-    const oldDisplayEndTime = oldEndTime.toLocaleTimeString('vi-VN', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-      timeZone: 'Asia/Ho_Chi_Minh'
-    });
 
     const newDisplayDate = newStartTime.toLocaleDateString('vi-VN', {
       timeZone: 'Asia/Ho_Chi_Minh'
@@ -986,18 +960,8 @@ async function sendUpdateNotificationEmails(
       hour12: false,
       timeZone: 'Asia/Ho_Chi_Minh'
     });
-    const newDisplayEndTime = newEndTime.toLocaleTimeString('vi-VN', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-      timeZone: 'Asia/Ho_Chi_Minh'
-    });
 
-    // Determine what changed for better email content
-    const timeChanged = oldStartTime.getTime() !== newStartTime.getTime() ||
-        oldEndTime.getTime() !== newEndTime.getTime();
-
-    // Send email to customer about the update
+    // Remove references to oldDisplayEndTime and newDisplayEndTime from email templates
     await transporter.sendMail({
       from: process.env.MAIL_USER,
       to: user.email,
@@ -1005,32 +969,32 @@ async function sendUpdateNotificationEmails(
       html: `
         <h2>Xin chào ${user.name},</h2>
         <p>Lịch hẹn của bạn đã được <span style="color: #007bff; font-weight: bold;">cập nhật</span>.</p>
-        
+
         <h3>Thông tin trước khi cập nhật:</h3>
         <ul>
           <li><strong>Garage:</strong> ${garageInfo.name}</li>
           <li><strong>Địa chỉ:</strong> ${garageInfo.address}</li>
           <li><strong>Ngày hẹn:</strong> ${oldDisplayDate}</li>
-          <li><strong>Thời gian:</strong> ${oldDisplayStartTime} - ${oldDisplayEndTime}</li>
+          <li><strong>Thời gian:</strong> ${oldDisplayStartTime}</li>
         </ul>
-        
+
         <h3>Thông tin sau khi cập nhật:</h3>
         <ul>
           <li><strong>Garage:</strong> ${garageInfo.name}</li>
           <li><strong>Địa chỉ:</strong> ${garageInfo.address}</li>
           <li><strong>Ngày hẹn:</strong> ${newDisplayDate}</li>
-          <li><strong>Thời gian:</strong> ${newDisplayStartTime} - ${newDisplayEndTime}</li>
+          <li><strong>Thời gian:</strong> ${newDisplayStartTime}</li>
           <li><strong>Ghi chú:</strong> ${note || 'Không có'}</li>
           <li><strong>Trạng thái:</strong> Đang chờ xác nhận</li>
         </ul>
-        
+
         <p>Garage sẽ xem xét và xác nhận lịch hẹn của bạn sớm nhất có thể.</p>
         <p>Xem chi tiết lịch hẹn của bạn <a href="${process.env.FRONTEND_URL}/appointments/${appointmentId}">tại đây</a>.</p>
         <p>Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>
       `
     });
 
-    // Notify garage managers about the update
+    // Also update the manager email template
     const roleManager = await Role.findOne({ roleName: "manager" });
     if (roleManager) {
       const garageManagers = await User.find({
@@ -1047,27 +1011,27 @@ async function sendUpdateNotificationEmails(
             html: `
               <h2>Xin chào ${manager.name},</h2>
               <p>Một lịch hẹn tại garage của bạn đã được <span style="color: #007bff; font-weight: bold;">cập nhật</span> bởi khách hàng.</p>
-              
+
               <h3>Thông tin khách hàng:</h3>
               <ul>
                 <li><strong>Tên:</strong> ${user.name}</li>
                 <li><strong>Email:</strong> ${user.email}</li>
               </ul>
-              
+
               <h3>Thông tin trước khi cập nhật:</h3>
               <ul>
                 <li><strong>Ngày hẹn:</strong> ${oldDisplayDate}</li>
-                <li><strong>Thời gian:</strong> ${oldDisplayStartTime} - ${oldDisplayEndTime}</li>
+                <li><strong>Thời gian:</strong> ${oldDisplayStartTime}</li>
               </ul>
-              
+
               <h3>Thông tin sau khi cập nhật:</h3>
               <ul>
                 <li><strong>Ngày hẹn:</strong> ${newDisplayDate}</li>
-                <li><strong>Thời gian:</strong> ${newDisplayStartTime} - ${newDisplayEndTime}</li>
+                <li><strong>Thời gian:</strong> ${newDisplayStartTime}</li>
                 <li><strong>Ghi chú:</strong> ${note || 'Không có'}</li>
                 <li><strong>Trạng thái:</strong> Đang chờ xác nhận</li>
               </ul>
-              
+
               <p>Vui lòng đăng nhập vào hệ thống để xác nhận hoặc từ chối lịch hẹn này.</p>
               <p>Xem chi tiết lịch hẹn <a href="${process.env.FRONTEND_URL}/manager/appointment/${appointmentId}">tại đây</a>.</p>
             `
