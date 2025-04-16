@@ -135,7 +135,24 @@ const requestPasswordReset = async (email) => {
     from: process.env.MAIL_USER,
     to: email,
     subject: "DriveOn password reset",
-    html: `<p>Click <a href="${link}">here</a> to reset your password.</p>`,
+    html: `
+  <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #f4f4f7; color: #333;">
+    <div style="max-width: 600px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.05);">
+      <h2 style="color: #4F46E5;">🔐 DriveOn Password Reset</h2>
+      <p>Xin chào <strong>${user.name || user.email}</strong>,</p>
+      <p>Chúng tôi đã nhận được yêu cầu đặt lại mật khẩu cho tài khoản DriveOn của bạn.</p>
+      <p>Nhấn vào nút bên dưới để tiếp tục:</p>
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="${link}" style="display: inline-block; background-color: #4F46E5; color: #fff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold;">
+          Đặt lại mật khẩu
+        </a>
+      </div>
+      <p>Nếu bạn không yêu cầu thao tác này, vui lòng bỏ qua email này.</p>
+      <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;" />
+      <p style="font-size: 12px; color: #888;">Liên hệ DriveOn nếu bạn cần hỗ trợ thêm.</p>
+    </div>
+  </div>
+`
   });
   return { message: "Password reset email sent" };
 };
