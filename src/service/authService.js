@@ -213,7 +213,7 @@ const login = async (email, password) => {
   if (!user) throw new Error("Invalid email or password");
   if (user.status !== "active") throw new Error("Account is not active");
 
-  if (!user.password) throw new Error("This account was registered via Google");
+  if (!user.password) throw new Error("Tài khoản này đã được đăng ký bằng Google. Vui lòng sử dụng đăng nhập bằng Google.");
 
   const isMatch = await bcrypt.compare(password, user.password);
   if (!isMatch) throw new Error("Invalid email or password");
