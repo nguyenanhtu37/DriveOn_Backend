@@ -103,6 +103,7 @@ const updateGarage = async (userId, garageId, updateData) => {
     "facadeImages",
     "interiorImages",
     "documentImages",
+    "location",
   ];
   fieldsToUpdate.forEach((field) => {
     if (updateData[field] !== undefined) {
@@ -415,7 +416,7 @@ export const calculateAverageRating = async (garageId) => {
 
   const averageRating =
     feedbacks.reduce((acc, feedback) => acc + feedback.rating, 0) /
-    feedbacks.length || 0;
+      feedbacks.length || 0;
   return averageRating;
 };
 
@@ -507,14 +508,14 @@ export const findGarages = async ({
     operatingDaysArray = operatingDaysArray.length
       ? operatingDaysArray
       : [
-        "Monday",
-        "Tuesday",
-        "Wednesday",
-        "Thursday",
-        "Friday",
-        "Saturday",
-        "Sunday",
-      ];
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday",
+          "Saturday",
+          "Sunday",
+        ];
     rating = rating || 0;
     distance = distance || 10;
 
