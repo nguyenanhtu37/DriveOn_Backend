@@ -440,7 +440,7 @@ const googleLogin = async (token) => {
   );
 
   // return { token: jwtToken };
-  return { user, token };
+  return { user, jwtToken };
 };
 
 export {
