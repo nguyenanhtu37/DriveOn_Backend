@@ -439,7 +439,8 @@ const googleLogin = async (token) => {
     { algorithm: "HS256", expiresIn: "1h" }
   );
 
-  return { token: jwtToken };
+  // return { token: jwtToken };
+  return { user, token };
 };
 
 export {
