@@ -23,6 +23,7 @@ const verifyEmail = async (req, res) => {
 const login = async (req, res) => {
   try {
     const result = await authService.login(req.body.email, req.body.password);
+    console.log("Response login: ", result);
     res.status(200).json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -62,6 +63,7 @@ const googleLogin = async (req, res) => {
   try {
     console.log(req.body);
     const result = await authService.googleLogin(req.body.token);
+    console.log("Response login with Google: ", result);
     res.status(200).json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
