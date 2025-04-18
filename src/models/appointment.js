@@ -59,7 +59,12 @@ const appointmentSchema = new mongoose.Schema({
         },
         nextMaintenance: {
             type: Date
-        }
+        },
+        // //new
+        // isNextMaintenance: {
+        //     type: Boolean,
+        //     default: false, // Mặc định là false, chỉ true nếu lịch hẹn được tạo dựa trên nextMaintenance
+        //   },
     },
     {timestamps: true}
 );

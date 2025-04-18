@@ -206,3 +206,79 @@ export const updateAppointment = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+// export const getNextMaintenanceList = async (req, res) => {
+//   const { garageId } = req.params;
+//   const page = parseInt(req.query.page) || 1; // Mặc định là trang 1
+//   const limit = parseInt(req.query.limit) || 10; // Mặc định là 10 phần tử mỗi trang
+
+//   try {
+//     const result = await appointmentService.getNextMaintenanceListService(
+//       garageId,
+//       page,
+//       limit
+//     );
+
+//     res.status(200).json({
+//       message: "Next maintenance list retrieved successfully",
+//       ...result,
+//     });
+//   } catch (err) {
+//     if (err.message === "This feature is only available for garages with the 'pro' tag") {
+//       return res.status(403).json({ error: err.message });
+//     }
+//     res.status(500).json({ error: err.message });
+//   }
+// };
+
+export const getNextMaintenanceList = async (req, res) => {
+  const { garageId } = req.params;
+  const page = parseInt(req.query.page) || 1; // Mặc định là trang 1
+  const limit = parseInt(req.query.limit) || 10; // Mặc định là 10 phần tử mỗi trang
+  const maxDaysLeft = req.query.maxDaysLeft ? parseInt(req.query.maxDaysLeft) : null; // Lọc theo daysLeft nếu có
+
+  try {
+    const result = await appointmentService.getNextMaintenanceListService(
+      garageId,
+      page,
+      limit,
+      maxDaysLeft
+    );
+
+    res.status(200).json({
+      message: "Next maintenance list retrieved successfully",
+      ...result,
+    });
+  } catch (err) {
+    if (err.message === "This feature is only available for garages with the 'pro' tag") {
+      return res.status(403).json({ error: err.message });
+    }
+    res.status(500).json({ error: err.message });
+  }
+};
+
+
+export const createAppointmentByStaff = async (req, res) => {
+  const { garage, service, vehicle, start, userId } = req.body;
+  const staffId = req.user.id; // ID của staff hoặc manager thực hiện tạo lịch hẹn
+
+  try {
+    console.log("Creating appointment for car owner:", userId); // Log để kiểm tra
+    const appointment = await appointmentService.createAppointmentByStaffService({
+      garage,
+      service,
+      vehicle,
+      start,
+      userId,
+      staffId,
+    });
+
+    res.status(201).json({
+      message: "Appointment created successfully by staff",
+      appointment,
+    });
+  } catch (err) {
+    console.error("Error creating appointment:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+};

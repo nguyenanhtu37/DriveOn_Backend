@@ -10,6 +10,8 @@ import {
   completeAppointment,
   getAppointmentsByGarage,
   confirmAppointment,
+  getNextMaintenanceList,
+  createAppointmentByStaff,
 } from "../controller/appointmentController.js";
 import { authorizeRoles } from "../middleware/authorizeRoles.js";
 
@@ -74,5 +76,15 @@ router.put(
   authorizeRoles(["carowner"]),
   updateAppointment
 ); // Update appointment
+router.get(
+  "/garage/:garageId/next-maintenance",
+  authorizeRoles(["manager", "staff"]),
+  getNextMaintenanceList
+); // Get next maintenance list
+router.post(
+  "/create-by-staff",
+  authorizeRoles(["staff", "manager"]),
+  createAppointmentByStaff
+); // Create appointment by staff or manager
 
 export default router;

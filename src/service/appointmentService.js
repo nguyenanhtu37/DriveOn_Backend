@@ -7,7 +7,7 @@ import Vehicle from "../models/vehicle.js";
 import ServiceDetail
   from "../models/serviceDetail.js";
 import Role from "../models/role.js";
-
+import mongoose from "mongoose";
 
 const checkBooking = async (vehicleId, garageId, start, end, currentAppointmentId = null, isSplit = false) => {
   const garage = await Garage.findById(garageId);
@@ -660,6 +660,309 @@ export const completeAppointmentService = async (appointmentId, userId, updatedE
 
   // Return immediately after saving
   return appointment;
+};
+
+
+// export const getNextMaintenanceListService = async (garageId, page = 1, limit = 10) => {
+//   try {
+//     const garage = await Garage.findById(garageId);
+//     if (!garage) {
+//       throw new Error("Garage not found");
+//     }
+
+//     // Ktra nếu garage không có tag pro
+//     if (garage.tag !== "pro") {
+//       throw new Error("This feature is only available for garages with the 'pro' tag");
+//     }
+
+//     // Tính toán skip dựa trên page và limit
+//     const skip = (page - 1) * limit;
+
+//     // Lấy list các appointment có nextMaintenance và thuộc về garage
+//     const appointments = await Appointment.find({
+//       garage: garageId,
+//       nextMaintenance: { $exists: true, $ne: null },
+//     })
+//       .populate("vehicle", "carBrand carName carPlate")
+//       .populate("user", "name phone email")
+//       .sort({ nextMaintenance: 1 }) // Sắp xếp theo ngày gần nhất
+//       .skip(skip)
+//       .limit(limit);
+
+//     // Tính số ngày còn lại cho mỗi appointment
+//     const today = new Date();
+//     const appointmentsWithDaysLeft = appointments.map((appointment) => {
+//       const nextMaintenanceDate = new Date(appointment.nextMaintenance);
+//       const timeDiff = nextMaintenanceDate - today; // Thời gian chênh lệch (ms)
+//       const daysLeft = Math.ceil(timeDiff / (1000 * 60 * 60 * 24)); // Chuyển đổi sang ngày
+
+//       return {
+//         ...appointment.toObject(),
+//         daysLeft: daysLeft > 0 ? daysLeft : 0, // Nếu đã qua ngày bảo dưỡng, đặt là 0
+//       };
+//     });
+
+//     // Tính tổng số lịch hẹn để trả về tổng số trang
+//     const totalAppointments = await Appointment.countDocuments({
+//       garage: garageId,
+//       nextMaintenance: { $exists: true, $ne: null },
+//     });
+//     const totalPages = Math.ceil(totalAppointments / limit);
+
+//     return {
+//       appointments: appointmentsWithDaysLeft,
+//       totalPages,
+//       currentPage: page,
+//     };
+//   } catch (error) {
+//     throw new Error(error.message);
+//   }
+// };
+
+export const getNextMaintenanceListService = async (garageId, page = 1, limit = 10, maxDaysLeft = null) => {
+  try {
+    const garage = await Garage.findById(garageId);
+    if (!garage) {
+      throw new Error("Garage not found");
+    }
+
+    // Kiểm tra nếu garage không có tag pro
+    if (garage.tag !== "pro") {
+      throw new Error("This feature is only available for garages with the 'pro' tag");
+    }
+
+    // Tính toán skip dựa trên page và limit
+    const skip = (page - 1) * limit;
+
+    // Lấy danh sách các lịch hẹn có `nextMaintenance` và thuộc về garage
+    const appointments = await Appointment.find({
+      garage: garageId,
+      nextMaintenance: { $exists: true, $ne: null },
+    })
+      .populate("vehicle", "carBrand carName carPlate")
+      .populate("user", "name phone email")
+      .sort({ nextMaintenance: 1 }) // Sắp xếp theo ngày gần nhất
+      .skip(skip)
+      .limit(limit);
+
+    // Tính số ngày còn lại cho mỗi lịch hẹn
+    const today = new Date();
+    let appointmentsWithDaysLeft = appointments.map((appointment) => {
+      const nextMaintenanceDate = new Date(appointment.nextMaintenance);
+      const timeDiff = nextMaintenanceDate - today; // Thời gian chênh lệch (ms)
+      const daysLeft = Math.ceil(timeDiff / (1000 * 60 * 60 * 24)); // Chuyển đổi sang ngày
+
+      return {
+        ...appointment.toObject(),
+        daysLeft: daysLeft > 0 ? daysLeft : 0, // Nếu đã qua ngày bảo dưỡng, đặt là 0
+      };
+    });
+
+    // Lọc danh sách dựa trên `maxDaysLeft` nếu được cung cấp
+    if (maxDaysLeft !== null) {
+      appointmentsWithDaysLeft = appointmentsWithDaysLeft.filter(
+        (appointment) => appointment.daysLeft <= maxDaysLeft
+      );
+    }
+
+    // Tính tổng số lịch hẹn để trả về tổng số trang
+    const totalAppointments = await Appointment.countDocuments({
+      garage: garageId,
+      nextMaintenance: { $exists: true, $ne: null },
+    });
+    const totalPages = Math.ceil(totalAppointments / limit);
+
+    return {
+      appointments: appointmentsWithDaysLeft,
+      totalPages,
+      currentPage: page,
+    };
+  } catch (error) {
+    throw new Error(error.message);
+  }
+};
+
+export const createAppointmentByStaffService = async ({
+  garage,
+  service,
+  vehicle,
+  start,
+  userId,
+  staffId,
+}) => {
+  // Chuyển đổi các trường thành ObjectId
+  const garageId = new mongoose.Types.ObjectId(garage);
+  const serviceIds = service.map((id) => new mongoose.Types.ObjectId(id));
+  const vehicleId = new mongoose.Types.ObjectId(vehicle);
+  const carOwnerId = new mongoose.Types.ObjectId(userId);
+
+  // Kiểm tra xem userId có phải là car owner không
+  const carOwner = await User.findById(carOwnerId);
+  if (!carOwner) {
+    throw new Error("Car owner not found");
+  }
+
+  // Kiểm tra vai trò của userId
+  const carOwnerRole = await Role.findOne({ roleName: "carowner" });
+  if (!carOwner.roles.includes(carOwnerRole._id)) {
+    throw new Error("The provided userId does not belong to a car owner");
+  }
+
+  // Validate input
+  const validation = createAppointmentValidate({
+    garage: garageId,
+    service: serviceIds,
+    vehicle: vehicleId,
+    start,
+  });
+  if (!validation.valid) {
+    throw new Error(`Validation error: ${JSON.stringify(validation.errors)}`);
+  }
+
+  const startTime = typeof start === "string" ? new Date(start) : start;
+
+  // Validate start time and calculate end time
+  const validationResult = await convertAndValidateDateTime(startTime, serviceIds);
+  if (!validationResult.isValid) {
+    throw new Error(validationResult.error);
+  }
+
+  const { startTime: validatedStartTime, endTime } = validationResult;
+
+  // Check for booking conflicts
+  const bookingCheck = await checkBooking(vehicleId, garageId, validatedStartTime, endTime);
+  if (bookingCheck.hasConflict) {
+    throw new Error(bookingCheck.conflictMessage || "Booking conflict detected");
+  }
+
+  // Create and save the appointment
+  const newAppointment = new Appointment({
+    user: carOwnerId, // Lưu dưới dạng ObjectId
+    garage: garageId,
+    service: serviceIds,
+    vehicle: vehicleId,
+    start: validatedStartTime,
+    end: endTime,
+    status: "Accepted",
+    tag: "Normal", // Default tag
+    note: `Created by staff ${staffId}`,
+    assignedStaff: staffId,
+  });
+
+  await newAppointment.save();
+
+  // Gửi email thông báo cho car owner
+  sendAppointmentStaffCreatedEmail(newAppointment, carOwner, garageId, staffId)
+    .catch((error) => console.error("Error sending appointment created email:", error));
+
+  return newAppointment;
+};
+
+async function sendAppointmentStaffCreatedEmail(appointment, carOwner, garageId, staffId) {
+  try {
+    // Lấy thông tin garage và staff
+    const garage = await Garage.findById(garageId).select("name address");
+    const staff = await User.findById(staffId).select("name");
+
+    // Format ngày và giờ
+    const displayDate = appointment.start.toLocaleDateString("vi-VN", {
+      timeZone: "Asia/Ho_Chi_Minh",
+    });
+    const displayStartTime = appointment.start.toLocaleTimeString("vi-VN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+      timeZone: "Asia/Ho_Chi_Minh",
+    });
+    const displayEndTime = appointment.end.toLocaleTimeString("vi-VN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+      timeZone: "Asia/Ho_Chi_Minh",
+    });
+
+    // Nội dung email
+    const emailContent = `
+      <h2>Xin chào ${carOwner.name},</h2>
+      <p>Lịch hẹn bảo dưỡng tiếp theo của bạn đã được tạo thành công bởi nhân viên <strong>${staff.name}</strong>.</p>
+      <h3>Chi tiết lịch hẹn:</h3>
+      <ul>
+        <li><strong>Garage:</strong> ${garage.name}</li>
+        <li><strong>Địa chỉ:</strong> ${garage.address}</li>
+        <li><strong>Ngày hẹn:</strong> ${displayDate}</li>
+        <li><strong>Thời gian:</strong> ${displayStartTime} - ${displayEndTime}</li>
+      </ul>
+      <p>Vui lòng đến đúng giờ để được phục vụ tốt nhất.</p>
+      <p>Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>
+    `;
+
+    // Gửi email
+    await transporter.sendMail({
+      from: process.env.MAIL_USER,
+      to: carOwner.email,
+      subject: "Lịch hẹn tiếp theo của bạn đã được tạo thành công bởi nhân viên",
+      html: emailContent,
+    });
+
+    console.log(`Appointment created email sent to ${carOwner.email}`);
+  } catch (error) {
+    console.error("Error sending appointment created email:", error.message);
+  }
+}
+
+export const sendMaintenanceReminderEmails = async () => {
+  try {
+    const today = new Date();
+    const sevenDaysLater = new Date();
+    sevenDaysLater.setDate(today.getDate() + 7);
+
+    // Tìm các lịch bảo dưỡng có `nextMaintenance` đúng 7 ngày sau
+    const appointments = await Appointment.find({
+      nextMaintenance: {
+        $gte: sevenDaysLater.setHours(0, 0, 0, 0), // Bắt đầu ngày
+        $lte: sevenDaysLater.setHours(23, 59, 59, 999), // Kết thúc ngày
+      },
+    })
+      .populate("user", "name email")
+      .populate("vehicle", "carName carPlate")
+      .populate("garage", "name");
+
+    // Gửi email cho từng chủ xe
+    for (const appointment of appointments) {
+      const { user, vehicle, garage, nextMaintenance } = appointment;
+
+      if (user && user.email) {
+        const formattedDate = nextMaintenance.toLocaleDateString("vi-VN", {
+          timeZone: "Asia/Ho_Chi_Minh",
+        });
+
+        const emailContent = `
+          <h2>Dear ${user.name},</h2>
+          <p>This is a reminder that your vehicle <strong>${vehicle.carName} (${vehicle.carPlate})</strong> is scheduled for its next maintenance on <strong>${formattedDate}</strong>.</p>
+          <h3>Garage Details:</h3>
+          <ul>
+            <li><strong>Garage Name:</strong> ${garage.name}</li>
+          </ul>
+          <p>Please ensure your vehicle is ready for maintenance on the scheduled date.</p>
+          <p>Thank you for using our service!</p>
+        `;
+
+        try {
+          await transporter.sendMail({
+            from: process.env.MAIL_USER,
+            to: user.email,
+            subject: "Maintenance Reminder: Your Vehicle's Next Maintenance",
+            html: emailContent,
+          });
+          console.log(`Reminder email sent to ${user.email}`);
+        } catch (error) {
+          console.error(`Failed to send email to ${user.email}:`, error.message);
+        }
+      }
+    }
+  } catch (error) {
+    console.error("Error in sending maintenance reminder emails:", error.message);
+  }
 };
 
 // Separate function to handle email sending in background
