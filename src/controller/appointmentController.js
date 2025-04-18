@@ -34,6 +34,7 @@ export const getAppointmentsByUser = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 export const getAppointmentById = async (req, res) => {
   const { appointmentId } = req.params;
   try {
@@ -48,6 +49,7 @@ export const getAppointmentById = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 export const getAppointmentsByGarage = async (req, res) => {
   const { garageId } = req.params;
   try {
@@ -61,6 +63,7 @@ export const getAppointmentsByGarage = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 export const confirmAppointment = async (req, res) => {
   const { appointmentId } = req.params;
   const userId = req.user.id;
@@ -84,6 +87,7 @@ export const confirmAppointment = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 export const denyAppointment = async (req, res) => {
   const { appointmentId } = req.params;
   const userId = req.user.id;
@@ -107,6 +111,7 @@ export const denyAppointment = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 export const completeAppointment = async (req, res) => {
   const { appointmentId } = req.params;
   const userId = req.user.id;
@@ -137,6 +142,7 @@ export const completeAppointment = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 export const getAcceptedAppointments = async (req, res) => {
   const userId = req.user.id;
   const { garageId } = req.params;
@@ -149,6 +155,7 @@ export const getAcceptedAppointments = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 export const cancelAppointment = async (req, res) => {
   const { appointmentId } = req.params;
   const userId = req.user.id;

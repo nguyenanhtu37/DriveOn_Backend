@@ -40,14 +40,32 @@ export const getDrivingDistance = async (origin, destination) => {
   }
 };
 
+// export const getDistancesToGarages = async (userLocation, garageList) => {
+//   const distancePromises = garageList.map((garage) =>
+//     getDrivingDistance(userLocation, garage.address)
+//   );
+
+//   const distances = await Promise.all(distancePromises);
+
+//   // Ghép lại để biết garage nào cách bao xa
+//   return garageList.map((garage, idx) => ({
+//     ...garage,
+//     distance: distances[idx],
+//   }));
+// };
+
 export const getDistancesToGarages = async (userLocation, garageList) => {
+  if (!Array.isArray(garageList)) {
+    console.error("Invalid garageList passed to getDistancesToGarages:", garageList);
+    return [];
+  }
+
   const distancePromises = garageList.map((garage) =>
     getDrivingDistance(userLocation, garage.address)
   );
 
   const distances = await Promise.all(distancePromises);
 
-  // Ghép lại để biết garage nào cách bao xa
   return garageList.map((garage, idx) => ({
     ...garage,
     distance: distances[idx],
