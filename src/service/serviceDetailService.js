@@ -1,10 +1,13 @@
-import axios from 'axios';
-import dotenv from 'dotenv';
+import axios from "axios";
+import dotenv from "dotenv";
 
 import ServiceDetail from "../models/serviceDetail.js";
-import Garage from '../models/garage.js';
-import Service from '../models/service.js';
-import { validateAddServiceDetail, validateUpdateServiceDetail } from "../validator/serviceDetailValidator.js";
+import Garage from "../models/garage.js";
+import Service from "../models/service.js";
+import {
+  validateAddServiceDetail,
+  validateUpdateServiceDetail,
+} from "../validator/serviceDetailValidator.js";
 
 dotenv.config();
 
@@ -13,7 +16,16 @@ const addServiceDetail = async (serviceDetailData) => {
   // Validate service detail data
   validateAddServiceDetail(serviceDetailData);
 
-  const { service, garage, name, description, images, price, duration, warranty } = serviceDetailData;
+  const {
+    service,
+    garage,
+    name,
+    description,
+    images,
+    price,
+    duration,
+    warranty,
+  } = serviceDetailData;
   const newServiceDetail = new ServiceDetail({
     service,
     garage,
@@ -35,8 +47,13 @@ const getServiceDetailsByGarage = async (garageId) => {
   if (!garageExists) {
     throw new Error("Garage not found");
   }
-  const serviceDetails = await ServiceDetail.find({ garage: garageId }).populate("service").populate("garage");
-  return serviceDetails;
+  const serviceDetails = await ServiceDetail.find({ garage: garageId })
+    .populate("service")
+    .populate("garage");
+  const sortedServiceDetails = serviceDetails.sort((a, b) =>
+    a.name.localeCompare(b.name)
+  );
+  return sortedServiceDetails;
 };
 
 const updateServiceDetail = async (serviceDetailId, updateData) => {
@@ -48,7 +65,8 @@ const updateServiceDetail = async (serviceDetailId, updateData) => {
     throw new Error("Service detail not found");
   }
   serviceDetail.name = updateData.name || serviceDetail.name;
-  serviceDetail.description = updateData.description || serviceDetail.description;
+  serviceDetail.description =
+    updateData.description || serviceDetail.description;
   serviceDetail.images = updateData.images || serviceDetail.images;
   serviceDetail.price = updateData.price || serviceDetail.price;
   serviceDetail.duration = updateData.duration || serviceDetail.duration;
@@ -70,7 +88,7 @@ const deleteServiceDetail = async (serviceDetailId) => {
 export const getServiceDetailById = async (serviceDetailId) => {
   const serviceDetail = await ServiceDetail.findById(serviceDetailId)
     .populate("service")
-    .populate("garage", 'name address phone');
+    .populate("garage", "name address phone");
 
   if (!serviceDetail) {
     console.log("Service detail not found");
@@ -91,12 +109,19 @@ export const searchServices = async (name, location) => {
       try {
         // Sử dụng DistanceMatrix.ai để chuyển đổi địa chỉ thành tọa độ
         const apiKey = process.env.DISTANCEMATRIX_API_KEY;
-        const url = `https://api.distancematrix.ai/maps/api/geocode/json?address=${encodeURIComponent(location)}&key=${apiKey}`;
+        const url = `https://api.distancematrix.ai/maps/api/geocode/json?address=${encodeURIComponent(
+          location
+        )}&key=${apiKey}`;
 
         const response = await axios.get(url);
 
         // Kiểm tra nếu không tìm thấy kết quả
-        if (!response.data || response.data.status !== "OK" || !response.data.result || response.data.result.length === 0) {
+        if (
+          !response.data ||
+          response.data.status !== "OK" ||
+          !response.data.result ||
+          response.data.result.length === 0
+        ) {
           throw new Error("Invalid location. Unable to find coordinates.");
         }
 
@@ -104,7 +129,10 @@ export const searchServices = async (name, location) => {
         const { lat, lng } = response.data.result[0].geometry.location;
         parsedLocation = { lat, lon: lng };
       } catch (error) {
-        console.error("Error fetching coordinates from DistanceMatrix.ai:", error.message);
+        console.error(
+          "Error fetching coordinates from DistanceMatrix.ai:",
+          error.message
+        );
         throw new Error("Failed to fetch coordinates from location.");
       }
 
@@ -114,7 +142,10 @@ export const searchServices = async (name, location) => {
       garages = await Garage.aggregate([
         {
           $geoNear: {
-            near: { type: "Point", coordinates: [parseFloat(lon), parseFloat(lat)] },
+            near: {
+              type: "Point",
+              coordinates: [parseFloat(lon), parseFloat(lat)],
+            },
             distanceField: "distance",
             maxDistance: 10000, // 10km
             spherical: true,
@@ -128,7 +159,8 @@ export const searchServices = async (name, location) => {
       ]);
     }
 
-    const garageIds = garages.length > 0 ? garages.map((garage) => garage._id) : null;
+    const garageIds =
+      garages.length > 0 ? garages.map((garage) => garage._id) : null;
 
     const query = {
       name: { $regex: name, $options: "i" },
@@ -137,7 +169,10 @@ export const searchServices = async (name, location) => {
       query.garage = { $in: garageIds };
     }
 
-    let services = await ServiceDetail.find(query).populate("garage", "name address location tag ratingAverage openTime closeTime operating_days");
+    let services = await ServiceDetail.find(query).populate(
+      "garage",
+      "name address location tag ratingAverage openTime closeTime operating_days"
+    );
     // console.log("Services before filter:", services);
 
     const currentHour = new Date().getHours();
@@ -169,7 +204,9 @@ export const searchServices = async (name, location) => {
 
     if (location) {
       services = services.map((service) => {
-        const garage = garages.find((g) => g._id.toString() === service.garage._id.toString());
+        const garage = garages.find(
+          (g) => g._id.toString() === service.garage._id.toString()
+        );
         return {
           ...service.toObject(),
           distance: garage ? garage.distance : null,
@@ -198,14 +235,19 @@ export const getEmergency = async (latitude, longitude) => {
     }
     console.log("Emergency service found:", emergencyService);
 
-    const serviceDetails = await ServiceDetail.find({ service: emergencyService._id }).populate("garage");
+    const serviceDetails = await ServiceDetail.find({
+      service: emergencyService._id,
+    }).populate("garage");
     console.log("Service details linked to Emergency:", serviceDetails);
 
     // Tìm các garage gần vị trí người dùng
     const garages = await Garage.aggregate([
       {
         $geoNear: {
-          near: { type: "Point", coordinates: [parseFloat(longitude), parseFloat(latitude)] },
+          near: {
+            type: "Point",
+            coordinates: [parseFloat(longitude), parseFloat(latitude)],
+          },
           distanceField: "distance",
           maxDistance: 10000, // 10km
           spherical: true,
@@ -249,7 +291,7 @@ export const getEmergency = async (latitude, longitude) => {
 
       // Kiểm tra giờ hoạt động
       const openHour = parseInt(garage.openTime.split(":")[0], 10);
-      const closeHour = parseInt(garage.closeTime.split(":")[0], 10) || 24; 
+      const closeHour = parseInt(garage.closeTime.split(":")[0], 10) || 24;
       if (currentHour < openHour || currentHour >= closeHour) {
         console.log(`Garage ${garage.name} is closed at ${currentHour}:00`);
         return false;
@@ -270,7 +312,9 @@ export const getEmergency = async (latitude, longitude) => {
     });
 
     const result = openServices.map((serviceDetail) => {
-      const garage = garages.find((g) => g._id.toString() === serviceDetail.garage._id.toString());
+      const garage = garages.find(
+        (g) => g._id.toString() === serviceDetail.garage._id.toString()
+      );
       return {
         ...serviceDetail.toObject(),
         distance: garage ? garage.distance : null,
@@ -286,4 +330,9 @@ export const getEmergency = async (latitude, longitude) => {
   }
 };
 
-export { addServiceDetail, getServiceDetailsByGarage, updateServiceDetail, deleteServiceDetail };
+export {
+  addServiceDetail,
+  getServiceDetailsByGarage,
+  updateServiceDetail,
+  deleteServiceDetail,
+};

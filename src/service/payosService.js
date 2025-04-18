@@ -9,7 +9,7 @@ import transporter from "../config/mailer.js";
 
 dotenv.config();
 
-export const createPaymentLink = async (
+export const createPaymentLink = async ({
     garageId,
     orderCode,
     subscriptionId,
@@ -17,17 +17,17 @@ export const createPaymentLink = async (
     description,
     month,
     idempotencyKey = null
-) => {
+}) => {
     if (!garageId || typeof garageId !== "string") {
-        throw new Error("Invalid garageId. Garage ID is required and must be a string.");
+        throw new Error("Invalid garageId. Must be a string.");
     }
 
     if (typeof calculatedAmount !== "number" || calculatedAmount <= 0) {
-        throw new Error("Invalid amount. Amount must be a positive number.");
+        throw new Error("Invalid amount. Must be a positive number.");
     }
 
     if (calculatedAmount > 10_000_000_000) {
-        throw new Error(`Amount must not exceed 10 billion. Provided amount: ${calculatedAmount}`);
+        throw new Error("Amount must not exceed 10 billion.");
     }
 
     const FRONTEND_URL = process.env.FRONTEND_URL;
@@ -46,27 +46,27 @@ export const createPaymentLink = async (
         idempotencyKey
     });
 
-    const body = {
+    const payosBody = {
         orderCode,
         amount: calculatedAmount,
         description,
         returnUrl: `${FRONTEND_URL}/`,
-        cancelUrl: `${FRONTEND_URL}/`, 
+        cancelUrl: `${FRONTEND_URL}/`,
     };
 
     try {
-        const paymentLinkResponse = await payos.createPaymentLink(body);
+        const response = await payos.createPaymentLink(payosBody);
 
-        if (!paymentLinkResponse?.checkoutUrl) {
-            console.error("Failed to generate payment link. Missing checkout URL.");
-            throw new Error("Failed to create payment link.");
+        if (!response?.checkoutUrl) {
+            console.error("Missing checkoutUrl from PayOS response");
+            throw new Error("Invalid response from PayOS.");
         }
 
-        transaction.checkoutUrl = paymentLinkResponse.checkoutUrl;
+        transaction.checkoutUrl = response.checkoutUrl;
         await transaction.save();
 
         return {
-            checkoutUrl: paymentLinkResponse.checkoutUrl,
+            checkoutUrl: response.checkoutUrl,
             transactionId: transaction._id
         };
     } catch (error) {
@@ -105,11 +105,11 @@ export const processPayment = async ({ orderCode, amount }) => {
 
         const now = dayjs();
         const currentExpiration = garage.expiredTime ? dayjs(garage.expiredTime) : now;
-        const newExpiration = currentExpiration.add(month, "month"); 
+        const newExpiration = currentExpiration.add(month, "month");
 
         garage.subscription = subscription._id;
         garage.expiredTime = newExpiration.toDate();
-        garage.tag = "pro"; 
+        garage.tag = "pro";
 
         await garage.save();
 
@@ -128,9 +128,9 @@ export const processPayment = async ({ orderCode, amount }) => {
 export const sendPaymentSuccessEmailToUser = async (garage, subscription, amount, newExpiration) => {
     const subject = `Your Payment for ${garage.name} has been Successful!`;
 
-    const user = await User.findOne({ 
-        _id: { $in: garage.user },  
-    }).populate('roles'); 
+    const user = await User.findOne({
+        _id: { $in: garage.user },
+    }).populate('roles');
 
     if (user && user.email) {
         const isManager = user.roles.some(role => role.roleName === "manager");
@@ -220,7 +220,7 @@ export const sendPaymentSuccessEmailToAdmin = async (garage, subscription, amoun
     `;
 
     try {
-        const adminEmail = process.env.ADMIN_EMAIL; 
+        const adminEmail = process.env.ADMIN_EMAIL;
         if (adminEmail) {
             await transporter.sendMail({
                 from: process.env.MAIL_USER,

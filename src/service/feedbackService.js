@@ -103,6 +103,21 @@ export const deleteFeedback = async (userId, feedbackId) => {
         throw new Error("Unauthorized");
     }
 
+    const garageId = feedback.garage; 
     await feedback.deleteOne();
+
+    // Cập nhật lại rating trung bình cho garage
+    const feedbacks = await Feedback.find({ garage: garageId });
+    const averageRating =
+        feedbacks.length > 0
+            ? feedbacks.reduce((acc, feedback) => acc + feedback.rating, 0) / feedbacks.length
+            : 0; // Nếu không còn feedback nào, averageRating sẽ trả lại 0
+
+    const garage = await Garage.findById(garageId);
+    if (garage) {
+        garage.ratingAverage = averageRating;
+        await garage.save();
+    }
+
     return { message: "Feedback deleted successfully" };
 };

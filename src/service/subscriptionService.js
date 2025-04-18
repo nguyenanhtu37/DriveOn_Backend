@@ -1,9 +1,9 @@
 import Subscription from "../models/subscription.js";
 import { subscriptionSchema } from "../validator/subscriptionValidator.js";
 
-export const addSubscription = async ({ name, code, description, pricePerMonth }) => {
+export const addSubscription = async ({ name, code, description, price, month }) => {
   try {
-    subscriptionSchema.parse({ name, code, description, pricePerMonth });
+    subscriptionSchema.parse({ name, code, description, price, month });
 
     const existingSub = await Subscription.findOne({ code });
     if (existingSub) {
@@ -14,7 +14,8 @@ export const addSubscription = async ({ name, code, description, pricePerMonth }
       name,
       code,
       description,
-      pricePerMonth,
+      price,
+      month,
     });
 
     await newSubscription.save();
@@ -26,8 +27,7 @@ export const addSubscription = async ({ name, code, description, pricePerMonth }
 
 export const getSubscriptions = async () => {
   try {
-    const subscriptions = await Subscription.find();
-    return subscriptions;
+    return await Subscription.find();
   } catch (err) {
     throw new Error("Failed to retrieve subscriptions");
   }
@@ -64,8 +64,7 @@ export const deleteSubscription = async (subscriptionId) => {
       throw new Error("Invalid subscription ID");
     }
 
-    const deleted = await Subscription.findByIdAndDelete(subscriptionId);
-    return deleted;
+    return await Subscription.findByIdAndDelete(subscriptionId);
   } catch (err) {
     throw new Error(err.message);
   }

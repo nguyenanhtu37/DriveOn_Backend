@@ -14,10 +14,14 @@ const subscriptionSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  pricePerMonth: {
+  price: {
     type: Number, // vnd
     required: true,
   },
+  month: {
+    type: Number,
+    required: true,
+  }
 }, { timestamps: true });
 
 const Subscription = mongoose.model("Subscription", subscriptionSchema);

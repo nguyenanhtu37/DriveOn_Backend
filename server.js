@@ -3,6 +3,8 @@ import connectDB from "./src/config/db.js";
 import dotenv from "dotenv";
 import cors from "cors";
 import bodyParser from "body-parser";
+import cron from "node-cron";
+import { sendMaintenanceReminderEmails } from "./src/service/appointmentService.js";
 
 // Import Routes
 import authRoutes from "./src/routes/authRoutes.js";
@@ -81,4 +83,10 @@ app.get("/", (req, res) => {
 // Start Server
 app.listen(PORT, () => {
   console.log(`Server is running at: http://localhost:${PORT}`);
+});
+
+// Cron job chạy hàng ngày lúc 08:00
+cron.schedule("0 8 * * *", async () => {
+  console.log("Running daily maintenance reminder job at 08:00 AM");
+  await sendMaintenanceReminderEmails();
 });
