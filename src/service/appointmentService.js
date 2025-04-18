@@ -683,10 +683,10 @@ async function sendRejectionEmail(
 }
 
 export const completeAppointmentService = async (
-  appointmentId,
-  userId,
-  updatedEndTime = null,
-  nextMaintenance = null
+    appointmentId,
+    userId,
+    updatedEndTime = null,
+    nextMaintenance = null
 ) => {
   const appointment = await Appointment.findById(appointmentId);
   if (!appointment) {
@@ -705,60 +705,32 @@ export const completeAppointmentService = async (
   // Update end time if provided
   if (updatedEndTime) {
     const endTime =
-      typeof updatedEndTime === "string"
-        ? new Date(updatedEndTime)
-        : updatedEndTime;
+        typeof updatedEndTime === "string"
+            ? new Date(updatedEndTime)
+            : updatedEndTime;
     if (isNaN(endTime.getTime())) {
       throw new Error("Invalid end time format");
     }
 
-    // Validate that the end time is after the start time
+    // Simple validation: ensure end time is after start time
     if (endTime <= appointment.start) {
       throw new Error("End time must be after start time");
     }
-    // Set next maintenance date if provided
-    if (nextMaintenance) {
-      const nextDate = typeof nextMaintenance === 'string'
-          ? new Date(nextMaintenance)
-          : nextMaintenance;
-
-      if (isNaN(nextDate.getTime())) {
-        throw new Error("Invalid next maintenance date");
-      }
-
-      appointment.nextMaintenance = nextDate;
-    }
-
-    // Get service details for validation
-    const serviceIds = appointment.service;
-
-    // Use convertAndValidateDateTime to validate the time
-    // We'll pass the original start time but will only use the validation part
-    const validationResult = await convertAndValidateDateTime(
-      appointment.start,
-      serviceIds
-    );
-    if (!validationResult.isValid) {
-      throw new Error(`Time validation error: ${validationResult.error}`);
-    }
-
-    // Check for booking conflicts with the new end time
-    const bookingCheck = await checkBooking(
-      appointment.vehicle,
-      appointment.garage,
-      appointment.start,
-      endTime,
-      appointmentId // Exclude current appointment from conflict check
-    );
-
-    if (bookingCheck.hasConflict) {
-      throw new Error(
-        bookingCheck.conflictMessage ||
-          "Booking conflict detected with new end time"
-      );
-    }
 
     appointment.end = endTime;
+  }
+
+  // Set next maintenance date if provided
+  if (nextMaintenance) {
+    const nextDate = typeof nextMaintenance === 'string'
+        ? new Date(nextMaintenance)
+        : nextMaintenance;
+
+    if (isNaN(nextDate.getTime())) {
+      throw new Error("Invalid next maintenance date");
+    }
+
+    appointment.nextMaintenance = nextDate;
   }
 
   // Assign staff who completed the service
@@ -769,7 +741,7 @@ export const completeAppointmentService = async (
   // Get user and garage info for email
   const customer = await User.findById(appointment.user);
   const garageInfo = await Garage.findById(appointment.garage).select(
-    "name address phone"
+      "name address phone"
   );
   const staffInfo = await User.findById(userId).select("name");
 
@@ -778,12 +750,6 @@ export const completeAppointmentService = async (
     timeZone: "Asia/Ho_Chi_Minh",
   });
   const displayStartTime = appointment.start.toLocaleTimeString("vi-VN", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-    timeZone: "Asia/Ho_Chi_Minh",
-  });
-  const displayEndTime = appointment.end.toLocaleTimeString("vi-VN", {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
