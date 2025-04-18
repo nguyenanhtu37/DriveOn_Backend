@@ -663,14 +663,70 @@ export const completeAppointmentService = async (appointmentId, userId, updatedE
 };
 
 
-export const getNextMaintenanceListService = async (garageId, page = 1, limit = 10) => {
+// export const getNextMaintenanceListService = async (garageId, page = 1, limit = 10) => {
+//   try {
+//     const garage = await Garage.findById(garageId);
+//     if (!garage) {
+//       throw new Error("Garage not found");
+//     }
+
+//     // Ktra nếu garage không có tag pro
+//     if (garage.tag !== "pro") {
+//       throw new Error("This feature is only available for garages with the 'pro' tag");
+//     }
+
+//     // Tính toán skip dựa trên page và limit
+//     const skip = (page - 1) * limit;
+
+//     // Lấy list các appointment có nextMaintenance và thuộc về garage
+//     const appointments = await Appointment.find({
+//       garage: garageId,
+//       nextMaintenance: { $exists: true, $ne: null },
+//     })
+//       .populate("vehicle", "carBrand carName carPlate")
+//       .populate("user", "name phone email")
+//       .sort({ nextMaintenance: 1 }) // Sắp xếp theo ngày gần nhất
+//       .skip(skip)
+//       .limit(limit);
+
+//     // Tính số ngày còn lại cho mỗi appointment
+//     const today = new Date();
+//     const appointmentsWithDaysLeft = appointments.map((appointment) => {
+//       const nextMaintenanceDate = new Date(appointment.nextMaintenance);
+//       const timeDiff = nextMaintenanceDate - today; // Thời gian chênh lệch (ms)
+//       const daysLeft = Math.ceil(timeDiff / (1000 * 60 * 60 * 24)); // Chuyển đổi sang ngày
+
+//       return {
+//         ...appointment.toObject(),
+//         daysLeft: daysLeft > 0 ? daysLeft : 0, // Nếu đã qua ngày bảo dưỡng, đặt là 0
+//       };
+//     });
+
+//     // Tính tổng số lịch hẹn để trả về tổng số trang
+//     const totalAppointments = await Appointment.countDocuments({
+//       garage: garageId,
+//       nextMaintenance: { $exists: true, $ne: null },
+//     });
+//     const totalPages = Math.ceil(totalAppointments / limit);
+
+//     return {
+//       appointments: appointmentsWithDaysLeft,
+//       totalPages,
+//       currentPage: page,
+//     };
+//   } catch (error) {
+//     throw new Error(error.message);
+//   }
+// };
+
+export const getNextMaintenanceListService = async (garageId, page = 1, limit = 10, maxDaysLeft = null) => {
   try {
     const garage = await Garage.findById(garageId);
     if (!garage) {
       throw new Error("Garage not found");
     }
 
-    // Ktra nếu garage không có tag pro
+    // Kiểm tra nếu garage không có tag pro
     if (garage.tag !== "pro") {
       throw new Error("This feature is only available for garages with the 'pro' tag");
     }
@@ -678,7 +734,7 @@ export const getNextMaintenanceListService = async (garageId, page = 1, limit = 
     // Tính toán skip dựa trên page và limit
     const skip = (page - 1) * limit;
 
-    // Lấy list các appointment có nextMaintenance và thuộc về garage
+    // Lấy danh sách các lịch hẹn có `nextMaintenance` và thuộc về garage
     const appointments = await Appointment.find({
       garage: garageId,
       nextMaintenance: { $exists: true, $ne: null },
@@ -689,9 +745,9 @@ export const getNextMaintenanceListService = async (garageId, page = 1, limit = 
       .skip(skip)
       .limit(limit);
 
-    // Tính số ngày còn lại cho mỗi appointment
+    // Tính số ngày còn lại cho mỗi lịch hẹn
     const today = new Date();
-    const appointmentsWithDaysLeft = appointments.map((appointment) => {
+    let appointmentsWithDaysLeft = appointments.map((appointment) => {
       const nextMaintenanceDate = new Date(appointment.nextMaintenance);
       const timeDiff = nextMaintenanceDate - today; // Thời gian chênh lệch (ms)
       const daysLeft = Math.ceil(timeDiff / (1000 * 60 * 60 * 24)); // Chuyển đổi sang ngày
@@ -701,6 +757,13 @@ export const getNextMaintenanceListService = async (garageId, page = 1, limit = 
         daysLeft: daysLeft > 0 ? daysLeft : 0, // Nếu đã qua ngày bảo dưỡng, đặt là 0
       };
     });
+
+    // Lọc danh sách dựa trên `maxDaysLeft` nếu được cung cấp
+    if (maxDaysLeft !== null) {
+      appointmentsWithDaysLeft = appointmentsWithDaysLeft.filter(
+        (appointment) => appointment.daysLeft <= maxDaysLeft
+      );
+    }
 
     // Tính tổng số lịch hẹn để trả về tổng số trang
     const totalAppointments = await Appointment.countDocuments({
@@ -718,7 +781,6 @@ export const getNextMaintenanceListService = async (garageId, page = 1, limit = 
     throw new Error(error.message);
   }
 };
-
 
 export const createAppointmentByStaffService = async ({
   garage,
@@ -822,7 +884,7 @@ async function sendAppointmentStaffCreatedEmail(appointment, carOwner, garageId,
     // Nội dung email
     const emailContent = `
       <h2>Xin chào ${carOwner.name},</h2>
-      <p>Lịch hẹn tiếp theo của bạn đã được tạo thành công bởi nhân viên <strong>${staff.name}</strong>.</p>
+      <p>Lịch hẹn bảo dưỡng tiếp theo của bạn đã được tạo thành công bởi nhân viên <strong>${staff.name}</strong>.</p>
       <h3>Chi tiết lịch hẹn:</h3>
       <ul>
         <li><strong>Garage:</strong> ${garage.name}</li>
