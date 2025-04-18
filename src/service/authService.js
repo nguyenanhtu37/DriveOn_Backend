@@ -142,7 +142,9 @@ const signup = async (userData) => {
 
   // Store only necessary info in token (no password)
   const tokenPayload = { email, name, phone, roles, avatar, hashedPassword };
-  const token = jwt.sign(tokenPayload, process.env.JWT_SECRET, { expiresIn: "15m" });
+  const token = jwt.sign(tokenPayload, process.env.JWT_SECRET, {
+    expiresIn: "15m",
+  });
 
   await redis.setex(email, 900, token); // 15 minutes
 
@@ -178,7 +180,7 @@ const signup = async (userData) => {
           </p>
         </div>
       </div>
-    `
+    `,
   });
 
   return { message: "Verification email sent" };
@@ -187,9 +189,12 @@ const signup = async (userData) => {
 const verifyEmail = async (token) => {
   const payload = jwt.verify(token, process.env.JWT_SECRET);
   const storedToken = await redis.get(payload.email);
-  if (!storedToken || storedToken !== token) throw new Error("Invalid or expired token");
+  if (!storedToken || storedToken !== token)
+    throw new Error("Invalid or expired token");
 
-  const defaultRoles = await Role.find({ roleName: { $in: ["carowner", "manager"] } });
+  const defaultRoles = await Role.find({
+    roleName: { $in: ["carowner", "manager"] },
+  });
   if (defaultRoles.length < 2) throw new Error("Default role not found");
 
   const user = new User({
@@ -209,11 +214,16 @@ const verifyEmail = async (token) => {
 const login = async (email, password) => {
   validateLogin(email, password);
 
-  const user = await User.findOne({ email }).populate("roles").populate("garageList");
+  const user = await User.findOne({ email })
+    .populate("roles")
+    .populate("garageList");
   if (!user) throw new Error("Invalid email or password");
   if (user.status !== "active") throw new Error("Account is not active");
 
-  if (!user.password) throw new Error("Tài khoản này đã được đăng ký bằng Google. Vui lòng sử dụng đăng nhập bằng Google.");
+  if (!user.password)
+    throw new Error(
+      "Tài khoản này đã được đăng ký bằng Google. Vui lòng sử dụng đăng nhập bằng Google."
+    );
 
   const isMatch = await bcrypt.compare(password, user.password);
   if (!isMatch) throw new Error("Invalid email or password");
@@ -243,8 +253,7 @@ const requestPasswordReset = async (email) => {
   );
   // luu token vao redis (key: email, value: token)
   await redis.setex(email, 900, token); // 15'
-  const checkToken = await redis.get(email);
-  console.log("Token saved in Redis:", checkToken);
+
   // gui mail reset
   const link = `${FRONTEND_URL}/reset-password?token=${token}`;
   await transporter.sendMail({
@@ -268,7 +277,7 @@ const requestPasswordReset = async (email) => {
       <p style="font-size: 12px; color: #888;">Liên hệ DriveOn nếu bạn cần hỗ trợ thêm.</p>
     </div>
   </div>
-`
+`,
   });
   return { message: "Password reset email sent" };
 };
@@ -406,10 +415,14 @@ const googleLogin = async (token) => {
     family_name,
   } = payload;
 
-  let user = await User.findOne({ email, googleId }).populate("roles").populate("garageList");
+  let user = await User.findOne({ email, googleId })
+    .populate("roles")
+    .populate("garageList");
 
   if (!user) {
-    const defaultRoles = await Role.find({ roleName: { $in: ["carowner", "manager"] } });
+    const defaultRoles = await Role.find({
+      roleName: { $in: ["carowner", "manager"] },
+    });
     if (defaultRoles.length < 2) throw new Error("Default role not found");
 
     user = new User({
