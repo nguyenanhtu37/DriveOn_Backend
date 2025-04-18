@@ -223,3 +223,52 @@ export const getNextMaintenanceList = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+// export const createAppointmentByStaff = async (req, res) => {
+//   const { garage, service, vehicle, start, userId } = req.body;
+//   const staffId = req.user.id; // ID của staff hoặc manager thực hiện tạo lịch hẹn
+
+//   try {
+//     // Gọi service để tạo appointment
+//     const appointment = await appointmentService.createAppointmentByStaffService({
+//       garage,
+//       service,
+//       vehicle,
+//       start,
+//       userId,
+//       staffId,
+//     });
+
+//     res.status(201).json({
+//       message: "Appointment created successfully by staff",
+//       appointment,
+//     });
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// };
+
+export const createAppointmentByStaff = async (req, res) => {
+  const { garage, service, vehicle, start, userId } = req.body;
+  const staffId = req.user.id; // ID của staff hoặc manager thực hiện tạo lịch hẹn
+
+  try {
+    console.log("Creating appointment for car owner:", userId); // Log để kiểm tra
+    const appointment = await appointmentService.createAppointmentByStaffService({
+      garage,
+      service,
+      vehicle,
+      start,
+      userId,
+      staffId,
+    });
+
+    res.status(201).json({
+      message: "Appointment created successfully by staff",
+      appointment,
+    });
+  } catch (err) {
+    console.error("Error creating appointment:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+};

@@ -7,7 +7,7 @@ import Vehicle from "../models/vehicle.js";
 import ServiceDetail
   from "../models/serviceDetail.js";
 import Role from "../models/role.js";
-
+import mongoose from "mongoose";
 
 const checkBooking = async (vehicleId, garageId, start, end, currentAppointmentId = null, isSplit = false) => {
   const garage = await Garage.findById(garageId);
@@ -718,6 +718,135 @@ export const getNextMaintenanceListService = async (garageId, page = 1, limit = 
     throw new Error(error.message);
   }
 };
+
+
+export const createAppointmentByStaffService = async ({
+  garage,
+  service,
+  vehicle,
+  start,
+  userId,
+  staffId,
+}) => {
+  // Chuyển đổi các trường thành ObjectId
+  const garageId = new mongoose.Types.ObjectId(garage);
+  const serviceIds = service.map((id) => new mongoose.Types.ObjectId(id));
+  const vehicleId = new mongoose.Types.ObjectId(vehicle);
+  const carOwnerId = new mongoose.Types.ObjectId(userId);
+
+  // Kiểm tra xem userId có phải là car owner không
+  const carOwner = await User.findById(carOwnerId);
+  if (!carOwner) {
+    throw new Error("Car owner not found");
+  }
+
+  // Kiểm tra vai trò của userId
+  const carOwnerRole = await Role.findOne({ roleName: "carowner" });
+  if (!carOwner.roles.includes(carOwnerRole._id)) {
+    throw new Error("The provided userId does not belong to a car owner");
+  }
+
+  // Validate input
+  const validation = createAppointmentValidate({
+    garage: garageId,
+    service: serviceIds,
+    vehicle: vehicleId,
+    start,
+  });
+  if (!validation.valid) {
+    throw new Error(`Validation error: ${JSON.stringify(validation.errors)}`);
+  }
+
+  const startTime = typeof start === "string" ? new Date(start) : start;
+
+  // Validate start time and calculate end time
+  const validationResult = await convertAndValidateDateTime(startTime, serviceIds);
+  if (!validationResult.isValid) {
+    throw new Error(validationResult.error);
+  }
+
+  const { startTime: validatedStartTime, endTime } = validationResult;
+
+  // Check for booking conflicts
+  const bookingCheck = await checkBooking(vehicleId, garageId, validatedStartTime, endTime);
+  if (bookingCheck.hasConflict) {
+    throw new Error(bookingCheck.conflictMessage || "Booking conflict detected");
+  }
+
+  // Create and save the appointment
+  const newAppointment = new Appointment({
+    user: carOwnerId, // Lưu dưới dạng ObjectId
+    garage: garageId,
+    service: serviceIds,
+    vehicle: vehicleId,
+    start: validatedStartTime,
+    end: endTime,
+    status: "Accepted",
+    tag: "Normal", // Default tag
+    note: `Created by staff ${staffId}`,
+    assignedStaff: staffId,
+  });
+
+  await newAppointment.save();
+
+  // Gửi email thông báo cho car owner
+  sendAppointmentStaffCreatedEmail(newAppointment, carOwner, garageId, staffId)
+    .catch((error) => console.error("Error sending appointment created email:", error));
+
+  return newAppointment;
+};
+
+async function sendAppointmentStaffCreatedEmail(appointment, carOwner, garageId, staffId) {
+  try {
+    // Lấy thông tin garage và staff
+    const garage = await Garage.findById(garageId).select("name address");
+    const staff = await User.findById(staffId).select("name");
+
+    // Format ngày và giờ
+    const displayDate = appointment.start.toLocaleDateString("vi-VN", {
+      timeZone: "Asia/Ho_Chi_Minh",
+    });
+    const displayStartTime = appointment.start.toLocaleTimeString("vi-VN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+      timeZone: "Asia/Ho_Chi_Minh",
+    });
+    const displayEndTime = appointment.end.toLocaleTimeString("vi-VN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+      timeZone: "Asia/Ho_Chi_Minh",
+    });
+
+    // Nội dung email
+    const emailContent = `
+      <h2>Xin chào ${carOwner.name},</h2>
+      <p>Lịch hẹn tiếp theo của bạn đã được tạo thành công bởi nhân viên <strong>${staff.name}</strong>.</p>
+      <h3>Chi tiết lịch hẹn:</h3>
+      <ul>
+        <li><strong>Garage:</strong> ${garage.name}</li>
+        <li><strong>Địa chỉ:</strong> ${garage.address}</li>
+        <li><strong>Ngày hẹn:</strong> ${displayDate}</li>
+        <li><strong>Thời gian:</strong> ${displayStartTime} - ${displayEndTime}</li>
+      </ul>
+      <p>Vui lòng đến đúng giờ để được phục vụ tốt nhất.</p>
+      <p>Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>
+    `;
+
+    // Gửi email
+    await transporter.sendMail({
+      from: process.env.MAIL_USER,
+      to: carOwner.email,
+      subject: "Lịch hẹn tiếp theo của bạn đã được tạo thành công bởi nhân viên",
+      html: emailContent,
+    });
+
+    console.log(`Appointment created email sent to ${carOwner.email}`);
+  } catch (error) {
+    console.error("Error sending appointment created email:", error.message);
+  }
+}
 
 export const sendMaintenanceReminderEmails = async () => {
   try {
