@@ -1,9 +1,12 @@
 import Service from "../models/service.js";
-import { validateAddService, validateUpdateService } from "../validator/serviceValidator.js";
+import {
+  validateAddService,
+  validateUpdateService,
+} from "../validator/serviceValidator.js";
 
 const addService = async (serviceData) => {
-    // hàm validate chức năng add service
-    validateAddService(serviceData);
+  // hàm validate chức năng add service
+  validateAddService(serviceData);
 
   const { name, description, image } = serviceData;
   const newService = new Service({
@@ -19,7 +22,8 @@ const addService = async (serviceData) => {
 
 const getAllServices = async () => {
   const services = await Service.find();
-  return services;
+  const sortedServices = services.sort((a, b) => a.name.localeCompare(b.name));
+  return sortedServices;
 };
 
 const updateService = async (serviceId, updateData) => {
@@ -48,16 +52,16 @@ const deleteService = async (serviceId) => {
 };
 
 const escapeRegex = (text) => {
-  return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+  return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
 };
 
 const searchServiceByName = async (name, limit = 10) => {
   try {
     const safeName = escapeRegex(name);
     const services = await Service.find({
-      name: { $regex: safeName, $options: "i" }
+      name: { $regex: safeName, $options: "i" },
     }).limit(limit);
-    
+
     return services;
   } catch (error) {
     console.error("Error while searching for services:", error);
@@ -65,5 +69,10 @@ const searchServiceByName = async (name, limit = 10) => {
   }
 };
 
-export { addService, getAllServices, updateService, deleteService, searchServiceByName };
-
+export {
+  addService,
+  getAllServices,
+  updateService,
+  deleteService,
+  searchServiceByName,
+};
