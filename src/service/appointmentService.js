@@ -262,8 +262,8 @@ const convertAndValidateDateTime = async (start, serviceIds) => {
 };
 
 export const createAppointmentService = async ({
-                                                 userId, garage, service, vehicle, start, tag, note,
-                                               }) => {
+  userId, garage, service, vehicle, start, tag, note,
+}) => {
   // Validation and conflict checking code remains the same
   const validation = createAppointmentValidate({ garage, service, vehicle, start, tag, note });
   if (!validation.valid) {
@@ -285,12 +285,12 @@ export const createAppointmentService = async ({
   }
 
   const bookingCheck = await checkBooking(
-      vehicle,
-      garage,
-      validatedStartTime,
-      endTime,
-      null,
-      isSplit  // Pass the isSplit flag to checkBooking
+    vehicle,
+    garage,
+    validatedStartTime,
+    endTime,
+    null,
+    isSplit  // Pass the isSplit flag to checkBooking
   );
 
   if (bookingCheck && bookingCheck.hasConflict) {
@@ -314,7 +314,7 @@ export const createAppointmentService = async ({
 
   // Send emails asynchronously - fire and forget
   sendAppointmentEmails(newAppointment._id, userId, garage, vehicle, note, validatedStartTime, endTime)
-      .catch(error => console.error('Error sending appointment emails:', error));
+    .catch(error => console.error('Error sending appointment emails:', error));
 
   // Return immediately after saving the appointment
   return newAppointment;
@@ -410,19 +410,19 @@ async function sendAppointmentEmails(appointmentId, userId, garageId, vehicleId,
 
 export const getAppointmentsByUserService = async (userId) => {
   return await Appointment.find({ user: userId })
-      .populate("user", "name email")
-      .populate("garage", "name address")
-      .populate("vehicle", "carBrand carName carPlate")
-      .populate("service","");
+    .populate("user", "name email")
+    .populate("garage", "name address")
+    .populate("vehicle", "carBrand carName carPlate")
+    .populate("service", "");
 };
 
 export const getAppointmentByIdService = async (appointmentId) => {
   return await Appointment.findById(appointmentId)
-      .populate("user", "avatar name email locale phone") // Select basic user information
-      .populate("garage", "name address") // Select basic garage information
-      .populate("vehicle", "carBrand carName carPlate") // Select basic vehicle information
-      .populate("service") // Populate service details
-      .populate("assignedStaff", "name avatar"); // Add staff information
+    .populate("user", "avatar name email locale phone") // Select basic user information
+    .populate("garage", "name address") // Select basic garage information
+    .populate("vehicle", "carBrand carName carPlate") // Select basic vehicle information
+    .populate("service") // Populate service details
+    .populate("assignedStaff", "name avatar"); // Add staff information
 };
 
 export const getAppointmentsByGarageService = async (garageId) => {
@@ -453,7 +453,7 @@ export const confirmAppointmentService = async (appointmentId, userId) => {
 
   // Send confirmation email asynchronously (fire and forget)
   sendConfirmationEmail(appointmentId, appointment.user, appointment.garage, appointment.start, appointment.end)
-      .catch(error => console.error('Error sending confirmation email:', error));
+    .catch(error => console.error('Error sending confirmation email:', error));
 
   // Return immediately after saving
   return appointment;
@@ -525,7 +525,7 @@ export const denyAppointmentService = async (appointmentId, userId) => {
 
   // Send rejection email asynchronously
   sendRejectionEmail(appointmentId, appointment.user, appointment.garage, appointment.start, appointment.end)
-      .catch(error => console.error('Error sending rejection email:', error));
+    .catch(error => console.error('Error sending rejection email:', error));
 
   // Return immediately after saving
   return appointment;
@@ -582,7 +582,7 @@ async function sendRejectionEmail(appointmentId, customerId, garageId, startTime
 }
 
 
-export const completeAppointmentService = async (appointmentId, userId, updatedEndTime = null,nextMaintenance = null) => {
+export const completeAppointmentService = async (appointmentId, userId, updatedEndTime = null, nextMaintenance = null) => {
   const appointment = await Appointment.findById(appointmentId);
   if (!appointment) {
     throw new Error("Appointment not found");
@@ -638,8 +638,8 @@ export const completeAppointmentService = async (appointmentId, userId, updatedE
   // Set next maintenance date if provided
   if (nextMaintenance) {
     const nextDate = typeof nextMaintenance === 'string'
-        ? new Date(nextMaintenance)
-        : nextMaintenance;
+      ? new Date(nextMaintenance)
+      : nextMaintenance;
 
     if (isNaN(nextDate.getTime())) {
       throw new Error("Invalid next maintenance date");
@@ -656,7 +656,7 @@ export const completeAppointmentService = async (appointmentId, userId, updatedE
 
   // Send completion email asynchronously
   sendCompletionEmail(appointmentId, appointment.user, appointment.garage, userId, appointment.start, appointment.end)
-      .catch(error => console.error('Error sending completion email:', error));
+    .catch(error => console.error('Error sending completion email:', error));
 
   // Return immediately after saving
   return appointment;
@@ -1028,10 +1028,10 @@ export const getAcceptedAppointmentsService = async (userId, garageId) => {
   }
 
   return await Appointment.find({ status: "Accepted", garage: garageId })
-      .populate("user", "name email")
-      .populate("garage", "name address")
-      .populate("vehicle", "carBrand carName carPlate")
-      .populate("service");
+    .populate("user", "name email")
+    .populate("garage", "name address")
+    .populate("vehicle", "carBrand carName carPlate")
+    .populate("service");
 };
 
 export const cancelAppointmentService = async (appointmentId, userId) => {
@@ -1049,7 +1049,7 @@ export const cancelAppointmentService = async (appointmentId, userId) => {
 
   // Send cancellation emails asynchronously
   sendCancellationEmails(appointmentId, appointment.user, appointment.garage, appointment.start, appointment.end)
-      .catch(error => console.error('Error sending cancellation emails:', error));
+    .catch(error => console.error('Error sending cancellation emails:', error));
 
   // Return immediately after saving
   return appointment;
@@ -1147,7 +1147,7 @@ export const updateAppointmentService = async (appointmentId, userId, updateData
 
   // Remove undefined fields
   Object.keys(allowedUpdates).forEach(key =>
-      allowedUpdates[key] === undefined && delete allowedUpdates[key]
+    allowedUpdates[key] === undefined && delete allowedUpdates[key]
   );
 
   // Validate update data
@@ -1182,8 +1182,8 @@ export const updateAppointmentService = async (appointmentId, userId, updateData
   // Always recalculate end time if service or start is being updated
   if (allowedUpdates.service || allowedUpdates.start) {
     const newStartTime = allowedUpdates.start ?
-        (typeof allowedUpdates.start === 'string' ? new Date(allowedUpdates.start) : allowedUpdates.start) :
-        appointment.start;
+      (typeof allowedUpdates.start === 'string' ? new Date(allowedUpdates.start) : allowedUpdates.start) :
+      appointment.start;
 
     // Use convertAndValidateDateTime for consistent date validation
     const validationResult = await convertAndValidateDateTime(newStartTime, serviceIds);
@@ -1196,11 +1196,11 @@ export const updateAppointmentService = async (appointmentId, userId, updateData
 
     // Check for booking conflicts with consistent UTC date handling
     const bookingCheck = await checkBooking(
-        appointment.vehicle,
-        appointment.garage,
-        startTime,
-        endTime,
-        appointmentId
+      appointment.vehicle,
+      appointment.garage,
+      startTime,
+      endTime,
+      appointmentId
     );
 
     if (bookingCheck.hasConflict) {
@@ -1226,21 +1226,21 @@ export const updateAppointmentService = async (appointmentId, userId, updateData
 
   // Update appointment in the database
   const updatedAppointment = await Appointment.findByIdAndUpdate(
-      appointmentId,
-      updateOperation,
-      { new: true }
+    appointmentId,
+    updateOperation,
+    { new: true }
   ).populate("garage").populate("service");
 
   // Send update notification email asynchronously
   sendUpdateNotificationEmails(
-      appointmentId,
-      userId,
-      updatedAppointment.garage._id,
-      oldStart,
-      oldEnd,
-      startTime,
-      endTime,
-      allowedUpdates.note
+    appointmentId,
+    userId,
+    updatedAppointment.garage._id,
+    oldStart,
+    oldEnd,
+    startTime,
+    endTime,
+    allowedUpdates.note
   ).catch(error => console.error('Error sending update notification emails:', error));
 
   // Return immediately after updating
@@ -1249,14 +1249,14 @@ export const updateAppointmentService = async (appointmentId, userId, updateData
 
 // Separate function to handle email sending in background
 async function sendUpdateNotificationEmails(
-    appointmentId,
-    userId,
-    garageId,
-    oldStartTime,
-    oldEndTime,
-    newStartTime,
-    newEndTime,
-    note
+  appointmentId,
+  userId,
+  garageId,
+  oldStartTime,
+  oldEndTime,
+  newStartTime,
+  newEndTime,
+  note
 ) {
   try {
     // Get user and garage info for email
@@ -1298,7 +1298,7 @@ async function sendUpdateNotificationEmails(
 
     // Determine what changed for better email content
     const timeChanged = oldStartTime.getTime() !== newStartTime.getTime() ||
-        oldEndTime.getTime() !== newEndTime.getTime();
+      oldEndTime.getTime() !== newEndTime.getTime();
 
     // Send email to customer about the update
     await transporter.sendMail({

@@ -71,7 +71,7 @@ const viewGarages = async (userId) => {
 const getGarageById = async (garageId) => {
   const garage = await Garage.findById(garageId).populate(
     "user",
-    "name email phone"
+    "name email phone avatar"
   );
   if (!garage) {
     throw new Error("Garage not found");
@@ -103,6 +103,7 @@ const updateGarage = async (userId, garageId, updateData) => {
     "facadeImages",
     "interiorImages",
     "documentImages",
+    "location",
   ];
   fieldsToUpdate.forEach((field) => {
     if (updateData[field] !== undefined) {
