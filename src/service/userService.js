@@ -37,9 +37,9 @@ const updatePersonalProfile = async (userId, userData) => {
     const user = await User.findById(userId);
     if (!user) throw new Error("User not found");
     // Update thông tin người dùng
-    user.name = userData.name;
-    user.phone = userData.phone;
-    user.avatar = userData.avatar;
+    if (userData.name !== undefined) user.name = userData.name;
+    if (userData.phone !== undefined) user.phone = userData.phone;
+    if (userData.avatar !== undefined) user.avatar = userData.avatar;
     await user.save();
     return { message: "Personal profile updated successfully" };
   } catch (error) {
