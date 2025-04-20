@@ -24,9 +24,12 @@ import {
     // getCoordinates,
     // getGaragesWithinRadius,
     // filterGarages,
-    // filterGaragesByRating,,
+    // filterGaragesByRating,
     viewAllGaragesByAdmin,
-    viewGarageRegistrationsCarOwner
+    viewGarageRegistrationsCarOwner,
+    makeCall,
+    ivr,
+    handleKey,
 } from '../controller/garageController.js';
 
 const router = express.Router();
@@ -42,6 +45,10 @@ router.put("/:id/staff/enable", authMiddleware, enableStaff);
 router.get("/filter", findGarages);
 // emergency assistance
 router.get('/emergency', findRescueGarages);
+// call emergency via Twilio
+router.post('/call', makeCall);
+router.post("/ivr", ivr);
+router.post("/handle-key", handleKey);
 
 // lấy kinh độ, vĩ độ khi ng dùng nhập text
 // router.get("/get-coordinates", getCoordinates);

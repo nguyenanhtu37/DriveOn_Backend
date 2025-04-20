@@ -1,6 +1,11 @@
 import mongoose from "mongoose";
+import dotenv from 'dotenv';
 import Garage from "../models/garage.js";
 import * as garageService from "../service/garageService.js";
+import {client} from "../config/twilio.js";
+import twilio from 'twilio';
+
+dotenv.config();
 
 const registerGarage = async (req, res) => {
   const user = req.user;
@@ -360,6 +365,65 @@ export const findRescueGarages = async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
+};
+
+export const makeCall = async (req, res) => {
+  try {
+    const { to } = req.body; // Số điện thoại garage
+
+    if (!to) {
+      return res.status(400).json({ message: 'Missing garage phone number' });
+    }
+
+    // Thực hiện cuộc gọi từ Twilio
+    const call = await client.calls.create({
+      from: process.env.TWILIO_PHONE, // Số điện thoại Twilio của bạn
+      to,
+      twiml: `<Response><Redirect>http://localhost:5000/api/garage/ivr</Redirect></Response>`, // Cuộc gọi sẽ tự động chuyển tiếp đến số garage
+    });
+
+    return res.status(200).json({
+      message: 'Call initiated to garage',
+      callSid: call.sid,
+    });
+  } catch (error) {
+    console.error('Call error:', error);
+    return res.status(500).json({ message: 'Failed to make call', error: error.message });
+  }
+};
+
+// IVR (Interactive Voice Response)
+export const ivr = async (req, res) => {
+  const twiml = new twilio.twiml.VoiceResponse(); // Sử dụng đúng Twilio VoiceResponse
+
+  // Câu hỏi IVR
+  twiml.say('Chào mừng bạn đến với dịch vụ cứu hộ khẩn cấp.');
+  const gather = twiml.gather({
+    numDigits: 1,  // Nhận 1 phím nhấn từ người gọi
+    action: '/handle-key', // Chuyển tới API '/handle-key' sau khi người dùng nhấn phím
+  });
+  gather.say('Nhấn 1 để nói chuyện với nhân viên, nhấn 2 để nghe hướng dẫn.');
+
+  res.type('text/xml'); // Đảm bảo phản hồi dưới dạng XML
+  res.send(twiml.toString()); // Trả về TwiML XML
+};
+
+// Xử lý phím nhấn của người gọi
+export const handleKey = async (req, res) => {
+  const twiml = new twilio.twiml.VoiceResponse(); // Sử dụng đúng Twilio VoiceResponse
+
+  // Xử lý phím nhấn
+  if (req.body.Digits === '1') {
+    twiml.say('Kết nối bạn với nhân viên hỗ trợ.');
+    twiml.dial('+1XXXXXXXXXX'); // Số điện thoại của nhân viên hỗ trợ, thay bằng số thực tế
+  } else if (req.body.Digits === '2') {
+    twiml.say('Vui lòng làm theo các bước sau...');
+  } else {
+    twiml.say('Lựa chọn không hợp lệ.');
+  }
+
+  res.type('text/xml'); // Đảm bảo phản hồi dưới dạng XML
+  res.send(twiml.toString()); // Trả về TwiML XML
 };
 
 export {
