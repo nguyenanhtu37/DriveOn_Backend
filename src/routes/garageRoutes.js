@@ -20,6 +20,7 @@ import {
     viewGarageExisting,
     viewGarage,
     findGarages,
+    findRescueGarages,
     // getCoordinates,
     // getGaragesWithinRadius,
     // filterGarages,
@@ -39,6 +40,8 @@ router.put("/:id/staff/enable", authMiddleware, enableStaff);
 
 // filter garage:
 router.get("/filter", findGarages);
+// emergency assistance
+router.get('/emergency', findRescueGarages);
 
 // lấy kinh độ, vĩ độ khi ng dùng nhập text
 // router.get("/get-coordinates", getCoordinates);

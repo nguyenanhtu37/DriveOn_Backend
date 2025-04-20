@@ -16,10 +16,11 @@ export const addFeedback = async (userId, feedbackData) => {
 
     // check service system có exist ko
     if (service) {
-    const serviceExists = await Service.findById(service);
-    if (!serviceExists) {
-        throw new Error("Service ID does not exist");
-    }}
+        const serviceExists = await Service.findById(service);
+        if (!serviceExists) {
+            throw new Error("Service ID does not exist");
+        }
+    }
 
     const newFeedback = new Feedback({
         user: userId,
@@ -38,9 +39,9 @@ export const addFeedback = async (userId, feedbackData) => {
 
     const averageRating =
         feedbacks.reduce((acc, feedback) => acc + feedback.rating, 0) /
-            feedbacks.length || 0;
+        feedbacks.length || 0;
 
-    garageExists.ratingAverage = averageRating;
+    garageExists.ratingAverage = Math.round(averageRating * 10) / 10;
     await garageExists.save();
 
     return newFeedback;
@@ -81,11 +82,11 @@ export const updateFeedback = async (userId, feedbackId, updateData) => {
     const feedbacks = await Feedback.find({ garage: feedback.garage });
     const averageRating =
         feedbacks.reduce((acc, feedback) => acc + feedback.rating, 0) /
-        feedbacks.length || 0; // tránh lỗi chia cho 0
+        feedbacks.length || 0;
 
     const garage = await Garage.findById(feedback.garage);
     if (garage) {
-        garage.ratingAverage = averageRating;
+        garage.ratingAverage = Math.round(averageRating * 10) / 10;
         await garage.save();
     }
 
@@ -115,7 +116,7 @@ export const deleteFeedback = async (userId, feedbackId) => {
 
     const garage = await Garage.findById(garageId);
     if (garage) {
-        garage.ratingAverage = averageRating;
+        garage.ratingAverage = Math.round(averageRating * 10) / 10;
         await garage.save();
     }
 

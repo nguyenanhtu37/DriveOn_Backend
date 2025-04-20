@@ -301,11 +301,8 @@ const findGarages = async (req, res) => {
 // };
 
 const viewAllGaragesByAdmin = async (req, res) => {
-  const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 10;
-
   try {
-    const garages = await garageService.viewAllGaragesByAdmin(page, limit);
+    const garages = await garageService.viewAllGaragesByAdmin();
     res.status(200).json(garages);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -346,6 +343,22 @@ const viewGarage = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+export const findRescueGarages = async (req, res) => {
+  const { latitude, longitude } = req.query;
+
+  if (!latitude || !longitude) {
+    return res.status(400).json({ error: "Latitude and longitude are required" });
+  }
+
+  try {
+    const garages = await garageService.findRescueGarages(latitude, longitude);
+    res.status(200).json({ garages });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 export {
   registerGarage,
   viewGarages,

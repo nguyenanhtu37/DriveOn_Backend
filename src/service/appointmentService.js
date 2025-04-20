@@ -781,61 +781,6 @@ export const completeAppointmentService = async (
 
   return appointment;
 };
-// export const getNextMaintenanceListService = async (garageId, page = 1, limit = 10) => {
-//   try {
-//     const garage = await Garage.findById(garageId);
-//     if (!garage) {
-//       throw new Error("Garage not found");
-//     }
-
-//     // Ktra nếu garage không có tag pro
-//     if (garage.tag !== "pro") {
-//       throw new Error("This feature is only available for garages with the 'pro' tag");
-//     }
-
-//     // Tính toán skip dựa trên page và limit
-//     const skip = (page - 1) * limit;
-
-//     // Lấy list các appointment có nextMaintenance và thuộc về garage
-//     const appointments = await Appointment.find({
-//       garage: garageId,
-//       nextMaintenance: { $exists: true, $ne: null },
-//     })
-//       .populate("vehicle", "carBrand carName carPlate")
-//       .populate("user", "name phone email")
-//       .sort({ nextMaintenance: 1 }) // Sắp xếp theo ngày gần nhất
-//       .skip(skip)
-//       .limit(limit);
-
-//     // Tính số ngày còn lại cho mỗi appointment
-//     const today = new Date();
-//     const appointmentsWithDaysLeft = appointments.map((appointment) => {
-//       const nextMaintenanceDate = new Date(appointment.nextMaintenance);
-//       const timeDiff = nextMaintenanceDate - today; // Thời gian chênh lệch (ms)
-//       const daysLeft = Math.ceil(timeDiff / (1000 * 60 * 60 * 24)); // Chuyển đổi sang ngày
-
-//       return {
-//         ...appointment.toObject(),
-//         daysLeft: daysLeft > 0 ? daysLeft : 0, // Nếu đã qua ngày bảo dưỡng, đặt là 0
-//       };
-//     });
-
-//     // Tính tổng số lịch hẹn để trả về tổng số trang
-//     const totalAppointments = await Appointment.countDocuments({
-//       garage: garageId,
-//       nextMaintenance: { $exists: true, $ne: null },
-//     });
-//     const totalPages = Math.ceil(totalAppointments / limit);
-
-//     return {
-//       appointments: appointmentsWithDaysLeft,
-//       totalPages,
-//       currentPage: page,
-//     };
-//   } catch (error) {
-//     throw new Error(error.message);
-//   }
-// };
 
 export const getNextMaintenanceListService = async (
   garageId,
@@ -921,6 +866,15 @@ export const createAppointmentByStaffService = async ({
   const vehicleId = new mongoose.Types.ObjectId(vehicle);
   const carOwnerId = new mongoose.Types.ObjectId(userId);
 
+  // Kiểm tra xem staff có thuộc về garage không
+  const staff = await User.findById(staffId);
+  if (!staff) {
+    throw new Error("Staff not found");
+  }
+  if (!staff.garageList.includes(garageId.toString())) {
+    throw new Error("Staff does not have permission to create appointments for this garage");
+  }
+
   // Kiểm tra xem userId có phải là car owner không
   const carOwner = await User.findById(carOwnerId);
   if (!carOwner) {
@@ -931,6 +885,21 @@ export const createAppointmentByStaffService = async ({
   const carOwnerRole = await Role.findOne({ roleName: "carowner" });
   if (!carOwner.roles.includes(carOwnerRole._id)) {
     throw new Error("The provided userId does not belong to a car owner");
+  }
+
+  // Kiểm tra xem vehicleId có thuộc về userId không
+  const vehicleData = await Vehicle.findById(vehicleId);
+  if (!vehicleData) {
+    throw new Error("Vehicle not found");
+  }
+  if (vehicleData.carOwner.toString() !== userId) {
+    throw new Error("The provided vehicle does not belong to the specified car owner");
+  }
+
+  // Kiểm tra xem tất cả các serviceIds có thuộc về garageId không
+  const services = await ServiceDetail.find({ _id: { $in: serviceIds }, garage: garageId });
+  if (services.length !== serviceIds.length) {
+    throw new Error("One or more services do not belong to the specified garage");
   }
 
   // Validate input
@@ -979,8 +948,8 @@ export const createAppointmentByStaffService = async ({
     start: validatedStartTime,
     end: endTime,
     status: "Accepted",
-    tag: "Normal", // Default tag
-    note: `Created by staff ${staffId}`,
+    tag: "Maintenance", // Default tag của maintenance
+    note: `Created by staff ${staff.name}`,
     assignedStaff: staffId,
   });
 
@@ -1047,7 +1016,7 @@ async function sendAppointmentStaffCreatedEmail(
       from: process.env.MAIL_USER,
       to: carOwner.email,
       subject:
-        "Lịch hẹn tiếp theo của bạn đã được tạo thành công bởi nhân viên",
+        "Xác nhận lịch hẹn bảo dưỡng - Được tạo bởi nhân viên của chúng tôi",
       html: emailContent,
     });
 
