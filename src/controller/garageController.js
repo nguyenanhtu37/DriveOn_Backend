@@ -369,17 +369,16 @@ export const findRescueGarages = async (req, res) => {
 
 export const makeCall = async (req, res) => {
   try {
-    const { to } = req.body; // Số điện thoại garage
+    const { to } = req.body;
 
     if (!to) {
       return res.status(400).json({ message: 'Missing garage phone number' });
     }
 
-    // Thực hiện cuộc gọi từ Twilio
     const call = await client.calls.create({
-      from: process.env.TWILIO_PHONE, // Số điện thoại Twilio của bạn
+      from: process.env.TWILIO_PHONE,
       to,
-      twiml: `<Response><Redirect>http://localhost:5000/api/garage/ivr</Redirect></Response>`, // Cuộc gọi sẽ tự động chuyển tiếp đến số garage
+      twiml: `<Response><Redirect>https://driveonbackend-production.up.railway.app/api/garage/ivr</Redirect></Response>`,
     });
 
     return res.status(200).json({
@@ -392,38 +391,34 @@ export const makeCall = async (req, res) => {
   }
 };
 
-// IVR (Interactive Voice Response)
 export const ivr = async (req, res) => {
-  const twiml = new twilio.twiml.VoiceResponse(); // Sử dụng đúng Twilio VoiceResponse
+  const twiml = new twilio.twiml.VoiceResponse(); 
 
-  // Câu hỏi IVR
   twiml.say('Chào mừng bạn đến với dịch vụ cứu hộ khẩn cấp.');
   const gather = twiml.gather({
-    numDigits: 1,  // Nhận 1 phím nhấn từ người gọi
-    action: '/handle-key', // Chuyển tới API '/handle-key' sau khi người dùng nhấn phím
+    numDigits: 1, 
+    action: '/handle-key',
   });
   gather.say('Nhấn 1 để nói chuyện với nhân viên, nhấn 2 để nghe hướng dẫn.');
 
-  res.type('text/xml'); // Đảm bảo phản hồi dưới dạng XML
-  res.send(twiml.toString()); // Trả về TwiML XML
+  res.type('text/xml'); 
+  res.send(twiml.toString()); 
 };
 
-// Xử lý phím nhấn của người gọi
 export const handleKey = async (req, res) => {
-  const twiml = new twilio.twiml.VoiceResponse(); // Sử dụng đúng Twilio VoiceResponse
+  const twiml = new twilio.twiml.VoiceResponse();
 
-  // Xử lý phím nhấn
   if (req.body.Digits === '1') {
     twiml.say('Kết nối bạn với nhân viên hỗ trợ.');
-    twiml.dial('+1XXXXXXXXXX'); // Số điện thoại của nhân viên hỗ trợ, thay bằng số thực tế
+    twiml.dial('+1XXXXXXXXXX'); 
   } else if (req.body.Digits === '2') {
     twiml.say('Vui lòng làm theo các bước sau...');
   } else {
     twiml.say('Lựa chọn không hợp lệ.');
   }
 
-  res.type('text/xml'); // Đảm bảo phản hồi dưới dạng XML
-  res.send(twiml.toString()); // Trả về TwiML XML
+  res.type('text/xml'); 
+  res.send(twiml.toString());
 };
 
 export {
