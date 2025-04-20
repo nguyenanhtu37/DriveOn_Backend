@@ -978,7 +978,7 @@ export const createAppointmentByStaffService = async ({
     start: validatedStartTime,
     end: endTime,
     status: "Accepted",
-    tag: "Normal", // Default tag
+    tag: "Maintenance", // Default tag của maintenance
     note: `Created by staff ${staffId}`,
     assignedStaff: staffId,
   });

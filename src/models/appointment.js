@@ -44,7 +44,8 @@ const appointmentSchema = new mongoose.Schema({
         tag: {
             type: String,
             enum: ["Normal",
-                "Emergency"],
+                "Emergency",
+                "Maintenance"],
             default: "Normal",
             required: true,
         },
