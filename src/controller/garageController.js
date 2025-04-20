@@ -301,11 +301,8 @@ const findGarages = async (req, res) => {
 // };
 
 const viewAllGaragesByAdmin = async (req, res) => {
-  const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 10;
-
   try {
-    const garages = await garageService.viewAllGaragesByAdmin(page, limit);
+    const garages = await garageService.viewAllGaragesByAdmin();
     res.status(200).json(garages);
   } catch (err) {
     res.status(500).json({ error: err.message });
