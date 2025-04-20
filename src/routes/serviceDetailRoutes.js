@@ -8,7 +8,7 @@ const router = express.Router();
 router.get('/search', searchServices);
 
 // emergency assistance
-router.get('/emergency', getEmergency);
+// router.get('/emergency', getEmergency);
 
 router.post("/add", authMiddleware, addServiceDetail); // Add new service detail by garage
 router.get("/garage/:garageId", getServiceDetailsByGarage); // Get service details by garage ID
