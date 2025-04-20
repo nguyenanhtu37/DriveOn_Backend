@@ -105,9 +105,9 @@ const checkBooking = async (
     };
   }
 
-  // Check for existing appointments
   const overlappingAppointments = await Appointment.find({
     vehicle: vehicleId,
+    garage: { $ne: garageId }, //  chỉ check conflict ở garage khác
     _id: { $ne: currentAppointmentId },
     $or: [
       { start: { $lte: start }, end: { $gt: start } },
@@ -116,6 +116,7 @@ const checkBooking = async (
     ],
     status: { $nin: ["Cancelled", "Rejected"] },
   });
+
 
   if (overlappingAppointments.length > 0) {
     const conflictGarage = await Garage.findById(
