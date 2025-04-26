@@ -26,7 +26,7 @@ const addServiceDetailSchema = z.object({
     .refine((duration) => duration > 0, {
       message: "Service detail duration must be a positive number",
     }),
-  warranty: z.string().optional(),
+  // warranty: z.string().optional(),
 });
 
 const updateServiceDetailSchema = addServiceDetailSchema.partial(); // Tất cả các trường đều là optional
