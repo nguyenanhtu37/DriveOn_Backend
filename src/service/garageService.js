@@ -802,7 +802,7 @@ export const findRescueGarages = async (latitude, longitude) => {
     hoặc user đang ở ngoại thành, ví dụ có đủ 10 garage đi, nhưng chỉ có 6 garage cứu hộ
     => 6 garage cứu hộ đó được hiển thị trước. phần thiếu thì lấy garage KO có cứu hộ bù vô
     */
-    const emergencyService = await Service.findOne({ name: "Cứu hộ khẩn cấp" });
+    const emergencyService = await Service.findOne({ name: "Dịch vụ cứu hộ" });
     if (!emergencyService) throw new Error("Emergency service not found");
 
     const emergencyServiceDetails = await ServiceDetail.find({

@@ -5,6 +5,7 @@ import redis from "../config/redis.js";
 import transporter from "../config/mailer.js";
 import User from "../models/user.js";
 import Role from "../models/role.js";
+import Garage from "../models/garage.js";
 import {
   validateLogin,
   validateResetPassword,
@@ -206,7 +207,7 @@ const verifyEmail = async (token) => {
   return { message: "Email verified successfully" };
 };
 
-const login = async (email, password) => {
+const login = async (email, password, deviceToken) => {
   validateLogin(email, password);
 
   const user = await User.findOne({ email }).populate("roles").populate("garageList");
@@ -227,6 +228,17 @@ const login = async (email, password) => {
     process.env.JWT_SECRET,
     { algorithm: "HS256", expiresIn: "1h" }
   );
+
+  // luu deviceToken vao garage (neu co) => tim kiem theo id
+  if (deviceToken && user.garageList.length > 0) {
+    for (const garageId of user.garageList) {
+      await Garage.findByIdAndUpdate(
+        garageId,
+        { $addToSet: { deviceTokens: deviceToken } }, // chir them neu chua ton tai trong fb
+        { new: true },
+      );
+    }
+  }
 
   return { user, token };
 };
