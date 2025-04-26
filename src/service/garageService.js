@@ -17,6 +17,8 @@ import {
   getDistancesToGarages,
 } from "../utils/distanceHelper.js";
 import transporter from "../config/mailer.js";
+import Appointment from "../models/appointment.js";
+import mongoose from "mongoose";
 
 const registerGarage = async (user, garageData) => {
   console.log(garageData);
@@ -417,7 +419,7 @@ export const calculateAverageRating = async (garageId) => {
 
   const averageRating =
     feedbacks.reduce((acc, feedback) => acc + feedback.rating, 0) /
-    feedbacks.length || 0;
+      feedbacks.length || 0;
   return averageRating;
 };
 
@@ -509,14 +511,14 @@ export const findGarages = async ({
     operatingDaysArray = operatingDaysArray.length
       ? operatingDaysArray
       : [
-        "Monday",
-        "Tuesday",
-        "Wednesday",
-        "Thursday",
-        "Friday",
-        "Saturday",
-        "Sunday",
-      ];
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday",
+          "Saturday",
+          "Sunday",
+        ];
     rating = rating || 0;
     distance = distance || 10;
 
@@ -860,6 +862,125 @@ export const findRescueGarages = async (latitude, longitude) => {
   }
 };
 
+const viewDashboardOverview = async (garageId, userId) => {
+  try {
+    const feedbacks = await Feedback.find({ garage: garageId });
+    const services = await ServiceDetail.find({ garage: garageId }).populate(
+      "service",
+      "name"
+    );
+    const staff = await User.find({
+      garageList: garageId,
+      roles: "67b60df8c465fe4f943b98cc",
+    });
+
+    const appointments = await Appointment.find({ garage: garageId });
+    const totalAppointments = appointments.length;
+    const totalFeedbacks = feedbacks.length;
+    const totalServices = services.length;
+
+    return {
+      totalFeedbacks,
+      totalServices,
+      totalStaff: staff.length,
+      totalAppointments,
+    };
+  } catch (err) {
+    console.error("Error in viewDashboardOverview:", err.message);
+    throw new Error(err.message);
+  }
+};
+
+const viewDashboardChart = async (garageId, userId) => {
+  try {
+    const appointments = await Appointment.aggregate([
+      {
+        $match: {
+          garage: mongoose.Types.ObjectId.createFromHexString(garageId),
+          status: "Completed",
+        },
+      },
+      {
+        $project: {
+          year: { $year: "$createdAt" },
+          month: { $month: "$createdAt" },
+        },
+      },
+      {
+        $group: {
+          _id: { year: "$year", month: "$month" },
+          totalAppointments: { $sum: 1 },
+        },
+      },
+      {
+        $sort: { "_id.year": 1, "_id.month": 1 },
+      },
+    ]);
+
+    const months = Array.from({ length: 12 }, (_, i) => i + 1);
+
+    const result = months.map((month) => {
+      const monthData = appointments.find((item) => item._id.month === month);
+      return {
+        month,
+        totalAppointments: monthData ? monthData.totalAppointments : 0,
+      };
+    });
+
+    const serviceUsage = await Appointment.aggregate([
+      {
+        $match: {
+          garage: mongoose.Types.ObjectId.createFromHexString(garageId), // Lọc theo garageId
+        },
+      },
+      {
+        $unwind: "$service",
+      },
+      {
+        $group: {
+          _id: "$service",
+          totalUses: { $sum: 1 },
+        },
+      },
+      {
+        $lookup: {
+          from: "servicedetails",
+          localField: "_id",
+          foreignField: "_id",
+          as: "serviceInfo",
+        },
+      },
+      {
+        $unwind: "$serviceInfo",
+      },
+      {
+        $project: {
+          serviceName: "$serviceInfo.name",
+          serviceId: "$serviceInfo._id",
+          totalUses: 1,
+          _id: 0,
+        },
+      },
+      { $sort: { totalUses: -1 } },
+    ]);
+
+    // const staff = await User.find({
+    //   garageList: garageId,
+    //   roles: "67b60df8c465fe4f943b98cc",
+    // });
+
+    return {
+      appointments: result,
+      // feedbacks,
+      services: serviceUsage,
+      // staff,
+    };
+  } catch (err) {
+    console.error("Error in viewDashboardChart:", err.message);
+    throw new Error(err.message);
+  }
+};
+
 export {
   registerGarage,
   viewGarages,
@@ -881,4 +1002,6 @@ export {
   viewGaragesWithSearchParams,
   viewAllGaragesByAdmin,
   viewGarageRegistrationsCarOwner,
+  viewDashboardOverview,
+  viewDashboardChart,
 };

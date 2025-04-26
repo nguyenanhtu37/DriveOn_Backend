@@ -683,10 +683,10 @@ async function sendRejectionEmail(
 }
 
 export const completeAppointmentService = async (
-    appointmentId,
-    userId,
-    updatedEndTime = null,
-    nextMaintenance = null
+  appointmentId,
+  userId,
+  updatedEndTime = null,
+  nextMaintenance = null
 ) => {
   const appointment = await Appointment.findById(appointmentId);
   if (!appointment) {
@@ -705,9 +705,9 @@ export const completeAppointmentService = async (
   // Update end time if provided
   if (updatedEndTime) {
     const endTime =
-        typeof updatedEndTime === "string"
-            ? new Date(updatedEndTime)
-            : updatedEndTime;
+      typeof updatedEndTime === "string"
+        ? new Date(updatedEndTime)
+        : updatedEndTime;
     if (isNaN(endTime.getTime())) {
       throw new Error("Invalid end time format");
     }
@@ -722,7 +722,8 @@ export const completeAppointmentService = async (
 
   // Set next maintenance date if provided
   if (nextMaintenance) {
-    const nextDate = typeof nextMaintenance === 'string'
+    const nextDate =
+      typeof nextMaintenance === "string"
         ? new Date(nextMaintenance)
         : nextMaintenance;
 
@@ -741,7 +742,7 @@ export const completeAppointmentService = async (
   // Get user and garage info for email
   const customer = await User.findById(appointment.user);
   const garageInfo = await Garage.findById(appointment.garage).select(
-      "name address phone"
+    "name address phone"
   );
   const staffInfo = await User.findById(userId).select("name");
 
@@ -810,6 +811,7 @@ export const getNextMaintenanceListService = async (
     })
       .populate("vehicle", "carBrand carName carPlate")
       .populate("user", "name phone email")
+      .populate("service", "name")
       .sort({ nextMaintenance: 1 }) // Sắp xếp theo ngày gần nhất
       .skip(skip)
       .limit(limit);
@@ -871,7 +873,9 @@ export const createAppointmentByStaffService = async ({
     throw new Error("Staff not found");
   }
   if (!staff.garageList.includes(garageId.toString())) {
-    throw new Error("Staff does not have permission to create appointments for this garage");
+    throw new Error(
+      "Staff does not have permission to create appointments for this garage"
+    );
   }
 
   // Kiểm tra xem userId có phải là car owner không
@@ -892,13 +896,20 @@ export const createAppointmentByStaffService = async ({
     throw new Error("Vehicle not found");
   }
   if (vehicleData.carOwner.toString() !== userId) {
-    throw new Error("The provided vehicle does not belong to the specified car owner");
+    throw new Error(
+      "The provided vehicle does not belong to the specified car owner"
+    );
   }
 
   // Kiểm tra xem tất cả các serviceIds có thuộc về garageId không
-  const services = await ServiceDetail.find({ _id: { $in: serviceIds }, garage: garageId });
+  const services = await ServiceDetail.find({
+    _id: { $in: serviceIds },
+    garage: garageId,
+  });
   if (services.length !== serviceIds.length) {
-    throw new Error("One or more services do not belong to the specified garage");
+    throw new Error(
+      "One or more services do not belong to the specified garage"
+    );
   }
 
   // Validate input
@@ -1468,7 +1479,7 @@ async function sendUpdateNotificationEmails(
       html: `
         <h2>Xin chào ${user.name},</h2>
         <p>Lịch hẹn của bạn đã được <span style="color: #007bff; font-weight: bold;">cập nhật</span>.</p>
-        
+
         <h3>Thông tin trước khi cập nhật:</h3>
         <ul>
           <li><strong>Garage:</strong> ${garageInfo.name}</li>
@@ -1476,7 +1487,7 @@ async function sendUpdateNotificationEmails(
           <li><strong>Ngày hẹn:</strong> ${oldDisplayDate}</li>
           <li><strong>Thời gian:</strong> ${oldDisplayStartTime} - ${oldDisplayEndTime}</li>
         </ul>
-        
+
         <h3>Thông tin sau khi cập nhật:</h3>
         <ul>
           <li><strong>Garage:</strong> ${garageInfo.name}</li>
@@ -1486,7 +1497,7 @@ async function sendUpdateNotificationEmails(
           <li><strong>Ghi chú:</strong> ${note || "Không có"}</li>
           <li><strong>Trạng thái:</strong> Đang chờ xác nhận</li>
         </ul>
-        
+
         <p>Garage sẽ xem xét và xác nhận lịch hẹn của bạn sớm nhất có thể.</p>
         <p>Xem chi tiết lịch hẹn của bạn <a href="${
           process.env.FRONTEND_URL
@@ -1512,19 +1523,19 @@ async function sendUpdateNotificationEmails(
             html: `
               <h2>Xin chào ${manager.name},</h2>
               <p>Một lịch hẹn tại garage của bạn đã được <span style="color: #007bff; font-weight: bold;">cập nhật</span> bởi khách hàng.</p>
-              
+
               <h3>Thông tin khách hàng:</h3>
               <ul>
                 <li><strong>Tên:</strong> ${user.name}</li>
                 <li><strong>Email:</strong> ${user.email}</li>
               </ul>
-              
+
               <h3>Thông tin trước khi cập nhật:</h3>
               <ul>
                 <li><strong>Ngày hẹn:</strong> ${oldDisplayDate}</li>
                 <li><strong>Thời gian:</strong> ${oldDisplayStartTime} - ${oldDisplayEndTime}</li>
               </ul>
-              
+
               <h3>Thông tin sau khi cập nhật:</h3>
               <ul>
                 <li><strong>Ngày hẹn:</strong> ${newDisplayDate}</li>
@@ -1532,7 +1543,7 @@ async function sendUpdateNotificationEmails(
                 <li><strong>Ghi chú:</strong> ${note || "Không có"}</li>
                 <li><strong>Trạng thái:</strong> Đang chờ xác nhận</li>
               </ul>
-              
+
               <p>Vui lòng đăng nhập vào hệ thống để xác nhận hoặc từ chối lịch hẹn này.</p>
               <p>Xem chi tiết lịch hẹn <a href="${
                 process.env.FRONTEND_URL
@@ -1546,3 +1557,13 @@ async function sendUpdateNotificationEmails(
     console.error("Error in update notification email process:", error);
   }
 }
+
+export const isCalledAppointmentService = async (appointmentId) => {
+  try {
+    const appointment = await Appointment.findById(appointmentId);
+    appointment.isCalled = true;
+    await appointment.save();
+  } catch (error) {
+    console.error("Error in update notification email process:", error);
+  }
+};
