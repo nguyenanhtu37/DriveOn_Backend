@@ -20,6 +20,7 @@ import serviceRoutes from "./src/routes/serviceRoutes.js";
 import serviceDetailRoutes from "./src/routes/serviceDetailRoutes.js";
 import payosRoutes from "./src/routes/payosRoutes.js";
 import subscriptionRoutes from './src/routes/subscriptionRoutes.js';
+import fcmRoutes from './src/routes/fcmRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -74,6 +75,7 @@ app.use("/api/service-detail", serviceDetailRoutes);
 app.use("/api/appointment", appointmentRoutes);
 app.use("/api/payos", payosRoutes);
 app.use('/api/subscription', subscriptionRoutes);
+app.use('/api/fcm', fcmRoutes);
 
 // Test Route
 app.get("/", (req, res) => {
