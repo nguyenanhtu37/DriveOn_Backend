@@ -30,6 +30,7 @@ import {
   viewDashboardOverview,
   viewDashboardChart,
 } from "../controller/garageController.js";
+import { authorizeRoles } from "../middleware/authorizeRoles.js";
 
 const router = express.Router();
 
@@ -91,7 +92,15 @@ router.get(
   viewAllGaragesByAdmin
 ); // Admin xem toàn bộ garage
 
-router.get("/:id/dashboardOverview", adminMiddleware, viewDashboardOverview);
-router.get("/:id/dashboardChart", adminMiddleware, viewDashboardChart);
+router.get(
+  "/:id/dashboardOverview",
+  authorizeRoles(["staff", "manager"]),
+  viewDashboardOverview
+);
+router.get(
+  "/:id/dashboardChart",
+  authorizeRoles(["staff", "manager"]),
+  viewDashboardChart
+);
 
 export default router;

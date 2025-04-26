@@ -438,9 +438,7 @@ async function sendAppointmentEmails(
           <li><strong>Trạng thái:</strong> Đang chờ xác nhận</li>
         </ul>
         <p>Garage sẽ xem xét và xác nhận lịch hẹn của bạn sớm nhất có thể.</p>
-        <p>Xem chi tiết lịch hẹn của bạn <a href="${
-          process.env.FRONTEND_URL
-        }/appointments/${appointmentId}">tại đây</a>.</p>
+        <p>Xem chi tiết lịch hẹn của bạn <a href="${process.env.FRONTEND_URL}/profile">tại đây</a>.</p>
         <p>Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>
       `,
     });
@@ -475,9 +473,7 @@ async function sendAppointmentEmails(
                 <li><strong>Ghi chú:</strong> ${note || "Không có"}</li>
               </ul>
               <p>Vui lòng đăng nhập vào hệ thống để xác nhận hoặc từ chối lịch hẹn này.</p>
-              <p>Xem chi tiết lịch hẹn <a href="${
-                process.env.FRONTEND_URL
-              }/manager/appointment/${appointmentId}">tại đây</a>.</p>
+              <p>Xem chi tiết lịch hẹn <a href="${process.env.FRONTEND_URL}/profile">tại đây</a>.</p>
             `,
           });
         }
@@ -498,11 +494,18 @@ export const getAppointmentsByUserService = async (userId) => {
 
 export const getAppointmentByIdService = async (appointmentId) => {
   return await Appointment.findById(appointmentId)
-    .populate("user", "avatar name email locale phone") // Select basic user information
-    .populate("garage", "name address") // Select basic garage information
-    .populate("vehicle", "carBrand carName carPlate") // Select basic vehicle information
-    .populate("service") // Populate service details
-    .populate("assignedStaff", "name avatar"); // Add staff information
+      .populate("user", "avatar name email locale phone") // Select basic user information
+      .populate("garage", "name address") // Select basic garage information
+      .populate({
+        path: "vehicle",
+        select: "carBrand carName carPlate",
+        populate: {
+          path: "carBrand",
+          select: "brandName logo"
+        }
+      }) // Populate vehicle with nested carBrand
+      .populate("service") // Populate service details
+      .populate("assignedStaff", "name avatar"); // Add staff information
 };
 
 export const getAppointmentsByGarageService = async (garageId) => {
@@ -591,7 +594,7 @@ async function sendConfirmationEmail(
           <li><strong>Trạng thái:</strong> Đã xác nhận</li>
         </ul>
         <p>Vui lòng đến đúng giờ để được phục vụ tốt nhất.</p>
-        <p>Xem chi tiết lịch hẹn của bạn <a href="${process.env.FRONTEND_URL}/appointments/${appointmentId}">tại đây</a>.</p>
+        <p>Xem chi tiết lịch hẹn của bạn <a href="${process.env.FRONTEND_URL}/profile">tại đây</a>.</p>
         <p>Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>
       `,
     });
@@ -674,7 +677,7 @@ async function sendRejectionEmail(
           <li><strong>Trạng thái:</strong> Đã từ chối</li>
         </ul>
         <p>Vui lòng liên hệ với garage để biết thêm thông tin hoặc đặt lịch hẹn mới.</p>
-        <p>Xem chi tiết lịch hẹn của bạn <a href="${process.env.FRONTEND_URL}/appointments/${appointmentId}">tại đây</a>.</p>
+        <p>Xem chi tiết lịch hẹn của bạn <a href="${process.env.FRONTEND_URL}/profile">tại đây</a>.</p>
         <p>Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>
       `,
     });
@@ -776,7 +779,7 @@ export const completeAppointmentService = async (
         <li><strong>Trạng thái:</strong> Đã hoàn thành</li>
       </ul>
       <p>Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>
-      <p>Xem chi tiết lịch hẹn của bạn <a href="${process.env.FRONTEND_URL}/appointments/${appointment._id}">tại đây</a>.</p>
+      <p>Xem chi tiết lịch hẹn của bạn <a href="${process.env.FRONTEND_URL}/profile">tại đây</a>.</p>
     `,
   });
 
@@ -1150,7 +1153,7 @@ async function sendCompletionEmail(
           <li><strong>Trạng thái:</strong> Đã hoàn thành</li>
         </ul>
         <p>Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>
-        <p>Vui lòng đánh giá trải nghiệm của bạn <a href="${process.env.FRONTEND_URL}/appointments/${appointmentId}/review">tại đây</a>.</p>
+        <p>Vui lòng đánh giá trải nghiệm của bạn <a href="${process.env.FRONTEND_URL}/garageDetail/${garageInfo._id}">tại đây</a>.</p>
       `,
     });
   } catch (error) {
@@ -1251,7 +1254,7 @@ async function sendCancellationEmails(
           <li><strong>Thời gian:</strong> ${displayStartTime} - ${displayEndTime}</li>
           <li><strong>Trạng thái:</strong> Đã hủy</li>
         </ul>
-        <p>Xem chi tiết lịch hẹn của bạn <a href="${process.env.FRONTEND_URL}/appointments/${appointmentId}">tại đây</a>.</p>
+        <p>Xem chi tiết lịch hẹn của bạn <a href="${process.env.FRONTEND_URL}/profile">tại đây</a>.</p>
         <p>Nếu bạn muốn đặt lịch hẹn mới, vui lòng truy cập trang web của chúng tôi.</p>
         <p>Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>
       `,
@@ -1282,8 +1285,7 @@ async function sendCancellationEmails(
                 <li><strong>Thời gian:</strong> ${displayStartTime} - ${displayEndTime}</li>
                 <li><strong>Trạng thái:</strong> Đã hủy</li>
               </ul>
-              <p>Xem chi tiết lịch hẹn <a href="${process.env.FRONTEND_URL}/manager/appointment/${appointmentId}">tại đây</a>.</p>
-            `,
+             <p>Xem chi tiết lịch hẹn <a href="${process.env.FRONTEND_URL}/garageManagement/${garageId}/appointments">tại đây</a>.</p>            `,
           });
         }
       }
@@ -1502,7 +1504,7 @@ async function sendUpdateNotificationEmails(
         <p>Garage sẽ xem xét và xác nhận lịch hẹn của bạn sớm nhất có thể.</p>
         <p>Xem chi tiết lịch hẹn của bạn <a href="${
           process.env.FRONTEND_URL
-        }/appointments/${appointmentId}">tại đây</a>.</p>
+        }/profile">tại đây</a>.</p>
         <p>Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>
       `,
     });
@@ -1546,9 +1548,7 @@ async function sendUpdateNotificationEmails(
               </ul>
 
               <p>Vui lòng đăng nhập vào hệ thống để xác nhận hoặc từ chối lịch hẹn này.</p>
-              <p>Xem chi tiết lịch hẹn <a href="${
-                process.env.FRONTEND_URL
-              }/manager/appointment/${appointmentId}">tại đây</a>.</p>
+              <p>Xem chi tiết lịch hẹn <a href="${process.env.FRONTEND_URL}/garageManagement/${garageId}/appointments">tại đây</a>.</p>
             `,
           });
         }
