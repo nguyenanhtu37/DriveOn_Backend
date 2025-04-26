@@ -12,6 +12,7 @@ import {
   confirmAppointment,
   getNextMaintenanceList,
   createAppointmentByStaff,
+  isCalledAppointment,
 } from "../controller/appointmentController.js";
 import { authorizeRoles } from "../middleware/authorizeRoles.js";
 
@@ -43,19 +44,15 @@ router.get(
 
 router.put(
   "/:appointmentId/confirm",
-  authorizeRoles(["manager","staff"]),
+  authorizeRoles(["manager", "staff"]),
   confirmAppointment
 ); // Confirm appointment
 
-router.put(
-  "/:appointmentId/deny", 
-  authorizeRoles(["staff"]), 
-  denyAppointment
-); // Deny appointment
+router.put("/:appointmentId/deny", authorizeRoles(["staff"]), denyAppointment); // Deny appointment
 
 router.put(
   "/:appointmentId/complete",
-  authorizeRoles(["staff","manager"]),
+  authorizeRoles(["staff", "manager"]),
   completeAppointment
 ); // Complete appointment
 
@@ -86,5 +83,11 @@ router.post(
   authorizeRoles(["staff", "manager"]),
   createAppointmentByStaff
 ); // Create appointment by staff or manager
+
+router.put(
+  "/isCalled/:appointmentId",
+  authorizeRoles(["manager", "staff"]),
+  isCalledAppointment
+); // Mark appointment as called);
 
 export default router;

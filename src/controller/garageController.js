@@ -76,7 +76,9 @@ const viewGarageRegistrations = async (req, res) => {
 
 const viewGarageRegistrationsCarOwner = async (req, res) => {
   try {
-    const garages = await garageService.viewGarageRegistrationsCarOwner(req.user.id);
+    const garages = await garageService.viewGarageRegistrationsCarOwner(
+      req.user.id
+    );
     res.status(200).json(garages);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -348,7 +350,9 @@ export const findRescueGarages = async (req, res) => {
   const { latitude, longitude } = req.query;
 
   if (!latitude || !longitude) {
-    return res.status(400).json({ error: "Latitude and longitude are required" });
+    return res
+      .status(400)
+      .json({ error: "Latitude and longitude are required" });
   }
 
   try {
@@ -356,6 +360,30 @@ export const findRescueGarages = async (req, res) => {
     res.status(200).json({ garages });
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+};
+
+const viewDashboardOverview = async (req, res) => {
+  const { id } = req.params;
+  const user = req.user.id;
+
+  try {
+    const overview = await garageService.viewDashboardOverview(id, user);
+    res.status(200).json(overview);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+const viewDashboardChart = async (req, res) => {
+  const { id } = req.params;
+  const user = req.user.id;
+
+  try {
+    const overview = await garageService.viewDashboardChart(id, user);
+    res.status(200).json(overview);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };
 
@@ -380,5 +408,7 @@ export {
   findGarages,
   viewAllGaragesByAdmin,
   viewGarage,
-  viewGarageRegistrationsCarOwner
+  viewGarageRegistrationsCarOwner,
+  viewDashboardOverview,
+  viewDashboardChart,
 };
