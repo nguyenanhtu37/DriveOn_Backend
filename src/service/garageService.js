@@ -135,7 +135,7 @@ const viewGarageRegistrations = async () => {
   try {
     const garages = await Garage.find({ status: "pending" }).populate(
       "user",
-      "email name phone"
+      "email name phone avatar"
     );
     return garages;
   } catch (err) {
@@ -148,7 +148,7 @@ const viewGarageRegistrationsCarOwner = async (id) => {
     const garages = await Garage.find({
       user: id,
       status: { $in: ["pending", "rejected"] },
-    }).populate("user", "email name phone");
+    }).populate("user", "email name phone avatar");
     return garages;
   } catch (err) {
     throw new Error(err.message);
@@ -168,7 +168,7 @@ const approveGarageRegistration = async (garageId) => {
     // const garage = await Garage.findById(garageId);
     const garage = await Garage.findById(garageId).populate(
       "user",
-      "name email"
+      "name email avatar"
     );
     if (!garage) {
       throw new Error("Garage not found");
@@ -213,7 +213,7 @@ const rejectGarageRegistration = async (garageId) => {
   try {
     const garage = await Garage.findById(garageId).populate(
       "user",
-      "name email"
+      "name email avatar"
     );
     if (!garage) {
       throw new Error("Garage not found");
@@ -640,7 +640,7 @@ const viewAllGaragesByAdmin = async () => {
   try {
     const garages = await Garage.find({
       status: { $in: ["approved", "rejected", "enabled", "disabled"] },
-    }).populate("user", "name email phone");
+    }).populate("user", "name email phone avatar");
 
     return garages;
   } catch (err) {
