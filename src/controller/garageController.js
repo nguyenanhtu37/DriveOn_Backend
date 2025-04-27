@@ -1,6 +1,11 @@
 import mongoose from "mongoose";
+import dotenv from 'dotenv';
 import Garage from "../models/garage.js";
 import * as garageService from "../service/garageService.js";
+import {client} from "../config/twilio.js";
+import twilio from 'twilio';
+
+dotenv.config();
 
 const registerGarage = async (req, res) => {
   const user = req.user;
