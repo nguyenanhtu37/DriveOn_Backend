@@ -6,12 +6,25 @@ export const sendMultipleNotifications = async (deviceTokens, title, body) => {
     }
 
     const messages = deviceTokens.map(token => ({
-        notification: {
-            title,
-            body,
-        },
-        token: token
-    }));
+  notification: {
+    title,
+    body,
+  },
+  token: token,
+  android: {
+    priority: "high",
+  },
+  apns: {
+    headers: {
+      "apns-priority": "10",
+    },
+  },
+  webpush: {
+    headers: {
+      Urgency: "high",
+    },
+  },
+}));
 
     try {
         const response = await admin.messaging().sendEach(messages);
