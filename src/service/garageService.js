@@ -21,6 +21,9 @@ import transporter from "../config/mailer.js";
 import Appointment from "../models/appointment.js";
 import mongoose from "mongoose";
 import { sendMultipleNotifications } from "./fcmService.js";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc.js";
+import timezone from "dayjs/plugin/timezone.js";
 
 const registerGarage = async (user, garageData) => {
   console.log(garageData);
@@ -785,8 +788,13 @@ export const findRescueGarages = async (latitude, longitude) => {
     Ngày hoạt động của garage operating_days include ngày hiện tại mà người dùng check => hợp lệ. else loại
     Giờ mở cửa của garage <= giờ hiện tại người dùng gọi cứu hộ < giờ đóng cửa của garage => hợp lệ. Ko thì loại
     */
-    const currentHour = new Date().getHours();
-    const currentDay = new Date().toLocaleString("en-US", { weekday: "long" });
+    
+    dayjs.extend(utc);
+    dayjs.extend(timezone);
+
+    // Lấy giờ VN
+    const currentHour = dayjs().tz("Asia/Ho_Chi_Minh").hour();
+    const currentDay = dayjs().tz("Asia/Ho_Chi_Minh").format("dddd");
     console.log("currentHour: ", currentHour);
     console.log("currentDay: ", currentDay);
 
