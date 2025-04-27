@@ -776,7 +776,7 @@ export const findRescueGarages = async (latitude, longitude) => {
         },
       }
     ]);
-    // console.log("Garage from DB: ", garages);
+    console.log("Garage from DB: ", garages);
 
     /*
     Từ kết quả phía trên, tiếp tục check để giữ lại garage nào đang mở thôi, còn đóng thì khỏi
