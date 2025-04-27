@@ -83,4 +83,14 @@ const enableUserAccount = async (req, res) => {
     }
   };
 
+export const getUserCountsByRole = async (req, res) => {
+  try {
+    const userCounts = await userService.getUserCountsByRole();
+    res.status(200).json(userCounts);
+  } catch (err) {
+    console.error("Error in getUserCountsByRole:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+};
+
 export { changePassword, viewPersonalProfile, updatePersonalProfile, viewAllUsers, viewUserDetails, enableUserAccount, disableUserAccount };
