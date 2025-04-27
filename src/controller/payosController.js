@@ -127,3 +127,13 @@ export const webHook = async (req, res) => {
         });
     }
 };
+
+export const getTransactionsByMonth = async (req, res) => {
+  try {
+    const transactions = await payosService.getTransactionsByMonth();
+    res.status(200).json(transactions);
+  } catch (err) {
+    console.error("Error in getTransactionsByMonth:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+};

@@ -9,6 +9,7 @@ import { validateSignup } from "../validator/authValidator.js";
 import Role from "../models/role.js";
 import Service from "../models/service.js";
 import Feedback from "../models/feedback.js";
+import Brand from "../models/brand.js";
 import ServiceDetail from "../models/serviceDetail.js";
 import axios from "axios";
 import {
@@ -19,6 +20,7 @@ import {
 import transporter from "../config/mailer.js";
 import Appointment from "../models/appointment.js";
 import mongoose from "mongoose";
+import { sendMultipleNotifications } from "./fcmService.js";
 
 const registerGarage = async (user, garageData) => {
   console.log(garageData);
@@ -422,7 +424,7 @@ export const calculateAverageRating = async (garageId) => {
 
   const averageRating =
     feedbacks.reduce((acc, feedback) => acc + feedback.rating, 0) /
-      feedbacks.length || 0;
+    feedbacks.length || 0;
   return averageRating;
 };
 
@@ -514,14 +516,14 @@ export const findGarages = async ({
     operatingDaysArray = operatingDaysArray.length
       ? operatingDaysArray
       : [
-          "Monday",
-          "Tuesday",
-          "Wednesday",
-          "Thursday",
-          "Friday",
-          "Saturday",
-          "Sunday",
-        ];
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday",
+      ];
     rating = rating || 0;
     distance = distance || 10;
 
@@ -771,7 +773,14 @@ export const findRescueGarages = async (latitude, longitude) => {
       {
         $match: { status: "enabled" }, // chỉ lấy garage enable thôi (availabilityavailability)
       },
+      {
+        $project: {
+          ...Object.fromEntries(Object.keys(Garage.schema.paths).map((key) => [key, 1])),
+          deviceTokens: 1,
+        },
+      }
     ]);
+    // console.log("Garage from DB: ", garages);
 
     /*
     Từ kết quả phía trên, tiếp tục check để giữ lại garage nào đang mở thôi, còn đóng thì khỏi
@@ -799,6 +808,7 @@ export const findRescueGarages = async (latitude, longitude) => {
         return false;
       }
     });
+    // console.log("openGarages: ", openGarages);
 
     /*
     Tìm xem garage nào có dịch vụ thì ưu tiên lên đầu. Tổng sẽ hiển thị ra cho user chọn 10 garages.
@@ -807,7 +817,7 @@ export const findRescueGarages = async (latitude, longitude) => {
     hoặc user đang ở ngoại thành, ví dụ có đủ 10 garage đi, nhưng chỉ có 6 garage cứu hộ
     => 6 garage cứu hộ đó được hiển thị trước. phần thiếu thì lấy garage KO có cứu hộ bù vô
     */
-    const emergencyService = await Service.findOne({ name: "Cứu hộ khẩn cấp" });
+    const emergencyService = await Service.findOne({ name: "Dịch vụ cứu hộ" });
     if (!emergencyService) throw new Error("Emergency service not found");
 
     const emergencyServiceDetails = await ServiceDetail.find({
@@ -855,8 +865,24 @@ export const findRescueGarages = async (latitude, longitude) => {
 
     // Lấy top 10 garage
     const topGarages = sortedGarages.slice(0, 10);
-
     // console.log("Top garages with emergency: ", JSON.stringify(topGarages, null, 2));
+
+    const deviceTokens = topGarages.flatMap((garage) => garage.deviceTokens || []);
+
+    if (deviceTokens.length > 0) {
+      // gui th bao den cac garage
+      const title = "Yêu cầu cứu hộ";
+      const body = "Có yêu cầu cứu hộ gần garage của bạn.";
+      const notificationResponse = await sendMultipleNotifications(
+        deviceTokens,
+        title,
+        body,
+      );
+
+      console.log("Notification response: ", notificationResponse);
+    } else {
+      console.log("No device tokens found for the top garages.");
+    }
 
     return topGarages;
   } catch (error) {
@@ -983,6 +1009,65 @@ const viewDashboardChart = async (garageId, userId) => {
     throw new Error(err.message);
   }
 };
+
+export const getAdminDashboardOverview = async () => {
+  try {
+    const totalGarages = await Garage.countDocuments();
+    const totalBrands = await Brand.countDocuments();
+    const totalServices = await Service.countDocuments();
+    const totalUsers = await User.countDocuments();
+
+    return {
+      totalGarages,
+      totalBrands,
+      totalServices,
+      totalUsers,
+    };
+  } catch (err) {
+    console.error("Error in getAdminDashboardOverview:", err.message);
+    throw new Error(err.message);
+  }
+};
+
+export const getGarageCountByStatusAndMonth = async () => {
+  try {
+    const statusCountsByMonth = await Garage.aggregate([
+      {
+        $match: {
+          status: { $in: ["enabled", "approved", "disabled", "rejected"] }, // Lọc trạng thái
+        },
+      },
+      {
+        $group: {
+          _id: {
+            month: { $month: "$updatedAt" }, // Lấy tháng từ `updatedAt`
+            year: { $year: "$updatedAt" }, // Lấy năm từ `updatedAt`
+            status: "$status", // Nhóm theo trạng thái
+          },
+          count: { $sum: 1 }, // Đếm số lượng
+        },
+      },
+      {
+        $project: {
+          month: "$_id.month",
+          year: "$_id.year",
+          status: "$_id.status",
+          count: 1,
+          _id: 0,
+        },
+      },
+      {
+        $sort: { year: 1, month: 1 }, // Sắp xếp theo năm và tháng
+      },
+    ]);
+
+    return statusCountsByMonth;
+  } catch (err) {
+    console.error("Error in getGarageCountByStatusAndMonth:", err.message);
+    throw new Error(err.message);
+  }
+};
+
 
 export {
   registerGarage,

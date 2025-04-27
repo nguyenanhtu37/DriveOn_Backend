@@ -1,6 +1,11 @@
 import mongoose from "mongoose";
+import dotenv from 'dotenv';
 import Garage from "../models/garage.js";
 import * as garageService from "../service/garageService.js";
+import {client} from "../config/twilio.js";
+import twilio from 'twilio';
+
+dotenv.config();
 
 const registerGarage = async (req, res) => {
   const user = req.user;
@@ -387,6 +392,33 @@ const viewDashboardChart = async (req, res) => {
   }
 };
 
+const viewAdminDashboardOverview = async (req, res) => {
+  try {
+    const overview = await garageService.getAdminDashboardOverview();
+    res.status(200).json(overview);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// export const getGarageStatusCounts = async (req, res) => {
+//   try {
+//     const statusCounts = await garageService.getGarageCountByStatus();
+//     res.status(200).json(statusCounts);
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// };
+
+export const getGarageStatusCountsByMonth = async (req, res) => {
+  try {
+    const statusCountsByMonth = await garageService.getGarageCountByStatusAndMonth();
+    res.status(200).json(statusCountsByMonth);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 export {
   registerGarage,
   viewGarages,
@@ -411,4 +443,5 @@ export {
   viewGarageRegistrationsCarOwner,
   viewDashboardOverview,
   viewDashboardChart,
+  viewAdminDashboardOverview,
 };

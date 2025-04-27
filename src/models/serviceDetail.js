@@ -27,10 +27,10 @@ const serviceDetailSchema = new mongoose.Schema({
   duration: {
     type: Number,
   },
-  warranty: {
-    //thoi gian bao hanh dich vu
-    type: String,
-  },
+  // warranty: {
+  //   //thoi gian bao hanh dich vu
+  //   type: String,
+  // },
   createdAt: {
     type: Date,
     default: Date.now,
