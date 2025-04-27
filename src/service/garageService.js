@@ -156,7 +156,10 @@ const viewGarageRegistrationsCarOwner = async (id) => {
 };
 
 const getGarageRegistrationById = async (garageId) => {
-  const garage = await Garage.findById(garageId);
+  const garage = await Garage.findById(garageId).populate(
+      "user",
+      "name email avatar"
+  );
   if (!garage) {
     throw new Error("Garage not found");
   }
