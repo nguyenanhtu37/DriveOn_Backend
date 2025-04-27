@@ -113,7 +113,11 @@ const garageSchema = new mongoose.Schema({
   },
   transaction: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Transaction", 
+    ref: "Transaction",
+  },
+  deviceTokens: {
+    type: [String],
+    default: [],
   },
 });
 
