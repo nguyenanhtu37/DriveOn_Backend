@@ -155,4 +155,48 @@ const disableUser = async (userId) => {
   }
 };
 
+export const getUserCountsByRole = async () => {
+  try {
+    const userCountsByRole = await User.aggregate([
+      {
+        $unwind: "$roles", // Tách mảng roles thành từng phần tử
+      },
+      {
+        $lookup: {
+          from: "roles", // Liên kết với bảng roles
+          localField: "roles",
+          foreignField: "_id",
+          as: "roleInfo",
+        },
+      },
+      {
+        $unwind: "$roleInfo", // Tách thông tin role
+      },
+      {
+        $match: {
+          "roleInfo.roleName": { $ne: "admin" }, // Loại bỏ vai trò admin
+        },
+      },
+      {
+        $group: {
+          _id: "$roleInfo.roleName", // Nhóm theo tên vai trò
+          count: { $sum: 1 }, // Đếm số lượng người dùng
+        },
+      },
+      {
+        $project: {
+          role: "$_id",
+          count: 1,
+          _id: 0,
+        },
+      },
+    ]);
+
+    return userCountsByRole;
+  } catch (err) {
+    console.error("Error in getUserCountsByRole:", err.message);
+    throw new Error(err.message);
+  }
+};
+
 export { changePassword, viewPersonalProfile, updatePersonalProfile, getAllUsers, getUserById, enableUser, disableUser };

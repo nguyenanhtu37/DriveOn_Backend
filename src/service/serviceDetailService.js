@@ -328,6 +328,33 @@ export const getEmergency = async (latitude, longitude) => {
   }
 };
 
+export const getServiceUsageCounts = async () => {
+  try {
+    const serviceUsageCounts = await ServiceDetail.aggregate([
+      {
+        $lookup: {
+          from: "appointments", // Bảng chứa thông tin lịch hẹn
+          localField: "_id",
+          foreignField: "service", // Liên kết với trường `service` trong bảng Appointment
+          as: "appointments",
+        },
+      },
+      {
+        $project: {
+          serviceName: "$name", // Tên dịch vụ
+          usageCount: { $size: "$appointments" }, // Đếm số lần sử dụng dịch vụ
+        },
+      },
+      { $sort: { usageCount: -1 } }, // Sắp xếp theo số lần sử dụng giảm dần
+    ]);
+
+    return serviceUsageCounts;
+  } catch (err) {
+    console.error("Error in getServiceUsageCounts:", err.message);
+    throw new Error(err.message);
+  }
+};
+
 export {
   addServiceDetail,
   getServiceDetailsByGarage,

@@ -387,6 +387,33 @@ const viewDashboardChart = async (req, res) => {
   }
 };
 
+const viewAdminDashboardOverview = async (req, res) => {
+  try {
+    const overview = await garageService.getAdminDashboardOverview();
+    res.status(200).json(overview);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// export const getGarageStatusCounts = async (req, res) => {
+//   try {
+//     const statusCounts = await garageService.getGarageCountByStatus();
+//     res.status(200).json(statusCounts);
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// };
+
+export const getGarageStatusCountsByMonth = async (req, res) => {
+  try {
+    const statusCountsByMonth = await garageService.getGarageCountByStatusAndMonth();
+    res.status(200).json(statusCountsByMonth);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 export {
   registerGarage,
   viewGarages,
@@ -411,4 +438,5 @@ export {
   viewGarageRegistrationsCarOwner,
   viewDashboardOverview,
   viewDashboardChart,
+  viewAdminDashboardOverview,
 };
