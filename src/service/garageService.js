@@ -869,6 +869,7 @@ export const findRescueGarages = async (latitude, longitude) => {
       // gui th bao den cac garage
       const title = "Yêu cầu cứu hộ";
       const body = "Có yêu cầu cứu hộ gần garage của bạn.";
+      console.log("Chay den day ok roi");
       const notificationResponse = await sendMultipleNotifications(
         deviceTokens,
         title,
