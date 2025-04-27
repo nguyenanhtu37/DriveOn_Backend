@@ -20,15 +20,29 @@
 // const app = initializeApp(firebaseConfig);
 // const analytics = getAnalytics(app);
 
+// import admin from "firebase-admin";
+// import { readFileSync } from 'fs';
+
+// const serviceAccount = JSON.parse(
+//   readFileSync('src/config/serviceAccountKey.json', 'utf8')
+// );
+
+// admin.initializeApp({
+//   credential: admin.credential.cert(serviceAccount),
+// });
+
+// export default admin;
+
 import admin from "firebase-admin";
-import { readFileSync } from 'fs';
 
-const serviceAccount = JSON.parse(
-  readFileSync('src/config/serviceAccountKey.json', 'utf8')
-);
-
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-});
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert({
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
+    }),
+  });
+}
 
 export default admin;
