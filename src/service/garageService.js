@@ -787,6 +787,8 @@ export const findRescueGarages = async (latitude, longitude) => {
     */
     const currentHour = new Date().getHours();
     const currentDay = new Date().toLocaleString("en-US", { weekday: "long" });
+    console.log("currentHour: ", currentHour);
+    console.log("currentDay: ", currentDay);
 
     const openGarages = garages.filter((garage) => {
       try {
@@ -794,6 +796,8 @@ export const findRescueGarages = async (latitude, longitude) => {
 
         const openHour = parseInt(garage.openTime.split(":")[0], 10);
         const closeHour = parseInt(garage.closeTime.split(":")[0], 10) || 24;
+        console.log("openHour: ", openHour);
+        console.log("closeHour: ", closeHour);
 
         return (
           Array.isArray(garage.operating_days) &&
