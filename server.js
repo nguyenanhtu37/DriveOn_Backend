@@ -20,7 +20,7 @@ import serviceRoutes from "./src/routes/serviceRoutes.js";
 import serviceDetailRoutes from "./src/routes/serviceDetailRoutes.js";
 import payosRoutes from "./src/routes/payosRoutes.js";
 import subscriptionRoutes from './src/routes/subscriptionRoutes.js';
-import adminROutes from "./src/routes/adminRoutes.js";
+import adminRoutes from "./src/routes/adminRoutes.js";
 import fcmRoutes from './src/routes/fcmRoutes.js';
 
 // Load environment variables
