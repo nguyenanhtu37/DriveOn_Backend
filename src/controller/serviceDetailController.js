@@ -92,4 +92,13 @@ export const getEmergency = async (req, res) => {
   }
 };
 
+export const getServiceUsageCounts = async (req, res) => {
+  try {
+    const serviceUsageCounts = await serviceDetailService.getServiceUsageCounts();
+    res.status(200).json(serviceUsageCounts);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 export { addServiceDetail, getServiceDetailsByGarage, updateServiceDetail, deleteServiceDetail };

@@ -236,3 +236,59 @@ export const sendPaymentSuccessEmailToAdmin = async (garage, subscription, amoun
         console.error("Error sending admin email:", error);
     }
 };
+
+export const getTransactionsByMonth = async () => {
+  try {
+    const transactionsByMonth = await Transaction.aggregate([
+      {
+        $match: {
+          status: "PAID", // Chỉ lấy các transaction đã thanh toán
+        },
+      },
+      {
+        $group: {
+          _id: {
+            month: { $month: "$paidAt" }, 
+            year: { $year: "$paidAt" }, 
+          },
+          totalTransactions: { $sum: 1 }, 
+        },
+      },
+      {
+        $project: {
+          month: "$_id.month",
+          year: "$_id.year",
+          totalTransactions: 1,
+          _id: 0,
+        },
+      },
+      {
+        $sort: { year: 1, month: 1 }, 
+      },
+    ]);
+
+    const currentYear = new Date().getFullYear();
+
+    const allMonths = Array.from({ length: 12 }, (_, i) => i + 1);
+
+    const filledData = allMonths.map((month) => ({
+      month,
+      year: currentYear,
+      totalTransactions: 0, // Mặc định là 0
+    }));
+
+    transactionsByMonth.forEach((item) => {
+      const index = filledData.findIndex(
+        (data) => data.month === item.month && data.year === item.year
+      );
+      if (index !== -1) {
+        filledData[index].totalTransactions = item.totalTransactions; 
+      }
+    });
+
+    return filledData;
+  } catch (err) {
+    console.error("Error in getTransactionsByMonth:", err.message);
+    throw new Error(err.message);
+  }
+};

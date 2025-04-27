@@ -9,6 +9,7 @@ import { validateSignup } from "../validator/authValidator.js";
 import Role from "../models/role.js";
 import Service from "../models/service.js";
 import Feedback from "../models/feedback.js";
+import Brand from "../models/brand.js";
 import ServiceDetail from "../models/serviceDetail.js";
 import axios from "axios";
 import {
@@ -1005,6 +1006,65 @@ const viewDashboardChart = async (garageId, userId) => {
     throw new Error(err.message);
   }
 };
+
+export const getAdminDashboardOverview = async () => {
+  try {
+    const totalGarages = await Garage.countDocuments();
+    const totalBrands = await Brand.countDocuments();
+    const totalServices = await Service.countDocuments();
+    const totalUsers = await User.countDocuments();
+
+    return {
+      totalGarages,
+      totalBrands,
+      totalServices,
+      totalUsers,
+    };
+  } catch (err) {
+    console.error("Error in getAdminDashboardOverview:", err.message);
+    throw new Error(err.message);
+  }
+};
+
+export const getGarageCountByStatusAndMonth = async () => {
+  try {
+    const statusCountsByMonth = await Garage.aggregate([
+      {
+        $match: {
+          status: { $in: ["enabled", "approved", "disabled", "rejected"] }, // Lọc trạng thái
+        },
+      },
+      {
+        $group: {
+          _id: {
+            month: { $month: "$updatedAt" }, // Lấy tháng từ `updatedAt`
+            year: { $year: "$updatedAt" }, // Lấy năm từ `updatedAt`
+            status: "$status", // Nhóm theo trạng thái
+          },
+          count: { $sum: 1 }, // Đếm số lượng
+        },
+      },
+      {
+        $project: {
+          month: "$_id.month",
+          year: "$_id.year",
+          status: "$_id.status",
+          count: 1,
+          _id: 0,
+        },
+      },
+      {
+        $sort: { year: 1, month: 1 }, // Sắp xếp theo năm và tháng
+      },
+    ]);
+
+    return statusCountsByMonth;
+  } catch (err) {
+    console.error("Error in getGarageCountByStatusAndMonth:", err.message);
+    throw new Error(err.message);
+  }
+};
+
 
 export {
   registerGarage,
