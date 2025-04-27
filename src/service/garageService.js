@@ -158,7 +158,10 @@ const viewGarageRegistrationsCarOwner = async (id) => {
 };
 
 const getGarageRegistrationById = async (garageId) => {
-  const garage = await Garage.findById(garageId);
+  const garage = await Garage.findById(garageId).populate(
+    "user",
+    "email name phone avatar"
+  );
   if (!garage) {
     throw new Error("Garage not found");
   }
@@ -638,13 +641,30 @@ const compareGarages = (a, b) => {
   return a.distance - b.distance;
 };
 
-const viewAllGaragesByAdmin = async () => {
+const viewAllGaragesByAdmin = async (page = 1, limit = 10, keySearch) => {
   try {
-    const garages = await Garage.find({
+    const skip = (page - 1) * limit;
+    const query = {
       status: { $in: ["approved", "rejected", "enabled", "disabled"] },
-    }).populate("user", "name email phone avatar");
+    };
 
-    return garages;
+    if (keySearch) {
+      query.name = { $regex: keySearch, $options: "i" };
+    }
+
+    const garages = await Garage.find(query)
+      .populate("user", "name email phone avatar")
+      .skip(skip)
+      .limit(limit);
+
+    const totalExits = await Garage.countDocuments(query);
+
+    return {
+      garages,
+      totalGarages: garages,
+      totalPages: Math.ceil(totalExits / limit),
+      currentPage: page,
+    };
   } catch (err) {
     throw new Error(err.message);
   }
