@@ -299,3 +299,14 @@ export const isCalledAppointment = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+export const getAppointmentPercents = async (req, res) => {
+  try {
+    const appointmentPercents =
+      await appointmentService.getAppointmentPercentsService();
+    res.status(200).json(appointmentPercents);
+  } catch (err) {
+    console.error("Error in getAppointmentPercents:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+};

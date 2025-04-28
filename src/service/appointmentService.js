@@ -117,7 +117,6 @@ const checkBooking = async (
     status: { $nin: ["Cancelled", "Rejected"] },
   });
 
-
   if (overlappingAppointments.length > 0) {
     const conflictGarage = await Garage.findById(
       overlappingAppointments[0].garage
@@ -438,7 +437,9 @@ async function sendAppointmentEmails(
           <li><strong>Trạng thái:</strong> Đang chờ xác nhận</li>
         </ul>
         <p>Garage sẽ xem xét và xác nhận lịch hẹn của bạn sớm nhất có thể.</p>
-        <p>Xem chi tiết lịch hẹn của bạn <a href="${process.env.FRONTEND_URL}/profile">tại đây</a>.</p>
+        <p>Xem chi tiết lịch hẹn của bạn <a href="${
+          process.env.FRONTEND_URL
+        }/profile">tại đây</a>.</p>
         <p>Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>
       `,
     });
@@ -473,7 +474,9 @@ async function sendAppointmentEmails(
                 <li><strong>Ghi chú:</strong> ${note || "Không có"}</li>
               </ul>
               <p>Vui lòng đăng nhập vào hệ thống để xác nhận hoặc từ chối lịch hẹn này.</p>
-              <p>Xem chi tiết lịch hẹn <a href="${process.env.FRONTEND_URL}/profile">tại đây</a>.</p>
+              <p>Xem chi tiết lịch hẹn <a href="${
+                process.env.FRONTEND_URL
+              }/profile">tại đây</a>.</p>
             `,
           });
         }
@@ -494,18 +497,18 @@ export const getAppointmentsByUserService = async (userId) => {
 
 export const getAppointmentByIdService = async (appointmentId) => {
   return await Appointment.findById(appointmentId)
-      .populate("user", "avatar name email locale phone") // Select basic user information
-      .populate("garage", "name address") // Select basic garage information
-      .populate({
-        path: "vehicle",
-        select: "carBrand carName carPlate",
-        populate: {
-          path: "carBrand",
-          select: "brandName logo"
-        }
-      }) // Populate vehicle with nested carBrand
-      .populate("service") // Populate service details
-      .populate("assignedStaff", "name avatar"); // Add staff information
+    .populate("user", "avatar name email locale phone") // Select basic user information
+    .populate("garage", "name address") // Select basic garage information
+    .populate({
+      path: "vehicle",
+      select: "carBrand carName carPlate",
+      populate: {
+        path: "carBrand",
+        select: "brandName logo",
+      },
+    }) // Populate vehicle with nested carBrand
+    .populate("service") // Populate service details
+    .populate("assignedStaff", "name avatar"); // Add staff information
 };
 
 export const getAppointmentsByGarageService = async (garageId) => {
@@ -1548,7 +1551,9 @@ async function sendUpdateNotificationEmails(
               </ul>
 
               <p>Vui lòng đăng nhập vào hệ thống để xác nhận hoặc từ chối lịch hẹn này.</p>
-              <p>Xem chi tiết lịch hẹn <a href="${process.env.FRONTEND_URL}/garageManagement/${garageId}/appointments">tại đây</a>.</p>
+              <p>Xem chi tiết lịch hẹn <a href="${
+                process.env.FRONTEND_URL
+              }/garageManagement/${garageId}/appointments">tại đây</a>.</p>
             `,
           });
         }
@@ -1566,5 +1571,44 @@ export const isCalledAppointmentService = async (appointmentId) => {
     await appointment.save();
   } catch (error) {
     console.error("Error in update notification email process:", error);
+  }
+};
+
+export const getAppointmentPercentsService = async () => {
+  try {
+    const today = new Date();
+    const startOfToday = new Date(today.setHours(0, 0, 0, 0));
+    const endOfToday = new Date(today.setHours(23, 59, 59, 999));
+
+    // Get all appointments for today
+    const appointments = await Appointment.find({
+      start: { $gte: startOfToday, $lte: endOfToday },
+    });
+
+    // Calculate percentages
+    const totalAppointments = appointments.length;
+    const completedAppointments = appointments.filter(
+      (appointment) => appointment.status === "Completed"
+    ).length;
+    const cancelledAppointments = appointments.filter(
+      (appointment) => appointment.status === "Cancelled"
+    ).length;
+
+    return {
+      totalAppointments,
+      completedAppointments,
+      cancelledAppointments,
+      completedPercentage:
+        totalAppointments > 0
+          ? ((completedAppointments / totalAppointments) * 100).toFixed(2)
+          : 0,
+      cancelledPercentage:
+        totalAppointments > 0
+          ? ((cancelledAppointments / totalAppointments) * 100).toFixed(2)
+          : 0,
+    };
+  } catch (error) {
+    console.error("Error in getAppointmentPercentsService:", error);
+    throw error;
   }
 };
