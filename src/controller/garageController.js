@@ -309,7 +309,14 @@ const findGarages = async (req, res) => {
 
 const viewAllGaragesByAdmin = async (req, res) => {
   try {
-    const garages = await garageService.viewAllGaragesByAdmin();
+    const page = parseInt(req.query.page) || 1; // Mặc định là trang 1
+    const limit = parseInt(req.query.limit) || 10;
+    const keySearch = req.query.keySearch || null;
+    const garages = await garageService.viewAllGaragesByAdmin(
+      page,
+      limit,
+      keySearch
+    );
     res.status(200).json(garages);
   } catch (err) {
     res.status(500).json({ error: err.message });
