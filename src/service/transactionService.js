@@ -17,8 +17,33 @@ export const getTransactions = async (filter = {}, options = {}) => {
       limit = 10,
       sortBy = "createdAt",
       sortOrder = -1,
+      date = null,
+      search = null,
+      status = null,
     } = options;
     const skip = (page - 1) * limit;
+
+    // Apply date filter if provided
+    if (date) {
+      const startOfDay = new Date(date);
+      startOfDay.setHours(0, 0, 0, 0);
+
+      const endOfDay = new Date(date);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      filter.createdAt = { $gte: startOfDay, $lte: endOfDay };
+    }
+
+    // Apply search filter if provided
+    if (search) {
+      filter.$or = [
+        { orderCode: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } },
+      ];
+    }
+    if (status) {
+      filter.status = status;
+    }
 
     const transactions = await Transaction.find(filter)
       .sort({ [sortBy]: sortOrder })
