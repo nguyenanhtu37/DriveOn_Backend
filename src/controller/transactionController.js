@@ -19,10 +19,22 @@ export const getTransactions = async (req, res) => {
       page: parseInt(req.query.page) || 1,
       limit: parseInt(req.query.limit) || 10,
       sortBy: req.query.sortBy || "createdAt",
-      sortOrder: req.query.sortOrder || -1,
+      sortOrder: parseInt(req.query.sortOrder) || -1,
+      date: req.query.date ? new Date(req.query.date) : null,
+      search: req.query.search || null,
+      subscription: req.query.subscription || null,
+      status: req.query.status || null,
     };
 
-    const result = await transactionService.getTransactions({}, options);
+    // Build filter object based on query parameters
+    const filter = {};
+
+    // Add subscription filter if provided
+    if (options.subscription) {
+      filter.subscriptionId = options.subscription;
+    }
+
+    const result = await transactionService.getTransactions(filter, options);
     res.status(200).json(result);
   } catch (err) {
     res.status(err.status || 500).json({ error: err.message });
