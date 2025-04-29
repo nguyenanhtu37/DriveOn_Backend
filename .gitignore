@@ -1,1 +1,5 @@
 node_modules
+.idea
+.env
+package-lock.json
+src/config/serviceAccountKey.json
