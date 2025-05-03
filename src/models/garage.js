@@ -99,7 +99,7 @@ const garageSchema = new mongoose.Schema({
   tag: {
     type: String,
     enum: ["normal", "pro"],
-    default: "normal"
+    default: "normal",
   },
   appointment: [
     {
@@ -109,7 +109,7 @@ const garageSchema = new mongoose.Schema({
   ],
   expiredTime: {
     type: Date,
-    default: null
+    default: null,
   },
   transaction: {
     type: mongoose.Schema.Types.ObjectId,
@@ -136,4 +136,5 @@ Vdu: db.garages.getIndexes();
 */
 
 const Garage = mongoose.model("Garage", garageSchema);
+
 export default Garage;
