@@ -245,7 +245,7 @@ const login = async (email, password, deviceToken) => {
       await Garage.findByIdAndUpdate(
         garageId,
         { $addToSet: { deviceTokens: deviceToken } }, // chir them neu chua ton tai trong fb
-        { new: true },
+        { new: true }
       );
     }
   }
