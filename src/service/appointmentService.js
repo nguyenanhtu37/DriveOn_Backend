@@ -126,7 +126,7 @@ const checkBooking = async (
       { start: { $lt: end }, end: { $gte: end } },
       { start: { $gte: start }, end: { $lte: end } },
     ],
-    status: { $nin: ["Cancelled", "Rejected"] },
+    status: { $nin: ["Cancelled", "Rejected", "Completed"] }
   });
 
   if (overlappingAppointments.length > 0) {
