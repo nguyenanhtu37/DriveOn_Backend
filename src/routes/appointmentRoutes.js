@@ -48,7 +48,7 @@ router.put(
   confirmAppointment
 ); // Confirm appointment
 
-router.put("/:appointmentId/deny", authorizeRoles(["staff"]), denyAppointment); // Deny appointment
+router.put("/:appointmentId/deny", authorizeRoles(["staff","manager"]), denyAppointment); // Deny appointment
 
 router.put(
   "/:appointmentId/complete",

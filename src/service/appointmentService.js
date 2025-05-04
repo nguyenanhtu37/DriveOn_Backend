@@ -461,29 +461,26 @@ async function sendAppointmentEmails(
     await transporter.sendMail({
       from: process.env.MAIL_USER,
       to: user.email,
-      subject: "Xác nhận đặt lịch hẹn",
+      subject: "Appointment Confirmation",
       html: `
-        <h2>Xin chào ${user.name},</h2>
-        <p>Bạn đã đặt lịch hẹn thành công tại hệ thống của chúng tôi.</p>
-        <h3>Chi tiết lịch hẹn:</h3>
-        <ul>
-          <li><strong>Garage:</strong> ${garageInfo.name}</li>
-          <li><strong>Địa chỉ:</strong> ${garageInfo.address}</li>
-          <li><strong>Xe:</strong> ${vehicleInfo.carName} (${
-        vehicleInfo.carPlate
-      })</li>
-          <li><strong>Ngày hẹn:</strong> ${displayDate}</li>
-          <li><strong>Thời gian:</strong> ${displayStartTime} - ${displayEndTime}</li>
-          <li><strong>Ghi chú:</strong> ${note || "Không có"}</li>
-          <li><strong>Trạng thái:</strong> Đang chờ xác nhận</li>
-        </ul>
-        <p>Garage sẽ xem xét và xác nhận lịch hẹn của bạn sớm nhất có thể.</p>
-        <p>Xem chi tiết lịch hẹn của bạn <a href="${
-          process.env.FRONTEND_URL
-        }/profile">tại đây</a>.</p>
-        <p>Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>
-      `,
+    <h2>Hello ${user.name},</h2>
+    <p>Your appointment has been successfully booked in our system.</p>
+    <h3>Appointment Details:</h3>
+    <ul>
+      <li><strong>Garage:</strong> ${garageInfo.name}</li>
+      <li><strong>Address:</strong> ${garageInfo.address}</li>
+      <li><strong>Vehicle:</strong> ${vehicleInfo.carName} (${vehicleInfo.carPlate})</li>
+      <li><strong>Date:</strong> ${displayDate}</li>
+      <li><strong>Time:</strong> ${displayStartTime}</li>
+      <li><strong>Note:</strong> ${note || "None"}</li>
+      <li><strong>Status:</strong> Pending Confirmation</li>
+    </ul>
+    <p>The garage will review and confirm your appointment as soon as possible.</p>
+    <p>You can view your appointment details <a href="${process.env.FRONTEND_URL}/profile">here</a>.</p>
+    <p>Thank you for using our service!</p>
+  `,
     });
+
 
     // Get garage managers to notify them
     const roleManager = await Role.findOne({ roleName: "manager" });
@@ -498,28 +495,25 @@ async function sendAppointmentEmails(
           await transporter.sendMail({
             from: process.env.MAIL_USER,
             to: manager.email,
-            subject: "Thông báo lịch hẹn mới",
+            subject: "New Appointment Notification",
             html: `
-              <h2>Xin chào ${manager.name},</h2>
-              <p>Có một lịch hẹn mới được đặt tại garage của bạn.</p>
-              <h3>Chi tiết lịch hẹn:</h3>
-              <ul>
-                <li><strong>Khách hàng:</strong> ${user.name}</li>
-                <li><strong>Số điện thoại:</strong> ${user.phone}</li>
-                <li><strong>Email:</strong> ${user.email}</li>
-                <li><strong>Xe:</strong> ${vehicleInfo.carName} (${
-              vehicleInfo.carPlate
-            })</li>
-                <li><strong>Ngày hẹn:</strong> ${displayDate}</li>
-                <li><strong>Thời gian:</strong> ${displayStartTime} - ${displayEndTime}</li>
-                <li><strong>Ghi chú:</strong> ${note || "Không có"}</li>
-              </ul>
-              <p>Vui lòng đăng nhập vào hệ thống để xác nhận hoặc từ chối lịch hẹn này.</p>
-              <p>Xem chi tiết lịch hẹn <a href="${
-                process.env.FRONTEND_URL
-              }/profile">tại đây</a>.</p>
-            `,
+    <h2>Hello ${manager.name},</h2>
+    <p>A new appointment has been scheduled at your garage.</p>
+    <h3>Appointment Details:</h3>
+    <ul>
+      <li><strong>Customer:</strong> ${user.name}</li>
+      <li><strong>Phone:</strong> ${user.phone}</li>
+      <li><strong>Email:</strong> ${user.email}</li>
+      <li><strong>Vehicle:</strong> ${vehicleInfo.carName} (${vehicleInfo.carPlate})</li>
+      <li><strong>Date:</strong> ${displayDate}</li>
+      <li><strong>Time:</strong> ${displayStartTime}</li>
+      <li><strong>Note:</strong> ${note || "None"}</li>
+    </ul>
+    <p>Please log in to the system to confirm or reject this appointment.</p>
+    <p>View appointment details <a href="${process.env.FRONTEND_URL}/profile">here</a>.</p>
+  `,
           });
+
         }
       }
     }
@@ -708,23 +702,24 @@ async function sendRejectionEmail(
     await transporter.sendMail({
       from: process.env.MAIL_USER,
       to: customer.email,
-      subject: "Thông báo từ chối lịch hẹn",
+      subject: "Appointment Rejection Notification",
       html: `
-        <h2>Xin chào ${customer.name},</h2>
-        <p>Chúng tôi rất tiếc phải thông báo rằng lịch hẹn của bạn đã bị <span style="color: #dc3545; font-weight: bold;">từ chối</span>.</p>
-        <h3>Chi tiết lịch hẹn:</h3>
-        <ul>
-          <li><strong>Garage:</strong> ${garageInfo.name}</li>
-          <li><strong>Địa chỉ:</strong> ${garageInfo.address}</li>
-          <li><strong>Ngày hẹn:</strong> ${displayDate}</li>
-          <li><strong>Thời gian:</strong> ${displayStartTime} - ${displayEndTime}</li>
-          <li><strong>Trạng thái:</strong> Đã từ chối</li>
-        </ul>
-        <p>Vui lòng liên hệ với garage để biết thêm thông tin hoặc đặt lịch hẹn mới.</p>
-        <p>Xem chi tiết lịch hẹn của bạn <a href="${process.env.FRONTEND_URL}/profile">tại đây</a>.</p>
-        <p>Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>
-      `,
+    <h2>Hello ${customer.name},</h2>
+    <p>We regret to inform you that your appointment has been <span style="color: #dc3545; font-weight: bold;">rejected</span>.</p>
+    <h3>Appointment Details:</h3>
+    <ul>
+      <li><strong>Garage:</strong> ${garageInfo.name}</li>
+      <li><strong>Address:</strong> ${garageInfo.address}</li>
+      <li><strong>Date:</strong> ${displayDate}</li>
+      <li><strong>Time:</strong> ${displayStartTime}</li>
+      <li><strong>Status:</strong> Rejected</li>
+    </ul>
+    <p>Please contact <a href="${process.env.FRONTEND_URL}/garageDetail/${garageId}">the garage</a> for more information or to schedule a new appointment.</p>
+    <p>You can view your appointment details <a href="${process.env.FRONTEND_URL}/profile">here</a>.</p>
+    <p>Thank you for using our service!</p>
+  `,
     });
+
   } catch (error) {
     console.error("Error in rejection email process:", error);
   }
@@ -809,23 +804,25 @@ export const completeAppointmentService = async (
   await transporter.sendMail({
     from: process.env.MAIL_USER,
     to: customer.email,
-    subject: "Dịch vụ của bạn đã hoàn thành",
+    subject: "Your Service Has Been Completed",
     html: `
-      <h2>Xin chào ${customer.name},</h2>
-      <p>Dịch vụ của bạn đã được hoàn thành.</p>
-      <h3>Chi tiết dịch vụ:</h3>
-      <ul>
-        <li><strong>Garage:</strong> ${garageInfo.name}</li>
-        <li><strong>Địa chỉ:</strong> ${garageInfo.address}</li>
-        <li><strong>Ngày hẹn:</strong> ${displayDate}</li>
-        <li><strong>Thời gian:</strong> ${displayStartTime}</li>
-        <li><strong>Nhân viên phụ trách:</strong> ${staffInfo.name}</li>
-        <li><strong>Trạng thái:</strong> Đã hoàn thành</li>
-      </ul>
-      <p>Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>
-      <p>Xem chi tiết lịch hẹn của bạn <a href="${process.env.FRONTEND_URL}/profile">tại đây</a>.</p>
-    `,
+    <h2>Hello ${customer.name},</h2>
+    <p>Your service has been successfully completed.</p>
+    <h3>Service Details:</h3>
+    <ul>
+      <li><strong>Garage:</strong> ${garageInfo.name}</li>
+      <li><strong>Address:</strong> ${garageInfo.address}</li>
+      <li><strong>Date:</strong> ${displayDate}</li>
+      <li><strong>Time:</strong> ${displayStartTime}</li>
+      <li><strong>Assigned Staff:</strong> ${staffInfo.name}</li>
+      <li><strong>Status:</strong> Completed</li>
+    </ul>
+    <p>Thank you for choosing our service!</p>
+    <p>You can view your appointment details <a href="${process.env.FRONTEND_URL}/profile">here</a>.</p>
+    <p>If you'd like to learn more about the garage, visit their <a href="${process.env.FRONTEND_URL}/garageDetail/${appointment.garage}">profile</a>.</p>
+  `,
   });
+
 
   return appointment;
 };
@@ -1286,23 +1283,24 @@ async function sendCancellationEmails(
     await transporter.sendMail({
       from: process.env.MAIL_USER,
       to: customer.email,
-      subject: "Xác nhận hủy lịch hẹn",
+      subject: "Appointment Cancellation Confirmation",
       html: `
-        <h2>Xin chào ${customer.name},</h2>
-        <p>Lịch hẹn của bạn đã được hủy <span style="color: #28a745; font-weight: bold;">thành công</span>.</p>
-        <h3>Chi tiết lịch hẹn đã hủy:</h3>
-        <ul>
-          <li><strong>Garage:</strong> ${garageInfo.name}</li>
-          <li><strong>Địa chỉ:</strong> ${garageInfo.address}</li>
-          <li><strong>Ngày hẹn:</strong> ${displayDate}</li>
-          <li><strong>Thời gian:</strong> ${displayStartTime} - ${displayEndTime}</li>
-          <li><strong>Trạng thái:</strong> Đã hủy</li>
-        </ul>
-        <p>Xem chi tiết lịch hẹn của bạn <a href="${process.env.FRONTEND_URL}/profile">tại đây</a>.</p>
-        <p>Nếu bạn muốn đặt lịch hẹn mới, vui lòng truy cập trang web của chúng tôi.</p>
-        <p>Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>
-      `,
+    <h2>Hello ${customer.name},</h2>
+    <p>Your appointment has been <span style="color: #28a745; font-weight: bold;">successfully canceled</span>.</p>
+    <h3>Canceled Appointment Details:</h3>
+    <ul>
+      <li><strong>Garage:</strong> ${garageInfo.name}</li>
+      <li><strong>Address:</strong> ${garageInfo.address}</li>
+      <li><strong>Date:</strong> ${displayDate}</li>
+      <li><strong>Time:</strong> ${displayStartTime}</li>
+      <li><strong>Status:</strong> Canceled</li>
+    </ul>
+    <p>You can view your appointment details <a href="${process.env.FRONTEND_URL}/profile">here</a>.</p>
+    <p>If you would like to book a new appointment, please visit our website.</p>
+    <p>Thank you for using our service!</p>
+  `,
     });
+
 
     // Notify garage managers about the cancellation
     const roleManager = await Role.findOne({ roleName: "manager" });
@@ -1317,20 +1315,22 @@ async function sendCancellationEmails(
           await transporter.sendMail({
             from: process.env.MAIL_USER,
             to: manager.email,
-            subject: "Thông báo hủy lịch hẹn",
+            subject: "Appointment Cancellation Notification",
             html: `
-              <h2>Xin chào ${manager.name},</h2>
-              <p>Một lịch hẹn tại garage của bạn đã bị <span style="color: #dc3545; font-weight: bold;">hủy bỏ</span> bởi khách hàng.</p>
-              <h3>Chi tiết lịch hẹn:</h3>
-              <ul>
-                <li><strong>Khách hàng:</strong> ${customer.name}</li>
-                <li><strong>Email:</strong> ${customer.email}</li>
-                <li><strong>Ngày hẹn:</strong> ${displayDate}</li>
-                <li><strong>Thời gian:</strong> ${displayStartTime} - ${displayEndTime}</li>
-                <li><strong>Trạng thái:</strong> Đã hủy</li>
-              </ul>
-             <p>Xem chi tiết lịch hẹn <a href="${process.env.FRONTEND_URL}/garageManagement/${garageId}/appointments">tại đây</a>.</p>            `,
+    <h2>Hello ${manager.name},</h2>
+    <p>An appointment at your garage has been <span style="color: #dc3545; font-weight: bold;">canceled</span> by the customer.</p>
+    <h3>Appointment Details:</h3>
+    <ul>
+      <li><strong>Customer:</strong> ${customer.name}</li>
+      <li><strong>Email:</strong> ${customer.email}</li>
+      <li><strong>Date:</strong> ${displayDate}</li>
+      <li><strong>Time:</strong> ${displayStartTime}</li>
+      <li><strong>Status:</strong> Canceled</li>
+    </ul>
+    <p>View appointment details <a href="${process.env.FRONTEND_URL}/garageManagement/${garageId}/appointments">here</a>.</p>
+  `,
           });
+
         }
       }
     }
