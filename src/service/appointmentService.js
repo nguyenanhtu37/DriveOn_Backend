@@ -1056,25 +1056,25 @@ async function sendAppointmentStaffCreatedEmail(
 
     // Nội dung email
     const emailContent = `
-      <h2>Xin chào ${carOwner.name},</h2>
-      <p>Lịch hẹn bảo dưỡng tiếp theo của bạn đã được tạo thành công bởi nhân viên <strong>${staff.name}</strong>.</p>
-      <h3>Chi tiết lịch hẹn:</h3>
-      <ul>
-        <li><strong>Garage:</strong> ${garage.name}</li>
-        <li><strong>Địa chỉ:</strong> ${garage.address}</li>
-        <li><strong>Ngày hẹn:</strong> ${displayDate}</li>
-        <li><strong>Thời gian:</strong> ${displayStartTime} - ${displayEndTime}</li>
-      </ul>
-      <p>Vui lòng đến đúng giờ để được phục vụ tốt nhất.</p>
-      <p>Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>
-    `;
+    <h2>Hello ${carOwner.name},</h2>
+    <p>Your next maintenance appointment has been successfully created by staff member <strong>${staff.name}</strong>.</p>
+    <h3>Appointment Details:</h3>
+    <ul>
+      <li><strong>Garage:</strong> ${garage.name}</li>
+      <li><strong>Address:</strong> ${garage.address}</li>
+      <li><strong>Date:</strong> ${displayDate}</li>
+      <li><strong>Time:</strong> ${displayStartTime} - ${displayEndTime}</li>
+    </ul>
+    <p>Please arrive on time for the best service experience.</p>
+    <p>Thank you for using our services!</p>
+  `;
 
     // Gửi email
     await transporter.sendMail({
       from: process.env.MAIL_USER,
       to: carOwner.email,
       subject:
-        "Xác nhận lịch hẹn bảo dưỡng - Được tạo bởi nhân viên của chúng tôi",
+        "Maintenance Appointment Confirmation - Created by Our Staff",
       html: emailContent,
     });
 
