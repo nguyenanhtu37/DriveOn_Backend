@@ -12,12 +12,12 @@ import Role from "../models/role.js";
 import mongoose from "mongoose";
 
 const checkBooking = async (
-  vehicleId,
-  garageId,
-  start,
-  end,
-  currentAppointmentId = null,
-  isSplit = false
+    vehicleId,
+    garageId,
+    start,
+    end,
+    currentAppointmentId = null,
+    isSplit = false
 ) => {
   const garage = await Garage.findById(garageId);
   if (!garage) {
@@ -37,7 +37,8 @@ const checkBooking = async (
     "Friday",
     "Saturday",
   ];
-  const appointmentDay = daysOfWeek[start.getUTCDay()];
+  const vietnamDate = new Date(start.getTime() + (7 * 60 * 60 * 1000)); // Add 7 hours
+  const appointmentDay = daysOfWeek[vietnamDate.getUTCDay()];
 
   // Check if garage operates on start day
   if (!garage.operating_days.includes(appointmentDay)) {
@@ -49,11 +50,15 @@ const checkBooking = async (
 
   // Get opening hours for the start day
   const [garageOpenHour, garageOpenMinute] = garage.openTime
-    .split(":")
-    .map(Number);
+      .split(":")
+      .map(Number);
   const [garageCloseHour, garageCloseMinute] = garage.closeTime
-    .split(":")
-    .map(Number);
+      .split(":")
+      .map(Number);
+
+  // Special handling for 24-hour garages
+  const is24HourGarage = garageOpenHour === 0 && garageOpenMinute === 0 &&
+      garageCloseHour === 23 && garageCloseMinute === 59;
 
   // Convert local Vietnam time (UTC+7) to UTC by subtracting 7 hours
   const utcOpenHour = garageOpenHour - 7;
@@ -75,13 +80,10 @@ const checkBooking = async (
   garageOpenTime.setUTCDate(garageOpenTime.getUTCDate() + openDayOffset);
   garageOpenTime.setUTCHours(utcAdjustedOpenHour, utcOpenMinute, 0, 0);
 
-  // Check if appointment starts before opening time
-  if (start < garageOpenTime) {
-    return {
-      hasConflict: true,
-      conflictMessage: `Garage opens at ${garage.openTime}`,
-    };
-  }
+  // Convert start time to Vietnam timezone for easier comparison
+  const appointmentVietnamTime = new Date(start.getTime() + (7 * 60 * 60 * 1000)); // Add 7 hours
+  const appointmentHour = appointmentVietnamTime.getUTCHours();
+  const appointmentMinute = appointmentVietnamTime.getUTCMinutes();
 
   // Handle close time wraparound
   let closeDayOffset = 0;
@@ -97,29 +99,39 @@ const checkBooking = async (
   garageCloseTime.setUTCDate(garageCloseTime.getUTCDate() + closeDayOffset);
   garageCloseTime.setUTCHours(utcAdjustedCloseHour, utcCloseMinute, 0, 0);
 
-  // Check if appointment starts after closing time
-  if (start > garageCloseTime) {
+  // Only check opening time for the initial start time, not for split appointment end time
+  if (!is24HourGarage && !isSplit && start < garageOpenTime) {
+    return {
+      hasConflict: true,
+      conflictMessage: `Garage opens at ${garage.openTime}`,
+    };
+  }
+
+  // Check closing time only for non-split appointments
+  if (!is24HourGarage && !isSplit && start > garageCloseTime) {
     return {
       hasConflict: true,
       conflictMessage: `Garage closes at ${garage.closeTime}`,
     };
   }
 
+  // For split appointments, we've already validated the times in convertAndValidateDateTime
+
   const overlappingAppointments = await Appointment.find({
     vehicle: vehicleId,
-    garage: { $ne: garageId }, //  chỉ check conflict ở garage khác
+    garage: { $ne: garageId }, // chỉ check conflict ở garage khác
     _id: { $ne: currentAppointmentId },
     $or: [
       { start: { $lte: start }, end: { $gt: start } },
       { start: { $lt: end }, end: { $gte: end } },
       { start: { $gte: start }, end: { $lte: end } },
     ],
-    status: { $nin: ["Cancelled", "Rejected"] },
+    status: { $nin: ["Cancelled", "Rejected", "Completed"] }
   });
 
   if (overlappingAppointments.length > 0) {
     const conflictGarage = await Garage.findById(
-      overlappingAppointments[0].garage
+        overlappingAppointments[0].garage
     );
     const garageName = conflictGarage ? conflictGarage.name : "another garage";
 
@@ -147,7 +159,7 @@ const convertAndValidateDateTime = async (start, serviceIds) => {
 
     if (isNaN(startTime.getTime())) {
       throw new Error(
-        "Invalid date format. Please provide a valid date and time."
+          "Invalid date format. Please provide a valid date and time."
       );
     }
 
@@ -156,22 +168,26 @@ const convertAndValidateDateTime = async (start, serviceIds) => {
       throw new Error("Appointment time must be in the future");
     }
 
-    const dayOfWeek = daysOfWeek[startTime.getUTCDay()];
+    // Convert to Vietnam time for day of week determination
+    const vietnamDate = new Date(startTime.getTime() + (7 * 60 * 60 * 1000));
+    const appointmentDay = daysOfWeek[vietnamDate.getUTCDay()];
 
     // Get garage details from first service
     const firstService = await ServiceDetail.findById(serviceIds[0]);
+
     if (!firstService) {
       throw new Error("Service not found");
     }
 
     const garage = await Garage.findById(firstService.garage);
+
     if (!garage) {
       throw new Error("Garage not found");
     }
 
     // Check if garage operates on the appointment day
-    if (!garage.operating_days.includes(dayOfWeek)) {
-      throw new Error(`Garage is closed on ${dayOfWeek}s`);
+    if (!garage.operating_days.includes(appointmentDay)) {
+      throw new Error(`Garage is closed on ${appointmentDay}s`);
     }
 
     // Calculate total service duration
@@ -187,6 +203,10 @@ const convertAndValidateDateTime = async (start, serviceIds) => {
     // Parse garage operating hours (Vietnam time)
     const [openHour, openMinute] = garage.openTime.split(":").map(Number);
     const [closeHour, closeMinute] = garage.closeTime.split(":").map(Number);
+
+    // Check if it's a 24-hour garage
+    const is24HourGarage = openHour === 0 && openMinute === 0 &&
+        closeHour === 23 && closeMinute === 59;
 
     // Convert local Vietnam time (UTC+7) to UTC
     const utcOpenHour = openHour - 7;
@@ -220,15 +240,15 @@ const convertAndValidateDateTime = async (start, serviceIds) => {
     garageCloseTime.setUTCHours(utcAdjustedCloseHour, utcCloseMinute, 0, 0);
 
     // 1. Check if start time is within operating hours
-    if (startTime < garageOpenTime) {
+    if (!is24HourGarage && startTime < garageOpenTime) {
       throw new Error(
-        `Appointment cannot start before opening time (${garage.openTime})`
+          `Appointment only create within ${garage.openTime} to ${garage.closeTime}`
       );
     }
 
-    if (startTime > garageCloseTime) {
+    if (!is24HourGarage && startTime > garageCloseTime) {
       throw new Error(
-        `Appointment cannot start after closing time (${garage.closeTime})`
+          `Appointment only create within ${garage.openTime} to ${garage.closeTime}`
       );
     }
 
@@ -236,22 +256,44 @@ const convertAndValidateDateTime = async (start, serviceIds) => {
     let endTime = new Date(startTime.getTime() + totalDurationMinutes * 60000);
 
     // 3. If end time exceeds closing time, handle split appointment
-    if (endTime > garageCloseTime) {
+    if (!is24HourGarage && endTime > garageCloseTime) {
       // Minutes that can be completed on day 1
       const minutesBeforeClosing = Math.floor(
-        (garageCloseTime - startTime) / 60000
+          (garageCloseTime - startTime) / 60000
       );
 
       // Remaining minutes to be scheduled on next operating day
       const remainingMinutes = totalDurationMinutes - minutesBeforeClosing;
 
       // Find the next operating day
-      let nextDayIndex = (startTime.getUTCDay() + 1) % 7;
-      let daysToAdd = 1;
+      let currentDate = new Date(startTime);
+      currentDate.setUTCDate(currentDate.getUTCDate() + 1); // Start with next day
 
-      while (!garage.operating_days.includes(daysOfWeek[nextDayIndex])) {
-        nextDayIndex = (nextDayIndex + 1) % 7;
+      let daysToAdd = 1;
+      let nextDayIndex;
+      let maxIterations = 14; // Safety limit
+      let iterationCount = 0;
+
+      // Keep checking days until we find an operating day
+      while (maxIterations > 0) {
+        iterationCount++;
+        const currentVietnamDate = new Date(currentDate.getTime() + (7 * 60 * 60 * 1000));
+        nextDayIndex = currentVietnamDate.getUTCDay();
+        const nextDayName = daysOfWeek[nextDayIndex];
+
+        // Check if garage operates on this day
+        if (garage.operating_days.includes(nextDayName)) {
+          break; // Found next operating day
+        }
+
+        // Move to the next day
+        currentDate.setUTCDate(currentDate.getUTCDate() + 1);
         daysToAdd++;
+        maxIterations--;
+      }
+
+      if (maxIterations === 0) {
+        throw new Error("Could not find next operating day within reasonable timeframe");
       }
 
       // Get the next operating day's opening time
@@ -263,9 +305,8 @@ const convertAndValidateDateTime = async (start, serviceIds) => {
       endTime = new Date(nextDayOpenTime.getTime() + remainingMinutes * 60000);
 
       // Format display info for continuation details
-      const nextDayDisplay = nextDayOpenTime.toLocaleDateString("vi-VN", {
-        timeZone: "Asia/Ho_Chi_Minh",
-      });
+      const nextDayVietnamTime = new Date(nextDayOpenTime.getTime() + (7 * 60 * 60 * 1000));
+      const nextDayDisplay = nextDayVietnamTime.toLocaleDateString("vi-VN");
       const nextDayName = daysOfWeek[nextDayIndex];
 
       return {
@@ -420,29 +461,26 @@ async function sendAppointmentEmails(
     await transporter.sendMail({
       from: process.env.MAIL_USER,
       to: user.email,
-      subject: "Xác nhận đặt lịch hẹn",
+      subject: "Appointment Confirmation",
       html: `
-        <h2>Xin chào ${user.name},</h2>
-        <p>Bạn đã đặt lịch hẹn thành công tại hệ thống của chúng tôi.</p>
-        <h3>Chi tiết lịch hẹn:</h3>
-        <ul>
-          <li><strong>Garage:</strong> ${garageInfo.name}</li>
-          <li><strong>Địa chỉ:</strong> ${garageInfo.address}</li>
-          <li><strong>Xe:</strong> ${vehicleInfo.carName} (${
-        vehicleInfo.carPlate
-      })</li>
-          <li><strong>Ngày hẹn:</strong> ${displayDate}</li>
-          <li><strong>Thời gian:</strong> ${displayStartTime} - ${displayEndTime}</li>
-          <li><strong>Ghi chú:</strong> ${note || "Không có"}</li>
-          <li><strong>Trạng thái:</strong> Đang chờ xác nhận</li>
-        </ul>
-        <p>Garage sẽ xem xét và xác nhận lịch hẹn của bạn sớm nhất có thể.</p>
-        <p>Xem chi tiết lịch hẹn của bạn <a href="${
-          process.env.FRONTEND_URL
-        }/profile">tại đây</a>.</p>
-        <p>Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>
-      `,
+    <h2>Hello ${user.name},</h2>
+    <p>Your appointment has been successfully booked in our system.</p>
+    <h3>Appointment Details:</h3>
+    <ul>
+      <li><strong>Garage:</strong> ${garageInfo.name}</li>
+      <li><strong>Address:</strong> ${garageInfo.address}</li>
+      <li><strong>Vehicle:</strong> ${vehicleInfo.carName} (${vehicleInfo.carPlate})</li>
+      <li><strong>Date:</strong> ${displayDate}</li>
+      <li><strong>Time:</strong> ${displayStartTime}</li>
+      <li><strong>Note:</strong> ${note || "None"}</li>
+      <li><strong>Status:</strong> Pending Confirmation</li>
+    </ul>
+    <p>The garage will review and confirm your appointment as soon as possible.</p>
+    <p>You can view your appointment details <a href="${process.env.FRONTEND_URL}/profile">here</a>.</p>
+    <p>Thank you for using our service!</p>
+  `,
     });
+
 
     // Get garage managers to notify them
     const roleManager = await Role.findOne({ roleName: "manager" });
@@ -457,28 +495,25 @@ async function sendAppointmentEmails(
           await transporter.sendMail({
             from: process.env.MAIL_USER,
             to: manager.email,
-            subject: "Thông báo lịch hẹn mới",
+            subject: "New Appointment Notification",
             html: `
-              <h2>Xin chào ${manager.name},</h2>
-              <p>Có một lịch hẹn mới được đặt tại garage của bạn.</p>
-              <h3>Chi tiết lịch hẹn:</h3>
-              <ul>
-                <li><strong>Khách hàng:</strong> ${user.name}</li>
-                <li><strong>Số điện thoại:</strong> ${user.phone}</li>
-                <li><strong>Email:</strong> ${user.email}</li>
-                <li><strong>Xe:</strong> ${vehicleInfo.carName} (${
-              vehicleInfo.carPlate
-            })</li>
-                <li><strong>Ngày hẹn:</strong> ${displayDate}</li>
-                <li><strong>Thời gian:</strong> ${displayStartTime} - ${displayEndTime}</li>
-                <li><strong>Ghi chú:</strong> ${note || "Không có"}</li>
-              </ul>
-              <p>Vui lòng đăng nhập vào hệ thống để xác nhận hoặc từ chối lịch hẹn này.</p>
-              <p>Xem chi tiết lịch hẹn <a href="${
-                process.env.FRONTEND_URL
-              }/profile">tại đây</a>.</p>
-            `,
+    <h2>Hello ${manager.name},</h2>
+    <p>A new appointment has been scheduled at your garage.</p>
+    <h3>Appointment Details:</h3>
+    <ul>
+      <li><strong>Customer:</strong> ${user.name}</li>
+      <li><strong>Phone:</strong> ${user.phone}</li>
+      <li><strong>Email:</strong> ${user.email}</li>
+      <li><strong>Vehicle:</strong> ${vehicleInfo.carName} (${vehicleInfo.carPlate})</li>
+      <li><strong>Date:</strong> ${displayDate}</li>
+      <li><strong>Time:</strong> ${displayStartTime}</li>
+      <li><strong>Note:</strong> ${note || "None"}</li>
+    </ul>
+    <p>Please log in to the system to confirm or reject this appointment.</p>
+    <p>View appointment details <a href="${process.env.FRONTEND_URL}/profile">here</a>.</p>
+  `,
           });
+
         }
       }
     }
@@ -667,23 +702,24 @@ async function sendRejectionEmail(
     await transporter.sendMail({
       from: process.env.MAIL_USER,
       to: customer.email,
-      subject: "Thông báo từ chối lịch hẹn",
+      subject: "Appointment Rejection Notification",
       html: `
-        <h2>Xin chào ${customer.name},</h2>
-        <p>Chúng tôi rất tiếc phải thông báo rằng lịch hẹn của bạn đã bị <span style="color: #dc3545; font-weight: bold;">từ chối</span>.</p>
-        <h3>Chi tiết lịch hẹn:</h3>
-        <ul>
-          <li><strong>Garage:</strong> ${garageInfo.name}</li>
-          <li><strong>Địa chỉ:</strong> ${garageInfo.address}</li>
-          <li><strong>Ngày hẹn:</strong> ${displayDate}</li>
-          <li><strong>Thời gian:</strong> ${displayStartTime} - ${displayEndTime}</li>
-          <li><strong>Trạng thái:</strong> Đã từ chối</li>
-        </ul>
-        <p>Vui lòng liên hệ với garage để biết thêm thông tin hoặc đặt lịch hẹn mới.</p>
-        <p>Xem chi tiết lịch hẹn của bạn <a href="${process.env.FRONTEND_URL}/profile">tại đây</a>.</p>
-        <p>Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>
-      `,
+    <h2>Hello ${customer.name},</h2>
+    <p>We regret to inform you that your appointment has been <span style="color: #dc3545; font-weight: bold;">rejected</span>.</p>
+    <h3>Appointment Details:</h3>
+    <ul>
+      <li><strong>Garage:</strong> ${garageInfo.name}</li>
+      <li><strong>Address:</strong> ${garageInfo.address}</li>
+      <li><strong>Date:</strong> ${displayDate}</li>
+      <li><strong>Time:</strong> ${displayStartTime}</li>
+      <li><strong>Status:</strong> Rejected</li>
+    </ul>
+    <p>Please contact <a href="${process.env.FRONTEND_URL}/garageDetail/${garageId}">the garage</a> for more information or to schedule a new appointment.</p>
+    <p>You can view your appointment details <a href="${process.env.FRONTEND_URL}/profile">here</a>.</p>
+    <p>Thank you for using our service!</p>
+  `,
     });
+
   } catch (error) {
     console.error("Error in rejection email process:", error);
   }
@@ -768,23 +804,25 @@ export const completeAppointmentService = async (
   await transporter.sendMail({
     from: process.env.MAIL_USER,
     to: customer.email,
-    subject: "Dịch vụ của bạn đã hoàn thành",
+    subject: "Your Service Has Been Completed",
     html: `
-      <h2>Xin chào ${customer.name},</h2>
-      <p>Dịch vụ của bạn đã được hoàn thành.</p>
-      <h3>Chi tiết dịch vụ:</h3>
-      <ul>
-        <li><strong>Garage:</strong> ${garageInfo.name}</li>
-        <li><strong>Địa chỉ:</strong> ${garageInfo.address}</li>
-        <li><strong>Ngày hẹn:</strong> ${displayDate}</li>
-        <li><strong>Thời gian:</strong> ${displayStartTime}</li>
-        <li><strong>Nhân viên phụ trách:</strong> ${staffInfo.name}</li>
-        <li><strong>Trạng thái:</strong> Đã hoàn thành</li>
-      </ul>
-      <p>Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>
-      <p>Xem chi tiết lịch hẹn của bạn <a href="${process.env.FRONTEND_URL}/profile">tại đây</a>.</p>
-    `,
+    <h2>Hello ${customer.name},</h2>
+    <p>Your service has been successfully completed.</p>
+    <h3>Service Details:</h3>
+    <ul>
+      <li><strong>Garage:</strong> ${garageInfo.name}</li>
+      <li><strong>Address:</strong> ${garageInfo.address}</li>
+      <li><strong>Date:</strong> ${displayDate}</li>
+      <li><strong>Time:</strong> ${displayStartTime}</li>
+      <li><strong>Assigned Staff:</strong> ${staffInfo.name}</li>
+      <li><strong>Status:</strong> Completed</li>
+    </ul>
+    <p>Thank you for choosing our service!</p>
+    <p>You can view your appointment details <a href="${process.env.FRONTEND_URL}/profile">here</a>.</p>
+    <p>If you'd like to learn more about the garage, visit their <a href="${process.env.FRONTEND_URL}/garageDetail/${appointment.garage}">profile</a>.</p>
+  `,
   });
+
 
   return appointment;
 };
@@ -1015,25 +1053,25 @@ async function sendAppointmentStaffCreatedEmail(
 
     // Nội dung email
     const emailContent = `
-      <h2>Xin chào ${carOwner.name},</h2>
-      <p>Lịch hẹn bảo dưỡng tiếp theo của bạn đã được tạo thành công bởi nhân viên <strong>${staff.name}</strong>.</p>
-      <h3>Chi tiết lịch hẹn:</h3>
-      <ul>
-        <li><strong>Garage:</strong> ${garage.name}</li>
-        <li><strong>Địa chỉ:</strong> ${garage.address}</li>
-        <li><strong>Ngày hẹn:</strong> ${displayDate}</li>
-        <li><strong>Thời gian:</strong> ${displayStartTime} - ${displayEndTime}</li>
-      </ul>
-      <p>Vui lòng đến đúng giờ để được phục vụ tốt nhất.</p>
-      <p>Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>
-    `;
+    <h2>Hello ${carOwner.name},</h2>
+    <p>Your next maintenance appointment has been successfully created by staff member <strong>${staff.name}</strong>.</p>
+    <h3>Appointment Details:</h3>
+    <ul>
+      <li><strong>Garage:</strong> ${garage.name}</li>
+      <li><strong>Address:</strong> ${garage.address}</li>
+      <li><strong>Date:</strong> ${displayDate}</li>
+      <li><strong>Time:</strong> ${displayStartTime} - ${displayEndTime}</li>
+    </ul>
+    <p>Please arrive on time for the best service experience.</p>
+    <p>Thank you for using our services!</p>
+  `;
 
     // Gửi email
     await transporter.sendMail({
       from: process.env.MAIL_USER,
       to: carOwner.email,
       subject:
-        "Xác nhận lịch hẹn bảo dưỡng - Được tạo bởi nhân viên của chúng tôi",
+        "Maintenance Appointment Confirmation - Created by Our Staff",
       html: emailContent,
     });
 
@@ -1245,23 +1283,24 @@ async function sendCancellationEmails(
     await transporter.sendMail({
       from: process.env.MAIL_USER,
       to: customer.email,
-      subject: "Xác nhận hủy lịch hẹn",
+      subject: "Appointment Cancellation Confirmation",
       html: `
-        <h2>Xin chào ${customer.name},</h2>
-        <p>Lịch hẹn của bạn đã được hủy <span style="color: #28a745; font-weight: bold;">thành công</span>.</p>
-        <h3>Chi tiết lịch hẹn đã hủy:</h3>
-        <ul>
-          <li><strong>Garage:</strong> ${garageInfo.name}</li>
-          <li><strong>Địa chỉ:</strong> ${garageInfo.address}</li>
-          <li><strong>Ngày hẹn:</strong> ${displayDate}</li>
-          <li><strong>Thời gian:</strong> ${displayStartTime} - ${displayEndTime}</li>
-          <li><strong>Trạng thái:</strong> Đã hủy</li>
-        </ul>
-        <p>Xem chi tiết lịch hẹn của bạn <a href="${process.env.FRONTEND_URL}/profile">tại đây</a>.</p>
-        <p>Nếu bạn muốn đặt lịch hẹn mới, vui lòng truy cập trang web của chúng tôi.</p>
-        <p>Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>
-      `,
+    <h2>Hello ${customer.name},</h2>
+    <p>Your appointment has been <span style="color: #28a745; font-weight: bold;">successfully canceled</span>.</p>
+    <h3>Canceled Appointment Details:</h3>
+    <ul>
+      <li><strong>Garage:</strong> ${garageInfo.name}</li>
+      <li><strong>Address:</strong> ${garageInfo.address}</li>
+      <li><strong>Date:</strong> ${displayDate}</li>
+      <li><strong>Time:</strong> ${displayStartTime}</li>
+      <li><strong>Status:</strong> Canceled</li>
+    </ul>
+    <p>You can view your appointment details <a href="${process.env.FRONTEND_URL}/profile">here</a>.</p>
+    <p>If you would like to book a new appointment, please visit our website.</p>
+    <p>Thank you for using our service!</p>
+  `,
     });
+
 
     // Notify garage managers about the cancellation
     const roleManager = await Role.findOne({ roleName: "manager" });
@@ -1276,20 +1315,22 @@ async function sendCancellationEmails(
           await transporter.sendMail({
             from: process.env.MAIL_USER,
             to: manager.email,
-            subject: "Thông báo hủy lịch hẹn",
+            subject: "Appointment Cancellation Notification",
             html: `
-              <h2>Xin chào ${manager.name},</h2>
-              <p>Một lịch hẹn tại garage của bạn đã bị <span style="color: #dc3545; font-weight: bold;">hủy bỏ</span> bởi khách hàng.</p>
-              <h3>Chi tiết lịch hẹn:</h3>
-              <ul>
-                <li><strong>Khách hàng:</strong> ${customer.name}</li>
-                <li><strong>Email:</strong> ${customer.email}</li>
-                <li><strong>Ngày hẹn:</strong> ${displayDate}</li>
-                <li><strong>Thời gian:</strong> ${displayStartTime} - ${displayEndTime}</li>
-                <li><strong>Trạng thái:</strong> Đã hủy</li>
-              </ul>
-             <p>Xem chi tiết lịch hẹn <a href="${process.env.FRONTEND_URL}/garageManagement/${garageId}/appointments">tại đây</a>.</p>            `,
+    <h2>Hello ${manager.name},</h2>
+    <p>An appointment at your garage has been <span style="color: #dc3545; font-weight: bold;">canceled</span> by the customer.</p>
+    <h3>Appointment Details:</h3>
+    <ul>
+      <li><strong>Customer:</strong> ${customer.name}</li>
+      <li><strong>Email:</strong> ${customer.email}</li>
+      <li><strong>Date:</strong> ${displayDate}</li>
+      <li><strong>Time:</strong> ${displayStartTime}</li>
+      <li><strong>Status:</strong> Canceled</li>
+    </ul>
+    <p>View appointment details <a href="${process.env.FRONTEND_URL}/garageManagement/${garageId}/appointments">here</a>.</p>
+  `,
           });
+
         }
       }
     }

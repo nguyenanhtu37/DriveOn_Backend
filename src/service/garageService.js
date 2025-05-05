@@ -810,7 +810,7 @@ export const findRescueGarages = async (latitude, longitude) => {
     Ngày hoạt động của garage operating_days include ngày hiện tại mà người dùng check => hợp lệ. else loại
     Giờ mở cửa của garage <= giờ hiện tại người dùng gọi cứu hộ < giờ đóng cửa của garage => hợp lệ. Ko thì loại
     */
-    
+
     dayjs.extend(utc);
     dayjs.extend(timezone);
 
@@ -964,8 +964,8 @@ const viewDashboardChart = async (garageId, userId) => {
       },
       {
         $project: {
-          year: { $year: "$createdAt" },
-          month: { $month: "$createdAt" },
+          year: { $year: "$end" },
+          month: { $month: "$end" },
         },
       },
       {
