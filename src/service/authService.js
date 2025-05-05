@@ -408,7 +408,7 @@ const logout = async (token) => {
 //   }
 // };
 
-const googleLogin = async (token) => {
+const googleLogin = async (token, deviceToken) => {
   const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
   const ticket = await client.verifyIdToken({
     idToken: token,
