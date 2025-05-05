@@ -11,7 +11,7 @@ import { getUserCountsByRole } from "../controller/userController.js";
 import { getAppointmentPercents } from "../controller/appointmentController.js";
 
 const router = express.Router();
-
+// admin dashboard
 router.get("/dashboard-overview", adminMiddleware, viewAdminDashboardOverview); // Admin dashboard overview
 router.get(
   "/garage-status-counts",
