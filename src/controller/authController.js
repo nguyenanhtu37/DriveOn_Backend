@@ -62,7 +62,7 @@ const logout = async (req, res) => {
 const googleLogin = async (req, res) => {
   try {
     console.log(req.body);
-    const result = await authService.googleLogin(req.body.token);
+    const result = await authService.googleLogin(req.body.token, req.body.deviceToken);
     console.log("Response login with Google: ", result);
     res.status(200).json(result);
   } catch (err) {

@@ -213,6 +213,8 @@ const verifyEmail = async (token) => {
 };
 
 const login = async (email, password, deviceToken) => {
+console.log("deviceToken for login: ", deviceToken);
+
   validateLogin(email, password);
 
   const user = await User.findOne({ email })
@@ -409,6 +411,7 @@ const logout = async (token) => {
 // };
 
 const googleLogin = async (token, deviceToken) => {
+  console.log("deviceToken for loginGoogle: ", deviceToken);
   const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
   const ticket = await client.verifyIdToken({
     idToken: token,
@@ -430,6 +433,8 @@ const googleLogin = async (token, deviceToken) => {
   let user = await User.findOne({ email, googleId })
     .populate("roles")
     .populate("garageList");
+
+  console.log("Garage list for user:", user.garageList);
 
   if (!user) {
     const defaultRoles = await Role.find({
@@ -464,18 +469,22 @@ const googleLogin = async (token, deviceToken) => {
     { algorithm: "HS256", expiresIn: "1h" }
   );
 
-  // luu deviceToken vao garage (neu co) => tim kiem theo id
+  // Lưu deviceToken vào garage (nếu có)
   if (deviceToken && user.garageList.length > 0) {
     for (const garageId of user.garageList) {
-      await Garage.findByIdAndUpdate(
-        garageId,
-        { $addToSet: { deviceTokens: deviceToken } }, // chir them neu chua ton tai trong fb
-        { new: true },
-      );
+      try {
+        const updatedGarage = await Garage.findByIdAndUpdate(
+          garageId,
+          { $addToSet: { deviceTokens: deviceToken } }, // Chỉ thêm nếu chưa tồn tại
+          { new: true }
+        );
+        console.log(`Updated garage (${garageId}):`, updatedGarage);
+      } catch (error) {
+        console.error(`Failed to update garage (${garageId}):`, error);
+      }
     }
   }
 
-  // return { token: jwtToken };
   return { user, token: jwtToken };
 };
 
