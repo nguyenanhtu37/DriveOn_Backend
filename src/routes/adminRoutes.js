@@ -7,7 +7,7 @@ import { getTransactionsByMonth } from "../controller/payosController.js";
 import { getUserCountsByRole } from "../controller/userController.js";
 
 const router = express.Router();
-
+// admin dashboard
 router.get("/dashboard-overview", adminMiddleware, viewAdminDashboardOverview); // Admin dashboard overview
 router.get("/garage-status-counts", adminMiddleware, getGarageStatusCountsByMonth); // Garage status counts by month
 router.get("/service-usage-counts", adminMiddleware, getServiceUsageCounts); // đếm số service đã đc gara sử dụng
