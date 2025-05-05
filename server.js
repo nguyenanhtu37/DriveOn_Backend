@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import cors from "cors";
 import bodyParser from "body-parser";
 import cron from "node-cron";
+import downgradeExpiredGarages from "./src/config/cron.js";
 import { sendMaintenanceReminderEmails } from "./src/service/appointmentService.js";
 
 // Import Routes
@@ -69,6 +70,10 @@ app.use((req, res, next) => {
 
 // Connect to Database
 connectDB();
+// khoi dong cron job:
+downgradeExpiredGarages().then(() => {
+  console.log("Initial downgrade run completed. Cron job scheduled.");
+});
 
 // Routes
 app.use("/api/auth", authRoutes);
