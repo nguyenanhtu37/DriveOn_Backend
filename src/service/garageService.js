@@ -161,7 +161,10 @@ const viewGarageRegistrationsCarOwner = async (id) => {
 };
 
 const getGarageRegistrationById = async (garageId) => {
-  const garage = await Garage.findById(garageId);
+  const garage = await Garage.findById(garageId).populate(
+    "user",
+    "email name phone avatar"
+  );
   if (!garage) {
     throw new Error("Garage not found");
   }
@@ -424,7 +427,7 @@ export const calculateAverageRating = async (garageId) => {
 
   const averageRating =
     feedbacks.reduce((acc, feedback) => acc + feedback.rating, 0) /
-    feedbacks.length || 0;
+      feedbacks.length || 0;
   return averageRating;
 };
 
@@ -516,14 +519,14 @@ export const findGarages = async ({
     operatingDaysArray = operatingDaysArray.length
       ? operatingDaysArray
       : [
-        "Monday",
-        "Tuesday",
-        "Wednesday",
-        "Thursday",
-        "Friday",
-        "Saturday",
-        "Sunday",
-      ];
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday",
+          "Saturday",
+          "Sunday",
+        ];
     rating = rating || 0;
     distance = distance || 10;
 
@@ -641,13 +644,30 @@ const compareGarages = (a, b) => {
   return a.distance - b.distance;
 };
 
-const viewAllGaragesByAdmin = async () => {
+const viewAllGaragesByAdmin = async (page = 1, limit = 10, keySearch) => {
   try {
-    const garages = await Garage.find({
+    const skip = (page - 1) * limit;
+    const query = {
       status: { $in: ["approved", "rejected", "enabled", "disabled"] },
-    }).populate("user", "name email phone avatar");
+    };
 
-    return garages;
+    if (keySearch) {
+      query.name = { $regex: keySearch, $options: "i" };
+    }
+
+    const garages = await Garage.find(query)
+      .populate("user", "name email phone avatar")
+      .skip(skip)
+      .limit(limit);
+
+    const totalExits = await Garage.countDocuments(query);
+
+    return {
+      garages,
+      totalGarages: garages,
+      totalPages: Math.ceil(totalExits / limit),
+      currentPage: page,
+    };
   } catch (err) {
     throw new Error(err.message);
   }
@@ -714,7 +734,7 @@ const viewGaragesWithSearchParams = async ({
         )
         .join("|");
 
-      const apiUrl = `https://api.distancematrix.ai/maps/api/distancematrix/json?origins=${currentLocation}&destinations=${destinations}&key=hUvifHIuGWgvi1aCIh6Pvzp9oJlNiIq3Q6F497ytNdPkgsXGnTiEdp0bbHKZmFTq`;
+      const apiUrl = `https://api.distancematrix.ai/maps/api/distancematrix/json?origins=${currentLocation}&destinations=${destinations}&key=tHo8T5FZ6V3hHtK3Z0QDuCtlRiEkTxyrHOVyUJCzyD8kiNo2zzi1QBA0nMnBPgvh`;
 
       const response = await axios.get(apiUrl);
 
@@ -775,10 +795,12 @@ export const findRescueGarages = async (latitude, longitude) => {
       },
       {
         $project: {
-          ...Object.fromEntries(Object.keys(Garage.schema.paths).map((key) => [key, 1])),
+          ...Object.fromEntries(
+            Object.keys(Garage.schema.paths).map((key) => [key, 1])
+          ),
           deviceTokens: 1,
         },
-      }
+      },
     ]);
     console.log("Garage from DB: ", garages);
 
@@ -876,7 +898,9 @@ export const findRescueGarages = async (latitude, longitude) => {
     const topGarages = sortedGarages.slice(0, 10);
     // console.log("Top garages with emergency: ", JSON.stringify(topGarages, null, 2));
 
-    const deviceTokens = topGarages.flatMap((garage) => garage.deviceTokens || []);
+    const deviceTokens = topGarages.flatMap(
+      (garage) => garage.deviceTokens || []
+    );
 
     if (deviceTokens.length > 0) {
       // gui th bao den cac garage
@@ -885,7 +909,7 @@ export const findRescueGarages = async (latitude, longitude) => {
       const notificationResponse = await sendMultipleNotifications(
         deviceTokens,
         title,
-        body,
+        body
       );
 
       console.log("Notification response: ", notificationResponse);
@@ -1040,43 +1064,43 @@ export const getAdminDashboardOverview = async () => {
 
 export const getGarageCountByStatusAndMonth = async () => {
   try {
-    const statusCountsByMonth = await Garage.aggregate([
+    const result = await Garage.aggregate([
       {
         $match: {
-          status: { $in: ["enabled", "approved", "disabled", "rejected"] }, // Lọc trạng thái
+          status: { $in: ["enabled", "disabled"] }, // Chỉ lấy enabled hoặc disabled
         },
       },
       {
         $group: {
-          _id: {
-            month: { $month: "$updatedAt" }, // Lấy tháng từ `updatedAt`
-            year: { $year: "$updatedAt" }, // Lấy năm từ `updatedAt`
-            status: "$status", // Nhóm theo trạng thái
-          },
-          count: { $sum: 1 }, // Đếm số lượng
+          _id: { month: { $month: "$createdAt" } },
+          garages: { $sum: 1 },
         },
       },
       {
         $project: {
-          month: "$_id.month",
-          year: "$_id.year",
-          status: "$_id.status",
-          count: 1,
           _id: 0,
+          month: "$_id.month",
+          garages: 1,
         },
-      },
-      {
-        $sort: { year: 1, month: 1 }, // Sắp xếp theo năm và tháng
       },
     ]);
 
-    return statusCountsByMonth;
+    // Fill đủ 12 tháng
+    const fullMonths = Array.from({ length: 12 }, (_, i) => {
+      const month = i + 1;
+      const found = result.find((r) => r.month === month);
+      return {
+        month,
+        garages: found ? found.garages : 0,
+      };
+    });
+
+    return fullMonths;
   } catch (err) {
     console.error("Error in getGarageCountByStatusAndMonth:", err.message);
     throw new Error(err.message);
   }
 };
-
 
 export {
   registerGarage,

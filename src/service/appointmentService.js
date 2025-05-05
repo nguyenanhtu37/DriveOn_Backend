@@ -12,12 +12,12 @@ import Role from "../models/role.js";
 import mongoose from "mongoose";
 
 const checkBooking = async (
-  vehicleId,
-  garageId,
-  start,
-  end,
-  currentAppointmentId = null,
-  isSplit = false
+    vehicleId,
+    garageId,
+    start,
+    end,
+    currentAppointmentId = null,
+    isSplit = false
 ) => {
   const garage = await Garage.findById(garageId);
   if (!garage) {
@@ -37,7 +37,8 @@ const checkBooking = async (
     "Friday",
     "Saturday",
   ];
-  const appointmentDay = daysOfWeek[start.getUTCDay()];
+  const vietnamDate = new Date(start.getTime() + (7 * 60 * 60 * 1000)); // Add 7 hours
+  const appointmentDay = daysOfWeek[vietnamDate.getUTCDay()];
 
   // Check if garage operates on start day
   if (!garage.operating_days.includes(appointmentDay)) {
@@ -49,11 +50,15 @@ const checkBooking = async (
 
   // Get opening hours for the start day
   const [garageOpenHour, garageOpenMinute] = garage.openTime
-    .split(":")
-    .map(Number);
+      .split(":")
+      .map(Number);
   const [garageCloseHour, garageCloseMinute] = garage.closeTime
-    .split(":")
-    .map(Number);
+      .split(":")
+      .map(Number);
+
+  // Special handling for 24-hour garages
+  const is24HourGarage = garageOpenHour === 0 && garageOpenMinute === 0 &&
+      garageCloseHour === 23 && garageCloseMinute === 59;
 
   // Convert local Vietnam time (UTC+7) to UTC by subtracting 7 hours
   const utcOpenHour = garageOpenHour - 7;
@@ -75,13 +80,10 @@ const checkBooking = async (
   garageOpenTime.setUTCDate(garageOpenTime.getUTCDate() + openDayOffset);
   garageOpenTime.setUTCHours(utcAdjustedOpenHour, utcOpenMinute, 0, 0);
 
-  // Check if appointment starts before opening time
-  if (start < garageOpenTime) {
-    return {
-      hasConflict: true,
-      conflictMessage: `Garage opens at ${garage.openTime}`,
-    };
-  }
+  // Convert start time to Vietnam timezone for easier comparison
+  const appointmentVietnamTime = new Date(start.getTime() + (7 * 60 * 60 * 1000)); // Add 7 hours
+  const appointmentHour = appointmentVietnamTime.getUTCHours();
+  const appointmentMinute = appointmentVietnamTime.getUTCMinutes();
 
   // Handle close time wraparound
   let closeDayOffset = 0;
@@ -97,17 +99,27 @@ const checkBooking = async (
   garageCloseTime.setUTCDate(garageCloseTime.getUTCDate() + closeDayOffset);
   garageCloseTime.setUTCHours(utcAdjustedCloseHour, utcCloseMinute, 0, 0);
 
-  // Check if appointment starts after closing time
-  if (start > garageCloseTime) {
+  // Only check opening time for the initial start time, not for split appointment end time
+  if (!is24HourGarage && !isSplit && start < garageOpenTime) {
+    return {
+      hasConflict: true,
+      conflictMessage: `Garage opens at ${garage.openTime}`,
+    };
+  }
+
+  // Check closing time only for non-split appointments
+  if (!is24HourGarage && !isSplit && start > garageCloseTime) {
     return {
       hasConflict: true,
       conflictMessage: `Garage closes at ${garage.closeTime}`,
     };
   }
 
+  // For split appointments, we've already validated the times in convertAndValidateDateTime
+
   const overlappingAppointments = await Appointment.find({
     vehicle: vehicleId,
-    garage: { $ne: garageId }, //  chỉ check conflict ở garage khác
+    garage: { $ne: garageId }, // chỉ check conflict ở garage khác
     _id: { $ne: currentAppointmentId },
     $or: [
       { start: { $lte: start }, end: { $gt: start } },
@@ -117,10 +129,9 @@ const checkBooking = async (
     status: { $nin: ["Cancelled", "Rejected"] },
   });
 
-
   if (overlappingAppointments.length > 0) {
     const conflictGarage = await Garage.findById(
-      overlappingAppointments[0].garage
+        overlappingAppointments[0].garage
     );
     const garageName = conflictGarage ? conflictGarage.name : "another garage";
 
@@ -148,7 +159,7 @@ const convertAndValidateDateTime = async (start, serviceIds) => {
 
     if (isNaN(startTime.getTime())) {
       throw new Error(
-        "Invalid date format. Please provide a valid date and time."
+          "Invalid date format. Please provide a valid date and time."
       );
     }
 
@@ -157,22 +168,26 @@ const convertAndValidateDateTime = async (start, serviceIds) => {
       throw new Error("Appointment time must be in the future");
     }
 
-    const dayOfWeek = daysOfWeek[startTime.getUTCDay()];
+    // Convert to Vietnam time for day of week determination
+    const vietnamDate = new Date(startTime.getTime() + (7 * 60 * 60 * 1000));
+    const appointmentDay = daysOfWeek[vietnamDate.getUTCDay()];
 
     // Get garage details from first service
     const firstService = await ServiceDetail.findById(serviceIds[0]);
+
     if (!firstService) {
       throw new Error("Service not found");
     }
 
     const garage = await Garage.findById(firstService.garage);
+
     if (!garage) {
       throw new Error("Garage not found");
     }
 
     // Check if garage operates on the appointment day
-    if (!garage.operating_days.includes(dayOfWeek)) {
-      throw new Error(`Garage is closed on ${dayOfWeek}s`);
+    if (!garage.operating_days.includes(appointmentDay)) {
+      throw new Error(`Garage is closed on ${appointmentDay}s`);
     }
 
     // Calculate total service duration
@@ -188,6 +203,10 @@ const convertAndValidateDateTime = async (start, serviceIds) => {
     // Parse garage operating hours (Vietnam time)
     const [openHour, openMinute] = garage.openTime.split(":").map(Number);
     const [closeHour, closeMinute] = garage.closeTime.split(":").map(Number);
+
+    // Check if it's a 24-hour garage
+    const is24HourGarage = openHour === 0 && openMinute === 0 &&
+        closeHour === 23 && closeMinute === 59;
 
     // Convert local Vietnam time (UTC+7) to UTC
     const utcOpenHour = openHour - 7;
@@ -221,15 +240,15 @@ const convertAndValidateDateTime = async (start, serviceIds) => {
     garageCloseTime.setUTCHours(utcAdjustedCloseHour, utcCloseMinute, 0, 0);
 
     // 1. Check if start time is within operating hours
-    if (startTime < garageOpenTime) {
+    if (!is24HourGarage && startTime < garageOpenTime) {
       throw new Error(
-        `Appointment cannot start before opening time (${garage.openTime})`
+          `Appointment only create within ${garage.openTime} to ${garage.closeTime}`
       );
     }
 
-    if (startTime > garageCloseTime) {
+    if (!is24HourGarage && startTime > garageCloseTime) {
       throw new Error(
-        `Appointment cannot start after closing time (${garage.closeTime})`
+          `Appointment only create within ${garage.openTime} to ${garage.closeTime}`
       );
     }
 
@@ -237,22 +256,44 @@ const convertAndValidateDateTime = async (start, serviceIds) => {
     let endTime = new Date(startTime.getTime() + totalDurationMinutes * 60000);
 
     // 3. If end time exceeds closing time, handle split appointment
-    if (endTime > garageCloseTime) {
+    if (!is24HourGarage && endTime > garageCloseTime) {
       // Minutes that can be completed on day 1
       const minutesBeforeClosing = Math.floor(
-        (garageCloseTime - startTime) / 60000
+          (garageCloseTime - startTime) / 60000
       );
 
       // Remaining minutes to be scheduled on next operating day
       const remainingMinutes = totalDurationMinutes - minutesBeforeClosing;
 
       // Find the next operating day
-      let nextDayIndex = (startTime.getUTCDay() + 1) % 7;
-      let daysToAdd = 1;
+      let currentDate = new Date(startTime);
+      currentDate.setUTCDate(currentDate.getUTCDate() + 1); // Start with next day
 
-      while (!garage.operating_days.includes(daysOfWeek[nextDayIndex])) {
-        nextDayIndex = (nextDayIndex + 1) % 7;
+      let daysToAdd = 1;
+      let nextDayIndex;
+      let maxIterations = 14; // Safety limit
+      let iterationCount = 0;
+
+      // Keep checking days until we find an operating day
+      while (maxIterations > 0) {
+        iterationCount++;
+        const currentVietnamDate = new Date(currentDate.getTime() + (7 * 60 * 60 * 1000));
+        nextDayIndex = currentVietnamDate.getUTCDay();
+        const nextDayName = daysOfWeek[nextDayIndex];
+
+        // Check if garage operates on this day
+        if (garage.operating_days.includes(nextDayName)) {
+          break; // Found next operating day
+        }
+
+        // Move to the next day
+        currentDate.setUTCDate(currentDate.getUTCDate() + 1);
         daysToAdd++;
+        maxIterations--;
+      }
+
+      if (maxIterations === 0) {
+        throw new Error("Could not find next operating day within reasonable timeframe");
       }
 
       // Get the next operating day's opening time
@@ -264,9 +305,8 @@ const convertAndValidateDateTime = async (start, serviceIds) => {
       endTime = new Date(nextDayOpenTime.getTime() + remainingMinutes * 60000);
 
       // Format display info for continuation details
-      const nextDayDisplay = nextDayOpenTime.toLocaleDateString("vi-VN", {
-        timeZone: "Asia/Ho_Chi_Minh",
-      });
+      const nextDayVietnamTime = new Date(nextDayOpenTime.getTime() + (7 * 60 * 60 * 1000));
+      const nextDayDisplay = nextDayVietnamTime.toLocaleDateString("vi-VN");
       const nextDayName = daysOfWeek[nextDayIndex];
 
       return {
@@ -438,7 +478,9 @@ async function sendAppointmentEmails(
           <li><strong>Trạng thái:</strong> Đang chờ xác nhận</li>
         </ul>
         <p>Garage sẽ xem xét và xác nhận lịch hẹn của bạn sớm nhất có thể.</p>
-        <p>Xem chi tiết lịch hẹn của bạn <a href="${process.env.FRONTEND_URL}/profile">tại đây</a>.</p>
+        <p>Xem chi tiết lịch hẹn của bạn <a href="${
+          process.env.FRONTEND_URL
+        }/profile">tại đây</a>.</p>
         <p>Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>
       `,
     });
@@ -473,7 +515,9 @@ async function sendAppointmentEmails(
                 <li><strong>Ghi chú:</strong> ${note || "Không có"}</li>
               </ul>
               <p>Vui lòng đăng nhập vào hệ thống để xác nhận hoặc từ chối lịch hẹn này.</p>
-              <p>Xem chi tiết lịch hẹn <a href="${process.env.FRONTEND_URL}/profile">tại đây</a>.</p>
+              <p>Xem chi tiết lịch hẹn <a href="${
+                process.env.FRONTEND_URL
+              }/profile">tại đây</a>.</p>
             `,
           });
         }
@@ -494,18 +538,18 @@ export const getAppointmentsByUserService = async (userId) => {
 
 export const getAppointmentByIdService = async (appointmentId) => {
   return await Appointment.findById(appointmentId)
-      .populate("user", "avatar name email locale phone") // Select basic user information
-      .populate("garage", "name address") // Select basic garage information
-      .populate({
-        path: "vehicle",
-        select: "carBrand carName carPlate",
-        populate: {
-          path: "carBrand",
-          select: "brandName logo"
-        }
-      }) // Populate vehicle with nested carBrand
-      .populate("service") // Populate service details
-      .populate("assignedStaff", "name avatar"); // Add staff information
+    .populate("user", "avatar name email locale phone") // Select basic user information
+    .populate("garage", "name address") // Select basic garage information
+    .populate({
+      path: "vehicle",
+      select: "carBrand carName carPlate",
+      populate: {
+        path: "carBrand",
+        select: "brandName logo",
+      },
+    }) // Populate vehicle with nested carBrand
+    .populate("service") // Populate service details
+    .populate("assignedStaff", "name avatar"); // Add staff information
 };
 
 export const getAppointmentsByGarageService = async (garageId) => {
@@ -1548,7 +1592,9 @@ async function sendUpdateNotificationEmails(
               </ul>
 
               <p>Vui lòng đăng nhập vào hệ thống để xác nhận hoặc từ chối lịch hẹn này.</p>
-              <p>Xem chi tiết lịch hẹn <a href="${process.env.FRONTEND_URL}/garageManagement/${garageId}/appointments">tại đây</a>.</p>
+              <p>Xem chi tiết lịch hẹn <a href="${
+                process.env.FRONTEND_URL
+              }/garageManagement/${garageId}/appointments">tại đây</a>.</p>
             `,
           });
         }
@@ -1566,5 +1612,44 @@ export const isCalledAppointmentService = async (appointmentId) => {
     await appointment.save();
   } catch (error) {
     console.error("Error in update notification email process:", error);
+  }
+};
+
+export const getAppointmentPercentsService = async () => {
+  try {
+    const today = new Date();
+    const startOfToday = new Date(today.setHours(0, 0, 0, 0));
+    const endOfToday = new Date(today.setHours(23, 59, 59, 999));
+
+    // Get all appointments for today
+    const appointments = await Appointment.find({
+      start: { $gte: startOfToday, $lte: endOfToday },
+    });
+
+    // Calculate percentages
+    const totalAppointments = appointments.length;
+    const completedAppointments = appointments.filter(
+      (appointment) => appointment.status === "Completed"
+    ).length;
+    const cancelledAppointments = appointments.filter(
+      (appointment) => appointment.status === "Cancelled"
+    ).length;
+
+    return {
+      totalAppointments,
+      completedAppointments,
+      cancelledAppointments,
+      completedPercentage:
+        totalAppointments > 0
+          ? ((completedAppointments / totalAppointments) * 100).toFixed(2)
+          : 0,
+      cancelledPercentage:
+        totalAppointments > 0
+          ? ((cancelledAppointments / totalAppointments) * 100).toFixed(2)
+          : 0,
+    };
+  } catch (error) {
+    console.error("Error in getAppointmentPercentsService:", error);
+    throw error;
   }
 };

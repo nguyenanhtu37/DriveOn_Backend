@@ -16,16 +16,8 @@ const addServiceDetail = async (serviceDetailData) => {
   // Validate service detail data
   validateAddServiceDetail(serviceDetailData);
 
-  const {
-    service,
-    garage,
-    name,
-    description,
-    images,
-    price,
-    duration,
-    
-  } = serviceDetailData;
+  const { service, garage, name, description, images, price, duration } =
+    serviceDetailData;
   const newServiceDetail = new ServiceDetail({
     service,
     garage,
@@ -330,28 +322,107 @@ export const getEmergency = async (latitude, longitude) => {
 
 export const getServiceUsageCounts = async () => {
   try {
-    const serviceUsageCounts = await ServiceDetail.aggregate([
+    const serviceUsageCounts = await Service.aggregate([
       {
         $lookup: {
-          from: "appointments", // Bảng chứa thông tin lịch hẹn
+          from: "servicedetails",
           localField: "_id",
-          foreignField: "service", // Liên kết với trường `service` trong bảng Appointment
-          as: "appointments",
+          foreignField: "service",
+          as: "serviceDetails",
         },
       },
       {
         $project: {
-          serviceName: "$name", // Tên dịch vụ
-          usageCount: { $size: "$appointments" }, // Đếm số lần sử dụng dịch vụ
+          serviceName: "$name",
+          usageCount: { $size: "$serviceDetails" },
         },
       },
-      { $sort: { usageCount: -1 } }, // Sắp xếp theo số lần sử dụng giảm dần
+      {
+        $match: {
+          usageCount: { $gt: 0 },
+        },
+      },
+      { $sort: { usageCount: -1 } },
     ]);
 
     return serviceUsageCounts;
   } catch (err) {
     console.error("Error in getServiceUsageCounts:", err.message);
     throw new Error(err.message);
+  }
+};
+
+export const searchServiceKeyword = async ({ keyword, lat, lon }) => {
+  try {
+    const regex = new RegExp(keyword, "i");
+    const services = await ServiceDetail.find({
+      name: regex,
+    }).populate(
+      "garage",
+      "name address location tag ratingAverage openTime closeTime operating_days"
+    );
+    if (lat && lon) {
+      const garages = await Garage.aggregate([
+        {
+          $geoNear: {
+            near: {
+              type: "Point",
+              coordinates: [parseFloat(lon), parseFloat(lat)],
+            },
+            distanceField: "distance",
+            maxDistance: 5000, // 5km
+            spherical: true,
+            query: {
+              status: { $all: ["enabled", "approved"] },
+            },
+          },
+        },
+      ]);
+
+      const garageIds = garages.map((garage) => garage._id.toString());
+
+      const nearbyServices = services.filter((service) =>
+        garageIds.includes(service.garage._id.toString())
+      );
+
+      const farServices = services.filter(
+        (service) => !garageIds.includes(service.garage._id.toString())
+      );
+
+      // sort pro to top //
+      nearbyServices.sort((a, b) => {
+        const garageA = a.garage;
+        const garageB = b.garage;
+
+        if (garageA.tag === "pro" && garageB.tag !== "pro") return -1;
+        if (garageA.tag !== "pro" && garageB.tag === "pro") return 1;
+
+        return garageB.ratingAverage - garageA.ratingAverage;
+      });
+
+      farServices.sort((a, b) => {
+        const garageA = a.garage;
+        const garageB = b.garage;
+
+        if (garageA.tag === "pro" && garageB.tag !== "pro") return -1;
+        if (garageA.tag !== "pro" && garageB.tag === "pro") return 1;
+
+        return garageB.ratingAverage - garageA.ratingAverage;
+      });
+
+      return {
+        nearbyServices: nearbyServices,
+        farServices: farServices,
+      };
+    }
+
+    return {
+      nearbyServices: services,
+      farServices: [],
+    };
+  } catch (error) {
+    console.error("Error in searchServicesByKeyword:", error);
+    throw new Error("Failed to search services by keyword");
   }
 };
 

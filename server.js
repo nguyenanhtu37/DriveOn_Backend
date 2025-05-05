@@ -19,9 +19,10 @@ import appointmentRoutes from "./src/routes/appointmentRoutes.js";
 import serviceRoutes from "./src/routes/serviceRoutes.js";
 import serviceDetailRoutes from "./src/routes/serviceDetailRoutes.js";
 import payosRoutes from "./src/routes/payosRoutes.js";
-import subscriptionRoutes from './src/routes/subscriptionRoutes.js';
 import adminRoutes from "./src/routes/adminRoutes.js";
-import fcmRoutes from './src/routes/fcmRoutes.js';
+import fcmRoutes from "./src/routes/fcmRoutes.js";
+import subscriptionRoutes from "./src/routes/subscriptionRoutes.js";
+import transactionRoutes from "./src/routes/transactionRoutes.js";
 
 // Load environment variables
 dotenv.config();
@@ -32,28 +33,35 @@ const PORT = process.env.PORT || 5000;
 // Middleware
 // app.use(express.json());
 // app.use(bodyParser.json());
-app.use(bodyParser.json({
-  verify: (req, res, buf) => {
-    req.rawBody = buf.toString(); 
-  }
-}));
-app.use(express.static('public'));
+app.use(
+  bodyParser.json({
+    verify: (req, res, buf) => {
+      req.rawBody = buf.toString();
+    },
+  })
+);
+app.use(express.static("public"));
 // app.use(express.urlencoded({ extended: false }));
 app.use(express.urlencoded({ extended: true }));
 
 // CORS Config
-app.use(cors({
-  origin: "*",
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
+  })
+);
 
 // Set Security Headers
 app.use((req, res, next) => {
   res.setHeader("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
   res.setHeader("Cross-Origin-Embedder-Policy", "credentialless");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET, POST, PUT, DELETE, OPTIONS"
+  );
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
   res.setHeader("Access-Control-Allow-Credentials", "true");
   next();
@@ -75,8 +83,9 @@ app.use("/api/service", serviceRoutes);
 app.use("/api/service-detail", serviceDetailRoutes);
 app.use("/api/appointment", appointmentRoutes);
 app.use("/api/payos", payosRoutes);
-app.use('/api/subscription', subscriptionRoutes);
-app.use('/api/admin', adminRoutes);
+app.use("/api/subscription", subscriptionRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/transaction", transactionRoutes);
 
 // Test Route
 app.get("/", (req, res) => {

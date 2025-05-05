@@ -1,11 +1,21 @@
 import express from "express";
-import { addServiceDetail, getServiceDetailsByGarage, updateServiceDetail, deleteServiceDetail, getServiceDetailById, searchServices, getEmergency } from "../controller/serviceDetailController.js";
+import {
+  addServiceDetail,
+  getServiceDetailsByGarage,
+  updateServiceDetail,
+  deleteServiceDetail,
+  getServiceDetailById,
+  searchServices,
+  getEmergency,
+  searchServicesByKeyword,
+} from "../controller/serviceDetailController.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
 // search service
-router.get('/search', searchServices);
+router.get("/search", searchServices);
+router.get("/searchService", searchServicesByKeyword);
 
 // emergency assistance
 // router.get('/emergency', getEmergency);
