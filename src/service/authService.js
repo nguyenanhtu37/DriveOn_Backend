@@ -464,6 +464,17 @@ const googleLogin = async (token) => {
     { algorithm: "HS256", expiresIn: "1h" }
   );
 
+  // luu deviceToken vao garage (neu co) => tim kiem theo id
+  if (deviceToken && user.garageList.length > 0) {
+    for (const garageId of user.garageList) {
+      await Garage.findByIdAndUpdate(
+        garageId,
+        { $addToSet: { deviceTokens: deviceToken } }, // chir them neu chua ton tai trong fb
+        { new: true },
+      );
+    }
+  }
+
   // return { token: jwtToken };
   return { user, token: jwtToken };
 };
