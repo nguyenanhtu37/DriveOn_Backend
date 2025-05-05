@@ -18,7 +18,7 @@ import {
 const router = express.Router();
 
 // Create a new transaction
-router.post("/",  authorizeRoles(["manager", "staff"]), createTransaction);
+router.post("/",  authorizeRoles(["manager", "carowner"]), createTransaction);
 
 // Get all transactions with pagination
 router.get("/",  authorizeRoles(["admin"]), getTransactions);
