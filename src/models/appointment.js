@@ -59,6 +59,10 @@ const appointmentSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    isUserAgreed: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );
