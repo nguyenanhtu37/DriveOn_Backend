@@ -734,7 +734,7 @@ const viewGaragesWithSearchParams = async ({
         )
         .join("|");
 
-      const apiUrl = `https://api.distancematrix.ai/maps/api/distancematrix/json?origins=${currentLocation}&destinations=${destinations}&key=tHo8T5FZ6V3hHtK3Z0QDuCtlRiEkTxyrHOVyUJCzyD8kiNo2zzi1QBA0nMnBPgvh`;
+      const apiUrl = `https://api.distancematrix.ai/maps/api/distancematrix/json?origins=${currentLocation}&destinations=${destinations}&key=IYigGAIZdr94d8D17ch4vamaqkwfcfq4d9uqFxILLRTxpRl74IxHkmp7mBHWFUoa`;
 
       const response = await axios.get(apiUrl);
 

@@ -238,7 +238,7 @@ console.log("deviceToken for login: ", deviceToken);
       roles: user.roles.map((role) => role.roleName),
     },
     process.env.JWT_SECRET,
-    { algorithm: "HS256", expiresIn: "1h" }
+    { algorithm: "HS256", expiresIn: "5h" }
   );
 
   // luu deviceToken vao garage (neu co) => tim kiem theo id
@@ -466,7 +466,7 @@ const googleLogin = async (token, deviceToken) => {
       roles: user.roles.map((role) => role.roleName),
     },
     process.env.JWT_SECRET,
-    { algorithm: "HS256", expiresIn: "1h" }
+    { algorithm: "HS256", expiresIn: "5h" }
   );
 
   // Lưu deviceToken vào garage (nếu có)

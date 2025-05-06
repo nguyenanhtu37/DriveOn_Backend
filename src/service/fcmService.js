@@ -6,25 +6,15 @@ export const sendMultipleNotifications = async (deviceTokens, title, body) => {
     throw new Error("deviceTokens must be a non-empty array");
   }
 
-  const messages = deviceTokens.map(token => ({
-    notification: {
-      title,
-      body,
-    },
-    token: token,
-    android: {
-      priority: "high",
-    },
-    apns: {
-      headers: {
-        "apns-priority": "10",
-      },
-    },
-    webpush: {
-      headers: {
-        Urgency: "high",
-      },
-    },
+  // Loại bỏ token trùng
+  const uniqueTokens = [...new Set(deviceTokens)];
+
+  const messages = uniqueTokens.map(token => ({
+    notification: { title, body },
+    token,
+    android: { priority: "high" },
+    apns: { headers: { "apns-priority": "10" } },
+    webpush: { headers: { Urgency: "high" } },
   }));
 
   console.log("[sendMultipleNotifications] Prepared messages:", JSON.stringify(messages, null, 2));
@@ -37,8 +27,8 @@ export const sendMultipleNotifications = async (deviceTokens, title, body) => {
     const failedTokens = [];
     response.responses.forEach((resp, idx) => {
       if (!resp.success) {
-        console.error(`[sendMultipleNotifications] Failed to send to token: ${deviceTokens[idx]}, error:`, resp.error);
-        failedTokens.push(deviceTokens[idx]);
+        console.error(`[sendMultipleNotifications] Failed to send to token: ${uniqueTokens[idx]}, error:`, resp.error);
+        failedTokens.push(uniqueTokens[idx]);
       }
     });
 
