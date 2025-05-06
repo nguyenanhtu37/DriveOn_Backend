@@ -290,8 +290,12 @@ export const createAppointmentByStaff = async (req, res) => {
 
 export const isCalledAppointment = async (req, res) => {
   const { appointmentId } = req.params;
+  const { isUserAgreed } = req.body;
   try {
-    await appointmentService.isCalledAppointmentService(appointmentId);
+    await appointmentService.isCalledAppointmentService(
+      appointmentId,
+      isUserAgreed
+    );
     res
       .status(200)
       .json({ message: "Appointment status updated successfully" });
