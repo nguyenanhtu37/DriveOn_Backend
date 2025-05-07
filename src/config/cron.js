@@ -103,7 +103,7 @@ const downgradeExpiredGarages = async () => {
   }
 };
 
-cron.schedule("00 8 * * *", downgradeExpiredGarages, { // bao cao 15:00, co nen setup tgian quet 16h?
+cron.schedule("40 18 * * *", downgradeExpiredGarages, {
   timezone: "Asia/Ho_Chi_Minh",
 });
 
@@ -199,7 +199,7 @@ export const notifyExpiringGarages = async () => {
   }
 };
 
-cron.schedule("07 3 * * *", notifyExpiringGarages, {
+cron.schedule("35 18 * * *", notifyExpiringGarages, {
   timezone: "Asia/Ho_Chi_Minh",
 });
 
