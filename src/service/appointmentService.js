@@ -637,23 +637,24 @@ async function sendConfirmationEmail(
     await transporter.sendMail({
       from: process.env.MAIL_USER,
       to: customer.email,
-      subject: "Lịch hẹn của bạn đã được xác nhận",
+      subject: "Your Appointment Has Been Confirmed",
       html: `
-        <h2>Xin chào ${customer.name},</h2>
-        <p>Lịch hẹn của bạn đã được <span style="color: #28a745; font-weight: bold;">xác nhận</span>.</p>
-        <h3>Chi tiết lịch hẹn:</h3>
-        <ul>
-          <li><strong>Garage:</strong> ${garageInfo.name}</li>
-          <li><strong>Địa chỉ:</strong> ${garageInfo.address}</li>
-          <li><strong>Ngày hẹn:</strong> ${displayDate}</li>
-          <li><strong>Thời gian:</strong> ${displayStartTime} - ${displayEndTime}</li>
-          <li><strong>Trạng thái:</strong> Đã xác nhận</li>
-        </ul>
-        <p>Vui lòng đến đúng giờ để được phục vụ tốt nhất.</p>
-        <p>Xem chi tiết lịch hẹn của bạn <a href="${process.env.FRONTEND_URL}/profile">tại đây</a>.</p>
-        <p>Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>
-      `,
+    <h2>Hello ${customer.name},</h2>
+    <p>Your appointment has been <span style="color: #28a745; font-weight: bold;">confirmed</span>.</p>
+    <h3>Appointment Details:</h3>
+    <ul>
+      <li><strong>Garage:</strong> ${garageInfo.name}</li>
+      <li><strong>Address:</strong> ${garageInfo.address}</li>
+      <li><strong>Date:</strong> ${displayDate}</li>
+      <li><strong>Time:</strong> ${displayStartTime} - ${displayEndTime}</li>
+      <li><strong>Status:</strong> Confirmed</li>
+    </ul>
+    <p>Please arrive on time for the best service.</p>
+    <p>View your appointment details <a href="${process.env.FRONTEND_URL}/profile">here</a>.</p>
+    <p>Thank you for using our service!</p>
+  `,
     });
+
   } catch (error) {
     console.error("Error in confirmation email process:", error);
   }
