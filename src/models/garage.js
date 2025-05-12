@@ -73,6 +73,12 @@ const garageSchema = new mongoose.Schema(
         ref: "User",
       },
     ],
+    staffs: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
     status: {
       type: [String],
       enum: ["pending", "approved", "rejected", "enabled", "disabled"],

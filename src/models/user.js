@@ -33,12 +33,7 @@ const userSchema = new mongoose.Schema(
       enum: ["active", "inactive"],
       default: "active",
     },
-    garageList: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Garage",
-      },
-    ],
+
     googleId: {
       type: String,
     },
