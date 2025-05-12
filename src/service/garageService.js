@@ -727,33 +727,43 @@ const viewGaragesWithSearchParams = async ({
     }
 
     if (currentLocation && distance && garages.length > 0) {
-      const destinations = garages
-        .map(
-          (garage) =>
-            `${garage.location.coordinates[1]},${garage.location.coordinates[0]}`
-        )
-        .join("|");
-
-      const apiUrl = `https://api.distancematrix.ai/maps/api/distancematrix/json?origins=${currentLocation}&destinations=${destinations}&key=hUvifHIuGWgvi1aCIh6Pvzp9oJlNiIq3Q6F497ytNdPkgsXGnTiEdp0bbHKZmFTq`;
-
-      const response = await axios.get(apiUrl);
-
-      if (response.data.status !== "OK") {
+      const [lat, lng] = currentLocation
+        .split(",")
+        .map((coord) => parseFloat(coord));
+      if (isNaN(lat) || isNaN(lng)) {
         throw new Error(
-          response.data.error_message || "Error fetching distances"
+          "Invalid location format. Expected 'latitude,longitude'"
         );
       }
 
-      const distances = response.data.rows[0].elements.map(
-        (element) => element.distance.value / 1000
-      );
+      const point = [lng, lat];
 
+      const nearbyGarages = await Garage.aggregate([
+        {
+          $geoNear: {
+            near: { type: "Point", coordinates: point },
+            distanceField: "distance",
+            maxDistance: distance * 1000,
+            spherical: true,
+            distanceMultiplier: 0.001,
+          },
+        },
+        {
+          $match: {
+            _id: { $in: garages.map((g) => g._id) },
+          },
+        },
+      ]);
+
+      const garageMap = new Map(
+        nearbyGarages.map((g) => [g._id.toString(), g.distance])
+      );
       garages = garages
-        .map((garage, index) => ({
-          ...garage.toObject(),
-          distance: distances[index],
-        }))
-        .filter((garage) => garage.distance <= distance);
+        .filter((g) => garageMap.has(g._id.toString()))
+        .map((g) => ({
+          ...g.toObject(),
+          distance: garageMap.get(g._id.toString()),
+        }));
     }
 
     garages.sort((a, b) => {
