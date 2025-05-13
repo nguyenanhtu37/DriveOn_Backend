@@ -182,3 +182,31 @@ export const deleteFeedbackByGarage = async (feedbackId) => {
     await garage.save();
   }
 };
+
+
+export const getFeedbackByServiceDetailInGarage = async (
+  garageId,
+  serviceDetailId
+) => {
+  try {
+    const feedbacks = await Feedback.find({ garage: garageId })
+      .populate({
+        path: "appointment",
+        match: { service: serviceDetailId }, 
+        select: "start end service vehicle", 
+        populate: [
+          { path: "service", select: "name" }, 
+          { path: "vehicle", select: "carName carPlate" }, 
+        ],
+      })
+      .populate("user", "name avatar"); 
+
+    const filteredFeedbacks = feedbacks.filter(
+      (feedback) => feedback.appointment !== null
+    );
+
+    return filteredFeedbacks;
+  } catch (err) {
+    throw new Error(err.message);
+  }
+};

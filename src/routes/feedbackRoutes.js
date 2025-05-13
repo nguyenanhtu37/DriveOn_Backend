@@ -5,6 +5,7 @@ import {
   updateFeedback,
   deleteFeedback,
   deleteFeedbackByGarage,
+  viewFeedbackByServiceDetailInGarage,
 } from "../controller/feedbackController.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import { authorizeRoles } from "../middleware/authorizeRoles.js";
@@ -19,6 +20,10 @@ router.delete(
   "/delete/:id",
   authorizeRoles(["staff", "manager"]),
   deleteFeedbackByGarage
+);
+router.get(
+  "/garage/:garageId/service/:serviceDetailId",
+  viewFeedbackByServiceDetailInGarage
 );
 
 export default router;

@@ -52,4 +52,14 @@ const deleteVehicle = async (req, res) => {
   }
 };
 
+export const softDeleteVehicle = async (req, res) => {
+  const { id } = req.params; 
+  try {
+    const result = await vehicleService.softDeleteVehicle(req.user.id, id);
+    res.status(200).json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 export { addVehicle, viewVehicles, getVehicleById, updateVehicle, deleteVehicle };
