@@ -23,7 +23,7 @@ const vehicleSchema = new mongoose.Schema({
     required: true,
   },
   carImages: {
-    type: [String], 
+    type: [String],
     required: true,
   },
   carOwner: {
@@ -38,18 +38,10 @@ const vehicleSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
-  maintenanceHistory: [
-    {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Maintenance",
-    },
-  ],
-  appointment: [
-    {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Appointment",
-    },
-  ],
+  isDeleted: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const Vehicle = mongoose.model("Vehicle", vehicleSchema);
