@@ -219,7 +219,7 @@ console.log("deviceToken for login: ", deviceToken);
 
   const user = await User.findOne({ email })
     .populate("roles")
-    .populate("garageList");
+    // .populate("garageList");
   if (!user) throw new Error("Invalid email or password");
   if (user.status !== "active") throw new Error("Account is not active");
 
