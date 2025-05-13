@@ -14,12 +14,12 @@ const feedbackSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
-    text: {
+    content: {
       type: String,
     },
-    service: {
+    appointment: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Service",
+      ref: "Appointment",
     },
   },
   {

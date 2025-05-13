@@ -12,12 +12,12 @@ import Role from "../models/role.js";
 import mongoose from "mongoose";
 
 const checkBooking = async (
-    vehicleId,
-    garageId,
-    start,
-    end,
-    currentAppointmentId = null,
-    isSplit = false
+  vehicleId,
+  garageId,
+  start,
+  end,
+  currentAppointmentId = null,
+  isSplit = false
 ) => {
   const garage = await Garage.findById(garageId);
   if (!garage) {
@@ -37,7 +37,7 @@ const checkBooking = async (
     "Friday",
     "Saturday",
   ];
-  const vietnamDate = new Date(start.getTime() + (7 * 60 * 60 * 1000)); // Add 7 hours
+  const vietnamDate = new Date(start.getTime() + 7 * 60 * 60 * 1000); // Add 7 hours
   const appointmentDay = daysOfWeek[vietnamDate.getUTCDay()];
 
   // Check if garage operates on start day
@@ -50,15 +50,18 @@ const checkBooking = async (
 
   // Get opening hours for the start day
   const [garageOpenHour, garageOpenMinute] = garage.openTime
-      .split(":")
-      .map(Number);
+    .split(":")
+    .map(Number);
   const [garageCloseHour, garageCloseMinute] = garage.closeTime
-      .split(":")
-      .map(Number);
+    .split(":")
+    .map(Number);
 
   // Special handling for 24-hour garages
-  const is24HourGarage = garageOpenHour === 0 && garageOpenMinute === 0 &&
-      garageCloseHour === 23 && garageCloseMinute === 59;
+  const is24HourGarage =
+    garageOpenHour === 0 &&
+    garageOpenMinute === 0 &&
+    garageCloseHour === 23 &&
+    garageCloseMinute === 59;
 
   // Convert local Vietnam time (UTC+7) to UTC by subtracting 7 hours
   const utcOpenHour = garageOpenHour - 7;
@@ -81,7 +84,7 @@ const checkBooking = async (
   garageOpenTime.setUTCHours(utcAdjustedOpenHour, utcOpenMinute, 0, 0);
 
   // Convert start time to Vietnam timezone for easier comparison
-  const appointmentVietnamTime = new Date(start.getTime() + (7 * 60 * 60 * 1000)); // Add 7 hours
+  const appointmentVietnamTime = new Date(start.getTime() + 7 * 60 * 60 * 1000); // Add 7 hours
   const appointmentHour = appointmentVietnamTime.getUTCHours();
   const appointmentMinute = appointmentVietnamTime.getUTCMinutes();
 
@@ -126,12 +129,12 @@ const checkBooking = async (
       { start: { $lt: end }, end: { $gte: end } },
       { start: { $gte: start }, end: { $lte: end } },
     ],
-    status: { $nin: ["Cancelled", "Rejected", "Completed"] }
+    status: { $nin: ["Cancelled", "Rejected", "Completed"] },
   });
 
   if (overlappingAppointments.length > 0) {
     const conflictGarage = await Garage.findById(
-        overlappingAppointments[0].garage
+      overlappingAppointments[0].garage
     );
     const garageName = conflictGarage ? conflictGarage.name : "another garage";
 
@@ -159,7 +162,7 @@ const convertAndValidateDateTime = async (start, serviceIds) => {
 
     if (isNaN(startTime.getTime())) {
       throw new Error(
-          "Invalid date format. Please provide a valid date and time."
+        "Invalid date format. Please provide a valid date and time."
       );
     }
 
@@ -169,7 +172,7 @@ const convertAndValidateDateTime = async (start, serviceIds) => {
     }
 
     // Convert to Vietnam time for day of week determination
-    const vietnamDate = new Date(startTime.getTime() + (7 * 60 * 60 * 1000));
+    const vietnamDate = new Date(startTime.getTime() + 7 * 60 * 60 * 1000);
     const appointmentDay = daysOfWeek[vietnamDate.getUTCDay()];
 
     // Get garage details from first service
@@ -205,8 +208,11 @@ const convertAndValidateDateTime = async (start, serviceIds) => {
     const [closeHour, closeMinute] = garage.closeTime.split(":").map(Number);
 
     // Check if it's a 24-hour garage
-    const is24HourGarage = openHour === 0 && openMinute === 0 &&
-        closeHour === 23 && closeMinute === 59;
+    const is24HourGarage =
+      openHour === 0 &&
+      openMinute === 0 &&
+      closeHour === 23 &&
+      closeMinute === 59;
 
     // Convert local Vietnam time (UTC+7) to UTC
     const utcOpenHour = openHour - 7;
@@ -242,13 +248,13 @@ const convertAndValidateDateTime = async (start, serviceIds) => {
     // 1. Check if start time is within operating hours
     if (!is24HourGarage && startTime < garageOpenTime) {
       throw new Error(
-          `Appointment only create within ${garage.openTime} to ${garage.closeTime}`
+        `Appointment only create within ${garage.openTime} to ${garage.closeTime}`
       );
     }
 
     if (!is24HourGarage && startTime > garageCloseTime) {
       throw new Error(
-          `Appointment only create within ${garage.openTime} to ${garage.closeTime}`
+        `Appointment only create within ${garage.openTime} to ${garage.closeTime}`
       );
     }
 
@@ -259,7 +265,7 @@ const convertAndValidateDateTime = async (start, serviceIds) => {
     if (!is24HourGarage && endTime > garageCloseTime) {
       // Minutes that can be completed on day 1
       const minutesBeforeClosing = Math.floor(
-          (garageCloseTime - startTime) / 60000
+        (garageCloseTime - startTime) / 60000
       );
 
       // Remaining minutes to be scheduled on next operating day
@@ -277,7 +283,9 @@ const convertAndValidateDateTime = async (start, serviceIds) => {
       // Keep checking days until we find an operating day
       while (maxIterations > 0) {
         iterationCount++;
-        const currentVietnamDate = new Date(currentDate.getTime() + (7 * 60 * 60 * 1000));
+        const currentVietnamDate = new Date(
+          currentDate.getTime() + 7 * 60 * 60 * 1000
+        );
         nextDayIndex = currentVietnamDate.getUTCDay();
         const nextDayName = daysOfWeek[nextDayIndex];
 
@@ -293,7 +301,9 @@ const convertAndValidateDateTime = async (start, serviceIds) => {
       }
 
       if (maxIterations === 0) {
-        throw new Error("Could not find next operating day within reasonable timeframe");
+        throw new Error(
+          "Could not find next operating day within reasonable timeframe"
+        );
       }
 
       // Get the next operating day's opening time
@@ -305,7 +315,9 @@ const convertAndValidateDateTime = async (start, serviceIds) => {
       endTime = new Date(nextDayOpenTime.getTime() + remainingMinutes * 60000);
 
       // Format display info for continuation details
-      const nextDayVietnamTime = new Date(nextDayOpenTime.getTime() + (7 * 60 * 60 * 1000));
+      const nextDayVietnamTime = new Date(
+        nextDayOpenTime.getTime() + 7 * 60 * 60 * 1000
+      );
       const nextDayDisplay = nextDayVietnamTime.toLocaleDateString("vi-VN");
       const nextDayName = daysOfWeek[nextDayIndex];
 
@@ -469,18 +481,21 @@ async function sendAppointmentEmails(
     <ul>
       <li><strong>Garage:</strong> ${garageInfo.name}</li>
       <li><strong>Address:</strong> ${garageInfo.address}</li>
-      <li><strong>Vehicle:</strong> ${vehicleInfo.carName} (${vehicleInfo.carPlate})</li>
+      <li><strong>Vehicle:</strong> ${vehicleInfo.carName} (${
+        vehicleInfo.carPlate
+      })</li>
       <li><strong>Date:</strong> ${displayDate}</li>
       <li><strong>Time:</strong> ${displayStartTime}</li>
       <li><strong>Note:</strong> ${note || "None"}</li>
       <li><strong>Status:</strong> Pending Confirmation</li>
     </ul>
     <p>The garage will review and confirm your appointment as soon as possible.</p>
-    <p>You can view your appointment details <a href="${process.env.FRONTEND_URL}/profile">here</a>.</p>
+    <p>You can view your appointment details <a href="${
+      process.env.FRONTEND_URL
+    }/profile">here</a>.</p>
     <p>Thank you for using our service!</p>
   `,
     });
-
 
     // Get garage managers to notify them
     const roleManager = await Role.findOne({ roleName: "manager" });
@@ -504,16 +519,19 @@ async function sendAppointmentEmails(
       <li><strong>Customer:</strong> ${user.name}</li>
       <li><strong>Phone:</strong> ${user.phone}</li>
       <li><strong>Email:</strong> ${user.email}</li>
-      <li><strong>Vehicle:</strong> ${vehicleInfo.carName} (${vehicleInfo.carPlate})</li>
+      <li><strong>Vehicle:</strong> ${vehicleInfo.carName} (${
+              vehicleInfo.carPlate
+            })</li>
       <li><strong>Date:</strong> ${displayDate}</li>
       <li><strong>Time:</strong> ${displayStartTime}</li>
       <li><strong>Note:</strong> ${note || "None"}</li>
     </ul>
     <p>Please log in to the system to confirm or reject this appointment.</p>
-    <p>View appointment details <a href="${process.env.FRONTEND_URL}/profile">here</a>.</p>
+    <p>View appointment details <a href="${
+      process.env.FRONTEND_URL
+    }/profile">here</a>.</p>
   `,
           });
-
         }
       }
     }
@@ -619,23 +637,24 @@ async function sendConfirmationEmail(
     await transporter.sendMail({
       from: process.env.MAIL_USER,
       to: customer.email,
-      subject: "Lịch hẹn của bạn đã được xác nhận",
+      subject: "Your Appointment Has Been Confirmed",
       html: `
-        <h2>Xin chào ${customer.name},</h2>
-        <p>Lịch hẹn của bạn đã được <span style="color: #28a745; font-weight: bold;">xác nhận</span>.</p>
-        <h3>Chi tiết lịch hẹn:</h3>
-        <ul>
-          <li><strong>Garage:</strong> ${garageInfo.name}</li>
-          <li><strong>Địa chỉ:</strong> ${garageInfo.address}</li>
-          <li><strong>Ngày hẹn:</strong> ${displayDate}</li>
-          <li><strong>Thời gian:</strong> ${displayStartTime} - ${displayEndTime}</li>
-          <li><strong>Trạng thái:</strong> Đã xác nhận</li>
-        </ul>
-        <p>Vui lòng đến đúng giờ để được phục vụ tốt nhất.</p>
-        <p>Xem chi tiết lịch hẹn của bạn <a href="${process.env.FRONTEND_URL}/profile">tại đây</a>.</p>
-        <p>Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>
-      `,
+    <h2>Hello ${customer.name},</h2>
+    <p>Your appointment has been <span style="color: #28a745; font-weight: bold;">confirmed</span>.</p>
+    <h3>Appointment Details:</h3>
+    <ul>
+      <li><strong>Garage:</strong> ${garageInfo.name}</li>
+      <li><strong>Address:</strong> ${garageInfo.address}</li>
+      <li><strong>Date:</strong> ${displayDate}</li>
+      <li><strong>Time:</strong> ${displayStartTime} - ${displayEndTime}</li>
+      <li><strong>Status:</strong> Confirmed</li>
+    </ul>
+    <p>Please arrive on time for the best service.</p>
+    <p>View your appointment details <a href="${process.env.FRONTEND_URL}/profile">here</a>.</p>
+    <p>Thank you for using our service!</p>
+  `,
     });
+
   } catch (error) {
     console.error("Error in confirmation email process:", error);
   }
@@ -719,7 +738,6 @@ async function sendRejectionEmail(
     <p>Thank you for using our service!</p>
   `,
     });
-
   } catch (error) {
     console.error("Error in rejection email process:", error);
   }
@@ -822,7 +840,6 @@ export const completeAppointmentService = async (
     <p>If you'd like to learn more about the garage, visit their <a href="${process.env.FRONTEND_URL}/garageDetail/${appointment.garage}">profile</a>.</p>
   `,
   });
-
 
   return appointment;
 };
@@ -1070,8 +1087,7 @@ async function sendAppointmentStaffCreatedEmail(
     await transporter.sendMail({
       from: process.env.MAIL_USER,
       to: carOwner.email,
-      subject:
-        "Maintenance Appointment Confirmation - Created by Our Staff",
+      subject: "Maintenance Appointment Confirmation - Created by Our Staff",
       html: emailContent,
     });
 
@@ -1301,7 +1317,6 @@ async function sendCancellationEmails(
   `,
     });
 
-
     // Notify garage managers about the cancellation
     const roleManager = await Role.findOne({ roleName: "manager" });
     if (roleManager) {
@@ -1330,7 +1345,6 @@ async function sendCancellationEmails(
     <p>View appointment details <a href="${process.env.FRONTEND_URL}/garageManagement/${garageId}/appointments">here</a>.</p>
   `,
           });
-
         }
       }
     }
@@ -1605,10 +1619,14 @@ async function sendUpdateNotificationEmails(
   }
 }
 
-export const isCalledAppointmentService = async (appointmentId) => {
+export const isCalledAppointmentService = async (
+  appointmentId,
+  isUserAgreed
+) => {
   try {
     const appointment = await Appointment.findById(appointmentId);
     appointment.isCalled = true;
+    appointment.isUserAgreed = isUserAgreed;
     await appointment.save();
   } catch (error) {
     console.error("Error in update notification email process:", error);

@@ -234,7 +234,7 @@ export const updateAppointment = async (req, res) => {
 export const getNextMaintenanceList = async (req, res) => {
   const { garageId } = req.params;
   const page = parseInt(req.query.page) || 1; // Mặc định là trang 1
-  const limit = parseInt(req.query.limit) || 10; // Mặc định là 10 phần tử mỗi trang
+  const limit = parseInt(req.query.limit) || 100; // Mặc định là 100 phần tử mỗi trang
   const maxDaysLeft = req.query.maxDaysLeft
     ? parseInt(req.query.maxDaysLeft)
     : null; // Lọc theo daysLeft nếu có
@@ -290,8 +290,12 @@ export const createAppointmentByStaff = async (req, res) => {
 
 export const isCalledAppointment = async (req, res) => {
   const { appointmentId } = req.params;
+  const { isUserAgreed } = req.body;
   try {
-    await appointmentService.isCalledAppointmentService(appointmentId);
+    await appointmentService.isCalledAppointmentService(
+      appointmentId,
+      isUserAgreed
+    );
     res
       .status(200)
       .json({ message: "Appointment status updated successfully" });

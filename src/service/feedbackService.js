@@ -1,3 +1,4 @@
+import Appointment from "../models/appointment.js";
 import Feedback from "../models/feedback.js";
 import Garage from "../models/garage.js";
 import Service from "../models/service.js";
@@ -9,37 +10,40 @@ import {
 export const addFeedback = async (userId, feedbackData) => {
   validateAddFeedback(feedbackData);
 
-  const { garage, rating, text, service } = feedbackData;
+  const { garage, rating, content, appointment } = feedbackData;
 
-  // Check xem garage ni có exist ko
+  const appointmentData = await Appointment.findById(appointment);
+  if (!appointmentData) {
+    throw new Error("Appointment not found");
+  }
+
+  if (appointmentData.user.toString() !== userId) {
+    throw new Error("You are not authorized to provide feedback for this appointment");
+  }
+
+  if (appointmentData.status !== "Completed") {
+    throw new Error("You can only provide feedback for completed appointments");
+  }
+
   const garageExists = await Garage.findById(garage);
   if (!garageExists) {
     throw new Error("Garage ID does not exist");
-  }
-
-  // check service system có exist ko
-  if (service) {
-    const serviceExists = await Service.findById(service);
-    if (!serviceExists) {
-      throw new Error("Service ID does not exist");
-    }
   }
 
   const newFeedback = new Feedback({
     user: userId,
     garage,
     rating,
-    text,
-    service,
+    content,
+    appointment,
     createdAt: new Date(),
     updatedAt: new Date(),
   });
 
   await newFeedback.save();
 
-  // rating trung bình cho garage
+  // Cập nhật rating trung bình cho garage
   const feedbacks = await Feedback.find({ garage });
-
   const averageRating =
     feedbacks.reduce((acc, feedback) => acc + feedback.rating, 0) /
       feedbacks.length || 0;
@@ -50,11 +54,31 @@ export const addFeedback = async (userId, feedbackData) => {
   return newFeedback;
 };
 
+// export const getFeedbackByGarageId = async (garageId) => {
+//   try {
+//     const feedbacks = await Feedback.find({ garage: garageId })
+//       .populate("user", "name avatar")
+//       .populate("garage", "name");
+//     return feedbacks;
+//   } catch (err) {
+//     throw new Error(err.message);
+//   }
+// };
+
 export const getFeedbackByGarageId = async (garageId) => {
   try {
     const feedbacks = await Feedback.find({ garage: garageId })
-      .populate("user", "name avatar")
-      .populate("garage", "name");
+      .populate("user", "name avatar") 
+      // .populate("garage", "name")
+      .populate({
+        path: "appointment", 
+        select: "start end service vehicle", 
+        populate: [
+          { path: "service", select: "name" }, 
+          { path: "vehicle", select: "carName carPlate" }, 
+        ],
+      });
+
     return feedbacks;
   } catch (err) {
     throw new Error(err.message);
@@ -63,9 +87,10 @@ export const getFeedbackByGarageId = async (garageId) => {
 
 export const updateFeedback = async (userId, feedbackId, updateData) => {
   validateUpdateFeedback(updateData);
-  const { rating, text } = updateData;
+  const { rating, content } = updateData;
 
-  const feedback = await Feedback.findById(feedbackId);
+  // Tìm feedback theo ID
+  const feedback = await Feedback.findById(feedbackId).populate("appointment");
   if (!feedback) {
     throw new Error("Feedback not found");
   }
@@ -73,8 +98,13 @@ export const updateFeedback = async (userId, feedbackId, updateData) => {
   if (feedback.user.toString() !== userId) {
     throw new Error("Unauthorized");
   }
+
+  if (feedback.appointment.status !== "Completed") {
+    throw new Error("You can only update feedback for completed appointments");
+  }
+
   feedback.rating = rating !== undefined ? rating : feedback.rating;
-  feedback.text = text !== undefined ? text : feedback.text;
+  feedback.content = content !== undefined ? content : feedback.content;
   feedback.updatedAt = new Date();
 
   await feedback.save();
