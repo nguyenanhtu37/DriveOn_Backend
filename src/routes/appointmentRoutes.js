@@ -2,7 +2,7 @@ import express from "express";
 import {
   createAppointment,
   getAcceptedAppointments,
-  updateAppointment,
+  updateAppointmentByStaff,
   cancelAppointment,
   getAppointmentsByUser,
   getAppointmentById,
@@ -13,6 +13,7 @@ import {
   getNextMaintenanceList,
   createAppointmentByStaff,
   isCalledAppointment,
+  getAppointmentsByVehicle
 } from "../controller/appointmentController.js";
 import { authorizeRoles } from "../middleware/authorizeRoles.js";
 
@@ -41,7 +42,12 @@ router.get(
   authorizeRoles(["manager", "staff"]),
   getAppointmentsByGarage
 ); // Get appointments by garage
-
+// Add this to the existing routes
+router.get(
+    "/vehicle/:vehicleId",
+    authorizeRoles(["carowner"]),
+    getAppointmentsByVehicle
+); // Get appointments by vehicle ID
 router.put(
   "/:appointmentId/confirm",
   authorizeRoles(["manager", "staff"]),
@@ -75,10 +81,10 @@ router.put(
 ); // Cancel appointment
 
 router.put(
-  "/:appointmentId/update",
-  authorizeRoles(["carowner"]),
-  updateAppointment
-); // Update appointment
+    "/:appointmentId/update-by-staff",
+    authorizeRoles(["manager", "staff"]),
+    updateAppointmentByStaff
+); // Update appointment by staff // Update appointment
 router.get(
   "/garage/:garageId/next-maintenance",
   authorizeRoles(["manager", "staff"]),
