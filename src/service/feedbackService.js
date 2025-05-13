@@ -1,3 +1,4 @@
+import Appointment from "../models/appointment.js";
 import Feedback from "../models/feedback.js";
 import Garage from "../models/garage.js";
 import Service from "../models/service.js";
@@ -13,6 +14,14 @@ export const addFeedback = async (userId, feedbackData) => {
 
   // Check xem garage ni có exist ko
   const garageExists = await Garage.findById(garage);
+  const appointments = await Appointment.find({
+    garage: garage,
+    user: userId,
+  });
+  if (appointments.length === 0) {
+    throw new Error("You have not made an appointment with this garage");
+  }
+
   if (!garageExists) {
     throw new Error("Garage ID does not exist");
   }
