@@ -22,15 +22,15 @@ Content-Type: application/json
 POST http://localhost:5000/api/auth/login
 Content-Type: application/json
 
-# {
-#     "email": "nguyenanhtu3703@gmail.com", 
-#     "password": "nguyenanhtu3703@gmail.com"
-# }
-
 {
-    "email": "vuco79790@gmail.com", 
-    "password": "systemadministrator"
+    "email": "nguyenanhtu3703@gmail.com", 
+    "password": "nguyenanhtu3703@gmail.com"
 }
+
+# {
+#     "email": "vuco79790@gmail.com", 
+#     "password": "systemadministrator"
+# }
 
 ### Login with Google
 POST http://localhost:5000/api/auth/google
@@ -147,7 +147,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MjQyNmY1Y
 
 ### Add new brand
 POST http://localhost:5000/api/brand/add
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MjQyNmY1YjY0NjdhNWNmNjJiNjI2MyIsImVtYWlsIjoidnVjbzc5NzkwQGdtYWlsLmNvbSIsInJvbGVzIjpbImFkbWluIl0sImlhdCI6MTc0NzE5OTg1NCwiZXhwIjoxNzQ3MjE3ODU0fQ.bmoGg6IYpYPmNlSs8VxKcZLt9KI_IVTeUUXMXn8Gylg
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MjQyNmY1YjY0NjdhNWNmNjJiNjI2MyIsImVtYWlsIjoidnVjbzc5NzkwQGdtYWlsLmNvbSIsInJvbGVzIjpbImFkbWluIl0sImlhdCI6MTc0NzI5MzQxOCwiZXhwIjoxNzQ3MzExNDE4fQ.gPw9KJ76CE3Vp-lpmCU6YBAx7rKtcyiZgdjknTt8lTc
 Content-Type: application/json
 
 {
@@ -160,22 +160,22 @@ GET http://localhost:5000/api/brand/get
 
 ### Update brand
 PUT http://localhost:5000/api/brand/update
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MjQyNmY1YjY0NjdhNWNmNjJiNjI2MyIsImVtYWlsIjoidnVjbzc5NzkwQGdtYWlsLmNvbSIsInJvbGVzIjpbImFkbWluIl0sImlhdCI6MTc0NzE5OTg1NCwiZXhwIjoxNzQ3MjE3ODU0fQ.bmoGg6IYpYPmNlSs8VxKcZLt9KI_IVTeUUXMXn8Gylg
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MjQyNmY1YjY0NjdhNWNmNjJiNjI2MyIsImVtYWlsIjoidnVjbzc5NzkwQGdtYWlsLmNvbSIsInJvbGVzIjpbImFkbWluIl0sImlhdCI6MTc0NzI5MzQxOCwiZXhwIjoxNzQ3MzExNDE4fQ.gPw9KJ76CE3Vp-lpmCU6YBAx7rKtcyiZgdjknTt8lTc
 Content-Type: application/json
 
 {
-    "brandId": "68242af916a2dad0bbac0213",
+    "brandId": "682595004e11049028b7a8e8",
     "brandName": "Jaguar",
     "logo": "https://res.cloudinary.com/dt2akiv9y/image/upload/v1747200621/685_jaguar_c26fua.jpg"
 }
 
 ### Delete brand
 DELETE http://localhost:5000/api/brand/delete
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MjQyNmY1YjY0NjdhNWNmNjJiNjI2MyIsImVtYWlsIjoidnVjbzc5NzkwQGdtYWlsLmNvbSIsInJvbGVzIjpbImFkbWluIl0sImlhdCI6MTc0NzE5OTg1NCwiZXhwIjoxNzQ3MjE3ODU0fQ.bmoGg6IYpYPmNlSs8VxKcZLt9KI_IVTeUUXMXn8Gylg
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MjQyNmY1YjY0NjdhNWNmNjJiNjI2MyIsImVtYWlsIjoidnVjbzc5NzkwQGdtYWlsLmNvbSIsInJvbGVzIjpbImFkbWluIl0sImlhdCI6MTc0NzI5MzQxOCwiZXhwIjoxNzQ3MzExNDE4fQ.gPw9KJ76CE3Vp-lpmCU6YBAx7rKtcyiZgdjknTt8lTc
 Content-Type: application/json
 
 {
-    "brandId": "68242af916a2dad0bbac0213"
+    "brandId": "682595004e11049028b7a8e8"
 }
 
 ### View garage details
@@ -186,13 +186,13 @@ GET http://localhost:5000/api/garage/emergency?latitude=15.976842299999998&longi
 
 ### Create payment link
 POST http://localhost:5000/api/payos/create-payment-link
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MjQxM2ZjMjkxNjFmZGE0MTI4NGRiNSIsImVtYWlsIjoibmd1eWVuYW5odHUzNzAzQGdtYWlsLmNvbSIsInJvbGVzIjpbIm1hbmFnZXIiLCJjYXJvd25lciJdLCJpYXQiOjE3NDcyMTUwNzcsImV4cCI6MTc0NzIzMzA3N30.cngCwqQ8uWDXo9QpbnJ8kxPNWaNK_bhbGJDfPuF41A0
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MjQxM2ZjMjkxNjFmZGE0MTI4NGRiNSIsImVtYWlsIjoibmd1eWVuYW5odHUzNzAzQGdtYWlsLmNvbSIsInJvbGVzIjpbIm1hbmFnZXIiLCJjYXJvd25lciJdLCJpYXQiOjE3NDcyOTUwNTQsImV4cCI6MTc0NzMxMzA1NH0.yy0j9rSHm6o29Btd-e9qKaSTzag0IUBJ5tCQ4iJ0YS4
 Content-Type: application/json
 
 {
     "garageId": "68241f53b6467a5cf62b625d",
     "subscriptionId": "67f9402152726dd7734e5f6d",
-    "idempotencyKey": "idemp-hfu48jgt"
+    "idempotencyKey": "idemp-djr739kg"
 }
 
 ### PRODUCTION

@@ -74,6 +74,7 @@ export const createPaymentLink = async ({
 };
 
 export const processPayment = async ({ orderCode, amount }) => {
+  console.log("orderCode: ", orderCode);
   try {
     const transaction = await Transaction.findOne({
       orderCode,
@@ -85,6 +86,7 @@ export const processPayment = async ({ orderCode, amount }) => {
     }
 
     const { garageId, subscriptionId, month } = transaction;
+    console.log("garageId: ", garageId);
 
     const [garage, subscription] = await Promise.all([
       Garage.findById(garageId),

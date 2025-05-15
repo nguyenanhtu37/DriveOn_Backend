@@ -108,6 +108,8 @@ export const webHook = async (req, res) => {
     const { code, data, idempotencyKey } = webhookBody;
     const { orderCode, amount } = data;
 
+console.log("webhookBody: ", webhookBody);
+
     if (idempotencyKey) {
       const existingTransaction = await Transaction.findOne({ idempotencyKey });
       if (existingTransaction) {
