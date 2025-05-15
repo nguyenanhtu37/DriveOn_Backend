@@ -91,5 +91,23 @@ const deleteVehicle = async (userId, vehicleId) => {
     await User.findByIdAndUpdate(userId, { $pull: { vehicles: vehicleId } });
     return { message: "Vehicle deleted successfully" };
   };
+
+
+  export const softDeleteVehicle = async (userId, vehicleId) => {
+  const vehicle = await Vehicle.findById(vehicleId);
+  if (!vehicle) {
+    throw new Error("Vehicle not found");
+  }
+
+  if (vehicle.carOwner.toString() !== userId) {
+    throw new Error("Unauthorized");
+  }
+
+  vehicle.isDeleted = true;
+  vehicle.updatedAt = new Date();
+  await vehicle.save();
+
+  return { message: "Vehicle soft deleted successfully" };
+};
   
 export { addVehicle, viewVehicles, getVehicleById, updateVehicle, deleteVehicle };

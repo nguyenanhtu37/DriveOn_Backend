@@ -34,6 +34,20 @@ export const getAppointmentsByUser = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+export const getAppointmentsByVehicle = async (req, res) => {
+  const { vehicleId } = req.params;
+  const userId = req.user.id; // Get userId from token
+
+  try {
+    const appointments = await appointmentService.getAppointmentsByVehicleService(vehicleId,userId);
+    res.status(200).json(appointments);
+  } catch (err) {
+    if (err.message === "Vehicle not found") {
+      return res.status(404).json({ message: "Vehicle not found" });
+    }
+    res.status(500).json({ error: err.message });
+  }
+};
 
 export const getAppointmentById = async (req, res) => {
   const { appointmentId } = req.params;
@@ -180,30 +194,27 @@ export const cancelAppointment = async (req, res) => {
   }
 };
 
-export const updateAppointment = async (req, res) => {
+export const updateAppointmentByStaff = async (req, res) => {
   const { appointmentId } = req.params;
-  const userId = req.user.id;
-  const { service, start, note } = req.body;
+  const staffId = req.user.id;
 
   try {
-    const appointment = await appointmentService.updateAppointmentService(
-      appointmentId,
-      userId,
-      { service, start, note }
+    const updatedAppointment = await appointmentService.updateAppointmentByStaffService(
+        appointmentId,
+        staffId,
+        req.body
     );
-    if (!appointment) {
-      return res.status(404).json({ message: "Appointment not found" });
-    }
-    res
-      .status(200)
-      .json({ message: "Appointment updated successfully", appointment });
+
+    res.status(200).json({
+      success: true,
+      message: "Appointment updated successfully",
+      appointment: updatedAppointment
+    });
   } catch (err) {
-    if (err.message === "Unauthorized") {
-      return res
-        .status(403)
-        .json({ message: "You are not authorized to update this appointment" });
-    }
-    res.status(500).json({ error: err.message });
+    res.status(400).json({
+      success: false,
+      message: err.message
+    });
   }
 };
 
