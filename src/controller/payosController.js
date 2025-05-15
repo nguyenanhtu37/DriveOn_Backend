@@ -70,7 +70,6 @@ export const createPaymentLink = async (req, res) => {
       calculatedAmount: amount,
       description,
       fullDescription,
-      month,
       idempotencyKey,
       user: req.user.id,
     });

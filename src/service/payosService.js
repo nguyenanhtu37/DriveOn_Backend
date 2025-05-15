@@ -44,6 +44,7 @@ export const createPaymentLink = async ({
     idempotencyKey,
     checkoutUrl: "",
     paidAt: null,
+    amount: calculatedAmount,
   });
   const payosBody = {
     orderCode,
@@ -85,16 +86,16 @@ export const processPayment = async ({ orderCode, amount }) => {
       throw new Error("Transaction not found or already processed");
     }
 
-    const { garageId, subscriptionId, month } = transaction;
-    console.log("garageId: ", garageId);
+    const { garage, subscription } = transaction;
+    console.log("garageId: ", garage);
 
-    const [garage, subscription] = await Promise.all([
-      Garage.findById(garageId),
-      Subscription.findById(subscriptionId),
+    const [garageResult, subscriptionResult] = await Promise.all([
+      Garage.findById(garage),
+      Subscription.findById(subscription),
     ]);
 
-    if (!garage) throw new Error("Garage not found");
-    if (!subscription) throw new Error("Subscription not found");
+    if (!garageResult) throw new Error("Garage not found");
+    if (!subscriptionResult) throw new Error("Subscription not found");
 
     if (transaction.amount !== amount) {
       console.error(
@@ -112,7 +113,10 @@ export const processPayment = async ({ orderCode, amount }) => {
     const currentExpiration = garage.expiredTime
       ? dayjs(garage.expiredTime)
       : now;
-    const newExpiration = currentExpiration.add(month, "month");
+    const newExpiration = currentExpiration.add(
+      subscriptionResult.month,
+      "month"
+    );
 
     garage.subscription = subscription._id;
     garage.expiredTime = newExpiration.toDate();
@@ -134,7 +138,7 @@ export const processPayment = async ({ orderCode, amount }) => {
     );
 
     console.log(
-      `Garage ${garageId} upgraded to 'PRO', expires at ${newExpiration.format(
+      `Garage ${garage} upgraded to 'PRO', expires at ${newExpiration.format(
         "YYYY-MM-DD HH:mm:ss"
       )}`
     );
