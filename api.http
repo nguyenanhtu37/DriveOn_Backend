@@ -1,0 +1,205 @@
+### DEVELOPMENT
+### Sign up a new account
+POST http://localhost:5000/api/auth/signup
+Content-Type: application/json
+
+# {
+#     "email": "nguyenanhtu3703@gmail.com", 
+#     "password": "nguyenanhtu3703@gmail.com", 
+#     "name": "Nguyen Anh Tu",
+#     "phone": "0839706916",
+#     "avatar": "https://photos.app.goo.gl/8Lav3V4BU6HCwLGt5"
+# }
+{
+    "email": "vuco79790@gmail.com", 
+    "password": "systemadministrator", 
+    "name": "Quản trị viên hệ thống",
+    "phone": "0839706916",
+    "avatar": "https://res.cloudinary.com/dt2akiv9y/image/upload/v1747199668/System_Admin_Cloud_Blog_Graphic01_rph9kx.webp"
+}
+
+### Login (manual)
+POST http://localhost:5000/api/auth/login
+Content-Type: application/json
+
+# {
+#     "email": "nguyenanhtu3703@gmail.com", 
+#     "password": "nguyenanhtu3703@gmail.com"
+# }
+
+{
+    "email": "vuco79790@gmail.com", 
+    "password": "systemadministrator"
+}
+
+### Login with Google
+POST http://localhost:5000/api/auth/google
+Content-Type: application/json
+
+{
+    "token": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImUxNGMzN2Q2ZTVjNzU2ZThiNzJmZGI1MDA0YzBjYzM1NjMzNzkyNGUiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJhenAiOiI0NTA5OTg0ODQ2NDgtYnYwaDFjMXY2MTZsZHJlM24yMXB2dGhtZ2kzMmR2dm0uYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJhdWQiOiI0NTA5OTg0ODQ2NDgtYnYwaDFjMXY2MTZsZHJlM24yMXB2dGhtZ2kzMmR2dm0uYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJzdWIiOiIxMDE3NjM5Nzk5MTMyMDc0NzkwNDkiLCJoZCI6ImZwdC5lZHUudm4iLCJlbWFpbCI6InR1bmFkZTE3MDI0NEBmcHQuZWR1LnZuIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsIm5iZiI6MTc0NzE5NDk2OSwibmFtZSI6Ik5ndXllbiBBbmggVHUgKEsxNyBETikiLCJwaWN0dXJlIjoiaHR0cHM6Ly9saDMuZ29vZ2xldXNlcmNvbnRlbnQuY29tL2EvQUNnOG9jS0lSV2wxbFl3cHVZd1N3N2xGTXhFdk8yTm1lLWllZTRVUmpQWFQxMDVBZ0J1eS1HZjc9czk2LWMiLCJnaXZlbl9uYW1lIjoiTmd1eWVuIEFuaCBUdSIsImZhbWlseV9uYW1lIjoiKEsxNyBETikiLCJpYXQiOjE3NDcxOTUyNjksImV4cCI6MTc0NzE5ODg2OSwianRpIjoiN2FlNmI0YTIzNTc1NWZkMWNlNzJkMjUyZjJlMzZmMjViYTA4NDZkOSJ9.p-xd4ANATMaSq6jRpDk3Vy7L0qVNNTDlJDXgZY2_nTaLhmK1092nA0WIiJTMFq0QPtdG35ryDkr7TCZIkiHXvW-SwglTBCBNWBtcpc7Qzkf0-ipPdJFKqMqFLolj_FMFu1BAhWonmjADZ1GAWRUc2rdwSwtlv0AUkftY1if5xKuOniYxWNbJqotKJaUbF7BoPiIAbmJvnvpIaS09HqirSXP1rJJcnrQuSyTjfjT-TCWa3Qj2xJnIcLUhyQ-CJKHc9HveW9Pc_Q96VKX_FIRSGtZDXQCfyJEz8G1fgXYHhJJnNK5sKa47csL3qli-lykIoloaJ7HsW-AXPwt60EZxFQ"
+}
+
+### Request password reset
+POST http://localhost:5000/api/auth/request-password-reset
+Content-Type: application/json
+
+{
+    "email": "nguyenanhtu3703@gmail.com"
+}
+
+### Reset password
+POST http://localhost:5000/api/auth/reset-password  
+Content-Type: application/json
+
+{
+    "password": "nguyenanhtu3703@gmail.com",
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MjQxM2ZjMjkxNjFmZGE0MTI4NGRiNSIsImVtYWlsIjoibmd1eWVuYW5odHUzNzAzQGdtYWlsLmNvbSIsImlhdCI6MTc0NzE5NjgyNCwiZXhwIjoxNzQ3MTk3NzI0fQ.Q0KjzO3JUqWcSvskd3zHHiv9Xx8pNfVF2RZBCnoAPgA"
+}
+
+### View personal profile
+GET http://localhost:5000/api/user/view-personal-profile
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MjQxM2ZjMjkxNjFmZGE0MTI4NGRiNSIsImVtYWlsIjoibmd1eWVuYW5odHUzNzAzQGdtYWlsLmNvbSIsInJvbGVzIjpbIm1hbmFnZXIiLCJjYXJvd25lciJdLCJpYXQiOjE3NDcxOTcyNjksImV4cCI6MTc0NzIxNTI2OX0.Lw-tV6rLYOpISj7sCjARxm2s8NCiV3nWM2e0Z-zdBhc
+
+### Update personal profile
+PUT http://localhost:5000/api/user/update-personal-profile
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MjQxM2ZjMjkxNjFmZGE0MTI4NGRiNSIsImVtYWlsIjoibmd1eWVuYW5odHUzNzAzQGdtYWlsLmNvbSIsInJvbGVzIjpbIm1hbmFnZXIiLCJjYXJvd25lciJdLCJpYXQiOjE3NDcxOTcyNjksImV4cCI6MTc0NzIxNTI2OX0.Lw-tV6rLYOpISj7sCjARxm2s8NCiV3nWM2e0Z-zdBhc
+Content-Type: application/json
+
+{
+    "_id": "682413fc29161fda41284db5",
+    "email": "nguyenanhtu3703@gmail.com",
+    "password": "$2b$10$oMJ0uTzxJtKh5y5HjgP3Au4DL.sZxVyFrJGq30O/duIoJtxeZ20.O",
+    "name": "Nguyen Anh Tu",
+    "phone": "0839706916",
+    "roles": [
+        "67895c322e7333f925e9c0ed",
+        "67895c3e2e7333f925e9c0ef"
+    ],
+    "status": "active",
+    "avatar": "https://photos.app.goo.gl/8Lav3V4BU6HCwLGt5",
+    "createdAt": "2025-05-14T03:54:36.081Z",
+    "updatedAt": "2025-05-14T04:31:16.912Z",
+    "__v": 0
+}
+
+### Change password
+POST http://localhost:5000/api/user/change-password
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MjQxM2ZjMjkxNjFmZGE0MTI4NGRiNSIsImVtYWlsIjoibmd1eWVuYW5odHUzNzAzQGdtYWlsLmNvbSIsInJvbGVzIjpbIm1hbmFnZXIiLCJjYXJvd25lciJdLCJpYXQiOjE3NDcxOTcyNjksImV4cCI6MTc0NzIxNTI2OX0.Lw-tV6rLYOpISj7sCjARxm2s8NCiV3nWM2e0Z-zdBhc
+Content-Type: application/json
+
+{
+    "oldPassword": "nguyenanhtu3703@gmail.com",
+    "newPassword": "nguyenanhtu3703@gmail.com"
+}
+
+### Log out
+POST http://localhost:5000/api/auth/logout
+Content-Type: application/json
+
+{
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MjQxM2ZjMjkxNjFmZGE0MTI4NGRiNSIsImVtYWlsIjoibmd1eWVuYW5odHUzNzAzQGdtYWlsLmNvbSIsInJvbGVzIjpbIm1hbmFnZXIiLCJjYXJvd25lciJdLCJpYXQiOjE3NDcxOTcyNjksImV4cCI6MTc0NzIxNTI2OX0.Lw-tV6rLYOpISj7sCjARxm2s8NCiV3nWM2e0Z-zdBhc"
+}
+
+### Register garage
+POST http://localhost:5000/api/garage/register-garage
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MjQxM2ZjMjkxNjFmZGE0MTI4NGRiNSIsImVtYWlsIjoibmd1eWVuYW5odHUzNzAzQGdtYWlsLmNvbSIsInJvbGVzIjpbIm1hbmFnZXIiLCJjYXJvd25lciJdLCJpYXQiOjE3NDcxOTcyNjksImV4cCI6MTc0NzIxNTI2OX0.Lw-tV6rLYOpISj7sCjARxm2s8NCiV3nWM2e0Z-zdBhc
+Content-Type: application/json
+
+{
+    "name": "Garage Failed",
+    "address": "456 Đường XYZ, Quận 2, TP.HCM",
+    "phone": "0123456789",
+    "email": "nguyenanhtu3703@gmail.com",
+    "description": "Garage chuyên sửa chữa ô tô và bảo dưỡng định kỳ.",
+    "openTime": "08:00",
+    "closeTime": "18:00",
+    "operating_days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+    "facadeImages": [
+        "https://example.com/images/facade1.jpg",
+        "https://example.com/images/facade2.jpg"
+    ],
+    "interiorImages": [
+        "https://example.com/images/interior1.jpg",
+        "https://example.com/images/interior2.jpg"
+    ],
+    "documentImages": [
+        "https://example.com/images/document1.jpg",
+        "https://example.com/images/document2.jpg"
+    ]
+}
+
+### View garage registration list  
+GET http://localhost:5000/api/garage/garage-registrations
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MjQyNmY1YjY0NjdhNWNmNjJiNjI2MyIsImVtYWlsIjoidnVjbzc5NzkwQGdtYWlsLmNvbSIsInJvbGVzIjpbImFkbWluIl0sImlhdCI6MTc0NzE5OTg1NCwiZXhwIjoxNzQ3MjE3ODU0fQ.bmoGg6IYpYPmNlSs8VxKcZLt9KI_IVTeUUXMXn8Gylg
+
+### View garage registration detail
+GET http://localhost:5000/api/garage/garage-registrations/68241f53b6467a5cf62b625d
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MjQyNmY1YjY0NjdhNWNmNjJiNjI2MyIsImVtYWlsIjoidnVjbzc5NzkwQGdtYWlsLmNvbSIsInJvbGVzIjpbImFkbWluIl0sImlhdCI6MTc0NzE5OTg1NCwiZXhwIjoxNzQ3MjE3ODU0fQ.bmoGg6IYpYPmNlSs8VxKcZLt9KI_IVTeUUXMXn8Gylg
+
+### Approve garage registration
+POST http://localhost:5000/api/garage/garage-registrations/68241f53b6467a5cf62b625d/approve
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MjQyNmY1YjY0NjdhNWNmNjJiNjI2MyIsImVtYWlsIjoidnVjbzc5NzkwQGdtYWlsLmNvbSIsInJvbGVzIjpbImFkbWluIl0sImlhdCI6MTc0NzE5OTg1NCwiZXhwIjoxNzQ3MjE3ODU0fQ.bmoGg6IYpYPmNlSs8VxKcZLt9KI_IVTeUUXMXn8Gylg
+
+### Reject garage registration
+POST http://localhost:5000/api/garage/garage-registrations/68241f53b6467a5cf62b625d/reject
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MjQyNmY1YjY0NjdhNWNmNjJiNjI2MyIsImVtYWlsIjoidnVjbzc5NzkwQGdtYWlsLmNvbSIsInJvbGVzIjpbImFkbWluIl0sImlhdCI6MTc0NzE5OTg1NCwiZXhwIjoxNzQ3MjE3ODU0fQ.bmoGg6IYpYPmNlSs8VxKcZLt9KI_IVTeUUXMXn8Gylg
+
+### Add new brand
+POST http://localhost:5000/api/brand/add
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MjQyNmY1YjY0NjdhNWNmNjJiNjI2MyIsImVtYWlsIjoidnVjbzc5NzkwQGdtYWlsLmNvbSIsInJvbGVzIjpbImFkbWluIl0sImlhdCI6MTc0NzE5OTg1NCwiZXhwIjoxNzQ3MjE3ODU0fQ.bmoGg6IYpYPmNlSs8VxKcZLt9KI_IVTeUUXMXn8Gylg
+Content-Type: application/json
+
+{
+    "brandName": "Jaguar",
+    "logo": "https://res.cloudinary.com/dt2akiv9y/image/upload/v1747200621/685_jaguar_c26fua.jpg"
+}
+
+### View all brands
+GET http://localhost:5000/api/brand/get
+
+### Update brand
+PUT http://localhost:5000/api/brand/update
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MjQyNmY1YjY0NjdhNWNmNjJiNjI2MyIsImVtYWlsIjoidnVjbzc5NzkwQGdtYWlsLmNvbSIsInJvbGVzIjpbImFkbWluIl0sImlhdCI6MTc0NzE5OTg1NCwiZXhwIjoxNzQ3MjE3ODU0fQ.bmoGg6IYpYPmNlSs8VxKcZLt9KI_IVTeUUXMXn8Gylg
+Content-Type: application/json
+
+{
+    "brandId": "68242af916a2dad0bbac0213",
+    "brandName": "Jaguar",
+    "logo": "https://res.cloudinary.com/dt2akiv9y/image/upload/v1747200621/685_jaguar_c26fua.jpg"
+}
+
+### Delete brand
+DELETE http://localhost:5000/api/brand/delete
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MjQyNmY1YjY0NjdhNWNmNjJiNjI2MyIsImVtYWlsIjoidnVjbzc5NzkwQGdtYWlsLmNvbSIsInJvbGVzIjpbImFkbWluIl0sImlhdCI6MTc0NzE5OTg1NCwiZXhwIjoxNzQ3MjE3ODU0fQ.bmoGg6IYpYPmNlSs8VxKcZLt9KI_IVTeUUXMXn8Gylg
+Content-Type: application/json
+
+{
+    "brandId": "68242af916a2dad0bbac0213"
+}
+
+### View garage details
+GET http://localhost:5000/api/garage/garages/68241f53b6467a5cf62b625d
+
+### Call for emergency assistance
+GET http://localhost:5000/api/garage/emergency?latitude=15.976842299999998&longitude=108.26146599999998
+
+### Create payment link
+POST http://localhost:5000/api/payos/create-payment-link
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MjQxM2ZjMjkxNjFmZGE0MTI4NGRiNSIsImVtYWlsIjoibmd1eWVuYW5odHUzNzAzQGdtYWlsLmNvbSIsInJvbGVzIjpbIm1hbmFnZXIiLCJjYXJvd25lciJdLCJpYXQiOjE3NDcyMTUwNzcsImV4cCI6MTc0NzIzMzA3N30.cngCwqQ8uWDXo9QpbnJ8kxPNWaNK_bhbGJDfPuF41A0
+Content-Type: application/json
+
+{
+    "garageId": "68241f53b6467a5cf62b625d",
+    "subscriptionId": "67f9402152726dd7734e5f6d",
+    "idempotencyKey": "idemp-hfu48jgt"
+}
+
+### PRODUCTION
+### Login with Google
+POST https://driveonbackend-production.up.railway.app/api/auth/google
+Content-Type: application/json
+
+{
+    "token": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImUxNGMzN2Q2ZTVjNzU2ZThiNzJmZGI1MDA0YzBjYzM1NjMzNzkyNGUiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJhenAiOiI0NTA5OTg0ODQ2NDgtYnYwaDFjMXY2MTZsZHJlM24yMXB2dGhtZ2kzMmR2dm0uYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJhdWQiOiI0NTA5OTg0ODQ2NDgtYnYwaDFjMXY2MTZsZHJlM24yMXB2dGhtZ2kzMmR2dm0uYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJzdWIiOiIxMDE3NjM5Nzk5MTMyMDc0NzkwNDkiLCJoZCI6ImZwdC5lZHUudm4iLCJlbWFpbCI6InR1bmFkZTE3MDI0NEBmcHQuZWR1LnZuIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsIm5iZiI6MTc0NzE5NDk2OSwibmFtZSI6Ik5ndXllbiBBbmggVHUgKEsxNyBETikiLCJwaWN0dXJlIjoiaHR0cHM6Ly9saDMuZ29vZ2xldXNlcmNvbnRlbnQuY29tL2EvQUNnOG9jS0lSV2wxbFl3cHVZd1N3N2xGTXhFdk8yTm1lLWllZTRVUmpQWFQxMDVBZ0J1eS1HZjc9czk2LWMiLCJnaXZlbl9uYW1lIjoiTmd1eWVuIEFuaCBUdSIsImZhbWlseV9uYW1lIjoiKEsxNyBETikiLCJpYXQiOjE3NDcxOTUyNjksImV4cCI6MTc0NzE5ODg2OSwianRpIjoiN2FlNmI0YTIzNTc1NWZkMWNlNzJkMjUyZjJlMzZmMjViYTA4NDZkOSJ9.p-xd4ANATMaSq6jRpDk3Vy7L0qVNNTDlJDXgZY2_nTaLhmK1092nA0WIiJTMFq0QPtdG35ryDkr7TCZIkiHXvW-SwglTBCBNWBtcpc7Qzkf0-ipPdJFKqMqFLolj_FMFu1BAhWonmjADZ1GAWRUc2rdwSwtlv0AUkftY1if5xKuOniYxWNbJqotKJaUbF7BoPiIAbmJvnvpIaS09HqirSXP1rJJcnrQuSyTjfjT-TCWa3Qj2xJnIcLUhyQ-CJKHc9HveW9Pc_Q96VKX_FIRSGtZDXQCfyJEz8G1fgXYHhJJnNK5sKa47csL3qli-lykIoloaJ7HsW-AXPwt60EZxFQ"
+}
