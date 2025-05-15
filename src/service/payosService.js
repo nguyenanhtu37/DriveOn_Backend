@@ -118,21 +118,21 @@ export const processPayment = async ({ orderCode, amount }) => {
       "month"
     );
 
-    garage.subscription = subscription._id;
-    garage.expiredTime = newExpiration.toDate();
-    garage.tag = "pro";
+    // garageResult.subscription = subscription._id;
+    garageResult.expiredTime = newExpiration.toDate();
+    garageResult.tag = "pro";
 
-    await garage.save();
+    await garageResult.save();
 
     await sendPaymentSuccessEmailToUser(
-      garage,
-      subscription,
+      garageResult,
+      subscriptionResult,
       amount,
       newExpiration
     );
     await sendPaymentSuccessEmailToAdmin(
-      garage,
-      subscription,
+      garageResult,
+      subscriptionResult,
       amount,
       newExpiration
     );
@@ -219,12 +219,12 @@ export const sendPaymentSuccessEmailToUser = async (
 };
 
 export const sendPaymentSuccessEmailToAdmin = async (
-  garage,
-  subscription,
+  garageResult,
+  subscriptionResult,
   amount,
   newExpiration
 ) => {
-  const subject = `Garage ${garage.name} has been Upgraded to 'PRO'`;
+  const subject = `Garage ${garageResult.name} has been Upgraded to 'PRO'`;
 
   const text = `
     Admin,
@@ -232,9 +232,9 @@ export const sendPaymentSuccessEmailToAdmin = async (
     The following garage has successfully upgraded to the 'PRO' plan:
 
     Garage Details:
-    - Name: ${garage.name}
-    - Address: ${garage.address}
-    - Subscription: ${subscription.name}
+    - Name: ${garageResult.name}
+    - Address: ${garageResult.address}
+    - Subscription: ${subscriptionResult.name}
     - Amount Paid: ${amount} VND
     - New Expiration Date: ${newExpiration.format("YYYY-MM-DD HH:mm:ss")}
 
@@ -248,9 +248,9 @@ export const sendPaymentSuccessEmailToAdmin = async (
     <h2>Admin,</h2>
     <p>The following garage has successfully upgraded to the <strong>'PRO'</strong> plan:</p>
     <ul>
-        <li><strong>Name:</strong> ${garage.name}</li>
-        <li><strong>Address:</strong> ${garage.address}</li>
-        <li><strong>Subscription:</strong> ${subscription.name}</li>
+        <li><strong>Name:</strong> ${garageResult.name}</li>
+        <li><strong>Address:</strong> ${garageResult.address}</li>
+        <li><strong>Subscription:</strong> ${subscriptionResult.name}</li>
         <li><strong>Amount Paid:</strong> ${amount} VND</li>
         <li><strong>New Expiration Date:</strong> ${newExpiration.format(
           "YYYY-MM-DD HH:mm:ss"
