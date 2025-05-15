@@ -426,6 +426,21 @@ export const searchServiceKeyword = async ({ keyword, lat, lon }) => {
   }
 };
 
+export const softDeleteServiceDetail = async (serviceDetailId) => {
+  // Tìm serviceDetail theo ID
+  const serviceDetail = await ServiceDetail.findById(serviceDetailId);
+  if (!serviceDetail) {
+    throw new Error("Service detail not found");
+  }
+
+  // Thực hiện xóa mềm
+  serviceDetail.isDeleted = true;
+  serviceDetail.updatedAt = new Date();
+  await serviceDetail.save();
+
+  return { message: "Service detail soft deleted successfully" };
+};
+
 export {
   addServiceDetail,
   getServiceDetailsByGarage,
