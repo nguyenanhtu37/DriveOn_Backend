@@ -31,6 +31,13 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+app.set("trust proxy", true);
+
+app.use((req, res, next) => {
+  console.log("Client IP:", req.ip);
+  next();
+});
+
 // Middleware
 // app.use(express.json());
 // app.use(bodyParser.json());

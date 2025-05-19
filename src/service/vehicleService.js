@@ -86,8 +86,6 @@ const deleteVehicle = async (userId, vehicleId) => {
       throw new Error("Unauthorized");
     }
     await Vehicle.findByIdAndDelete(vehicleId);
-    // Xóa vehicleId trong mảng vehicles của User luôn nhé @KhangNV ơi :))
-    // Ko có hàng ni thì chỉ xóa trong Vehicle thôi, User ko bị ảnh hưởng
     await User.findByIdAndUpdate(userId, { $pull: { vehicles: vehicleId } });
     return { message: "Vehicle deleted successfully" };
   };
