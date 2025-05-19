@@ -283,14 +283,14 @@ const addStaff = async (userId, garageId, staffData) => {
       phone,
       password: hashedPassword,
       roles: [defaultRole._id],
-      status: "active"
+      status: "active",
       // Removing garageList field as it's not in your schema
     });
     await newUser.save();
 
     // Add staff to garage.staffs array
     await Garage.findByIdAndUpdate(garageId, {
-      $push: { staffs: newUser._id }
+      $push: { staffs: newUser._id },
     });
 
     return newUser;
@@ -313,7 +313,7 @@ const viewStaff = async (userId, garageId) => {
   // Get all users in the staffs array
   const staffList = await User.find({
     _id: { $in: garage.staffs },
-    roles: "67b60df8c465fe4f943b98cc" // Staff role ID
+    roles: "67b60df8c465fe4f943b98cc", // Staff role ID
   });
 
   return staffList;
@@ -424,7 +424,7 @@ const enableGarage = async (garageId) => {
     }
 
     if (!garage.status.includes("enabled")) {
-      garage.status = garage.status.filter(status => status !== "disabled");
+      garage.status = garage.status.filter((status) => status !== "disabled");
       garage.status.push("enabled");
     }
 
@@ -446,7 +446,7 @@ const disableGarage = async (garageId) => {
     }
 
     if (!garage.status.includes("disabled")) {
-      garage.status = garage.status.filter(status => status !== "enabled");
+      garage.status = garage.status.filter((status) => status !== "enabled");
       garage.status.push("disabled");
     }
 
@@ -574,23 +574,24 @@ export const findGarages = async ({
       status: { $in: ["approved", "enabled"] },
     });
 
-    const enhancedGarages = [];
-    for (const garage of garages) {
-      const enhancedGarage = await enhanceGarageInfo(
-        garage,
-        address,
-        openTime,
-        closeTime,
-        operatingDaysArray
-      );
-      if (enhancedGarage.isOpen && enhancedGarage.distance <= distance) {
-        enhancedGarages.push(enhancedGarage);
-      }
-    }
+    const enhancedGarages = await Promise.all(
+      garages.map((garage) =>
+        enhanceGarageInfo(
+          garage,
+          address,
+          openTime,
+          closeTime,
+          operatingDaysArray
+        )
+      )
+    );
 
-    enhancedGarages.sort(compareGarages);
+    const filteredGarages = enhancedGarages.filter(
+      (g) => g.isOpen && g.distance <= distance
+    );
 
-    return enhancedGarages;
+    filteredGarages.sort(compareGarages);
+    return filteredGarages;
   } catch (error) {
     throw new Error("Lỗi khi tìm garage: " + error.message);
   }
@@ -604,8 +605,8 @@ const enhanceGarageInfo = async (
   userCloseTime,
   userOperatingDays
 ) => {
-  const garageAddress = garage.address;
-  const distance = await getDistancesToGarages(userAddress, garageAddress);
+  const distanceResult = await getDistancesToGarages(userAddress, [garage]);
+  const distance = distanceResult[0]?.distance || null;
 
   return {
     ...garage.toObject(),
@@ -891,13 +892,13 @@ export const findRescueGarages = async (latitude, longitude) => {
     => 6 garage cứu hộ đó được hiển thị trước. phần thiếu thì lấy garage KO có cứu hộ bù vô
     */
     const emergencyService = await Service.findOne({
-      name: "Dịch vụ cứu hộ",
-      isDeleted: false
+      name: "Emergency",
+      isDeleted: false,
     });
     if (!emergencyService) throw new Error("Emergency service not found");
     const emergencyServiceDetails = await ServiceDetail.find({
       service: emergencyService._id,
-      isDeleted: false
+      isDeleted: false,
     }).select("garage");
     const emergencyGarageIds = emergencyServiceDetails.map((d) =>
       d.garage.toString()
