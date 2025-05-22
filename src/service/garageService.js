@@ -24,6 +24,7 @@ import { sendMultipleNotifications } from "./fcmService.js";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 import timezone from "dayjs/plugin/timezone.js";
+import Favorite from "../models/favorite.js";
 
 const registerGarage = async (user, garageData) => {
   console.log(garageData);
@@ -283,14 +284,14 @@ const addStaff = async (userId, garageId, staffData) => {
       phone,
       password: hashedPassword,
       roles: [defaultRole._id],
-      status: "active"
+      status: "active",
       // Removing garageList field as it's not in your schema
     });
     await newUser.save();
 
     // Add staff to garage.staffs array
     await Garage.findByIdAndUpdate(garageId, {
-      $push: { staffs: newUser._id }
+      $push: { staffs: newUser._id },
     });
 
     return newUser;
@@ -313,7 +314,7 @@ const viewStaff = async (userId, garageId) => {
   // Get all users in the staffs array
   const staffList = await User.find({
     _id: { $in: garage.staffs },
-    roles: "67b60df8c465fe4f943b98cc" // Staff role ID
+    roles: "67b60df8c465fe4f943b98cc", // Staff role ID
   });
 
   return staffList;
@@ -424,7 +425,7 @@ const enableGarage = async (garageId) => {
     }
 
     if (!garage.status.includes("enabled")) {
-      garage.status = garage.status.filter(status => status !== "disabled");
+      garage.status = garage.status.filter((status) => status !== "disabled");
       garage.status.push("enabled");
     }
 
@@ -446,7 +447,7 @@ const disableGarage = async (garageId) => {
     }
 
     if (!garage.status.includes("disabled")) {
-      garage.status = garage.status.filter(status => status !== "enabled");
+      garage.status = garage.status.filter((status) => status !== "enabled");
       garage.status.push("disabled");
     }
 
@@ -723,6 +724,8 @@ const viewGaragesWithSearchParams = async ({
   closeTime,
   distance,
   currentLocation,
+  page = 1,
+  limit = 10,
 }) => {
   try {
     const query = { status: { $in: ["enabled"] } };
@@ -734,14 +737,13 @@ const viewGaragesWithSearchParams = async ({
     if (tag) query.tag = tag;
 
     if (openTime && closeTime) {
-      query.$and = [
-        { openTime: { $lte: openTime } },
-        { closeTime: { $gte: closeTime } },
-      ];
+      query.$and = [];
+      query.$and.push({ openTime: { $lte: openTime } });
+      query.$and.push({ closeTime: { $gte: closeTime } });
     }
 
     if (province || district) {
-      query.$and = [];
+      if (!query.$and) query.$and = [];
       if (province)
         query.$and.push({ address: { $regex: new RegExp(province, "i") } });
       if (district) {
@@ -810,7 +812,23 @@ const viewGaragesWithSearchParams = async ({
       if (a.tag !== "pro" && b.tag === "pro") return 1;
       return 0;
     });
-    return garages;
+
+    // Calculate pagination metadata
+    const totalItems = garages.length;
+    const totalPages = Math.ceil(totalItems / limit);
+
+    // Apply pagination
+    const paginatedGarages = garages.slice((page - 1) * limit, page * limit);
+
+    return {
+      garages: paginatedGarages,
+      pagination: {
+        totalItems,
+        totalPages,
+        currentPage: parseInt(page),
+        limit: parseInt(limit),
+      },
+    };
   } catch (err) {
     console.error("Error in viewGaragesWithSearchParams:", err.message);
     throw new Error(err.message);
@@ -892,12 +910,12 @@ export const findRescueGarages = async (latitude, longitude) => {
     */
     const emergencyService = await Service.findOne({
       name: "Dịch vụ cứu hộ",
-      isDeleted: false
+      isDeleted: false,
     });
     if (!emergencyService) throw new Error("Emergency service not found");
     const emergencyServiceDetails = await ServiceDetail.find({
       service: emergencyService._id,
-      isDeleted: false
+      isDeleted: false,
     }).select("garage");
     const emergencyGarageIds = emergencyServiceDetails.map((d) =>
       d.garage.toString()
@@ -1137,6 +1155,69 @@ export const getGarageCountByStatusAndMonth = async () => {
   }
 };
 
+const getGarageList = async () => {
+  const garagePros = await Garage.find({ tag: "pro" });
+  const topFavoritesAgg = await Favorite.aggregate([
+    { $group: { _id: "$garage", count: { $sum: 1 } } },
+    {
+      $lookup: {
+        from: "garages",
+        localField: "_id",
+        foreignField: "_id",
+        as: "garage",
+      },
+    },
+    { $unwind: "$garage" },
+    {
+      $replaceRoot: { newRoot: "$garage" },
+    },
+    // Add fields for sorting
+    {
+      $addFields: {
+        isPro: { $cond: [{ $eq: ["$tag", "pro"] }, 1, 0] },
+      },
+    },
+    // Sort: pro first, then by ratingAverage desc
+    {
+      $sort: { isPro: -1, ratingAverage: -1 },
+    },
+    { $limit: 10 },
+  ]);
+  const topFavorites = topFavoritesAgg;
+
+  const topRated = await Garage.find().sort({ ratingAverage: -1 }).limit(10);
+
+  const mostBooked = await Appointment.aggregate([
+    { $group: { _id: "$garage", count: { $sum: 1 } } },
+    {
+      $lookup: {
+        from: "garages",
+        localField: "_id",
+        foreignField: "_id",
+        as: "garage",
+      },
+    },
+    { $unwind: "$garage" },
+    {
+      $addFields: {
+        isPro: { $cond: [{ $eq: ["$garage.tag", "pro"] }, 1, 0] },
+        ratingAverage: "$garage.ratingAverage",
+      },
+    },
+    // Sort: pro first, then by ratingAverage desc, then by most booked
+    { $sort: { isPro: -1, ratingAverage: -1, count: -1 } },
+    { $replaceRoot: { newRoot: "$garage" } },
+    { $limit: 10 },
+  ]);
+
+  return {
+    garagePros,
+    topFavorites,
+    topRated,
+    mostBooked,
+  };
+};
+
 export {
   registerGarage,
   viewGarages,
@@ -1160,4 +1241,5 @@ export {
   viewGarageRegistrationsCarOwner,
   viewDashboardOverview,
   viewDashboardChart,
+  getGarageList,
 };

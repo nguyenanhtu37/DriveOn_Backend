@@ -24,13 +24,15 @@ import adminRoutes from "./src/routes/adminRoutes.js";
 import fcmRoutes from "./src/routes/fcmRoutes.js";
 import subscriptionRoutes from "./src/routes/subscriptionRoutes.js";
 import transactionRoutes from "./src/routes/transactionRoutes.js";
-
+import searchRoutes from "./src/routes/searchRoutes.js";
+import http from "http";
+import { initializeSocket } from "./src/libs/socket.js";
 // Load environment variables
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-
+const server = http.createServer(app);
 // Middleware
 // app.use(express.json());
 // app.use(bodyParser.json());
@@ -70,6 +72,10 @@ app.use((req, res, next) => {
 
 // Connect to Database
 connectDB();
+
+// Initialize Socket.IO
+initializeSocket(server);
+
 // khoi dong cron job:
 downgradeExpiredGarages().then(() => {
   console.log("Initial downgrade run completed. Cron job scheduled.");
@@ -91,6 +97,7 @@ app.use("/api/payos", payosRoutes);
 app.use("/api/subscription", subscriptionRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/transaction", transactionRoutes);
+app.use("/api/search", searchRoutes);
 
 // Test Route
 app.get("/", (req, res) => {
@@ -98,7 +105,7 @@ app.get("/", (req, res) => {
 });
 
 // Start Server
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Server is running at: http://localhost:${PORT}`);
 });
 
