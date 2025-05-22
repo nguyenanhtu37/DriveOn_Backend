@@ -95,6 +95,11 @@ const garageSchema = new mongoose.Schema(
         type: [Number], //[kinh độ, vĩ độ]
       },
     },
+      hourlyAppointmentLimit: {
+        type:Number,
+        default:0
+      },
+
     tag: {
       type: String,
       enum: ["normal", "pro"],

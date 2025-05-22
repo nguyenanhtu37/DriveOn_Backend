@@ -195,6 +195,9 @@ Content-Type: application/json
     "idempotencyKey": "idemp-djr739kg"
 }
 
+### Filter
+GET http://localhost:5000/api/garage/filter?address=222 Đ. 29 Tháng 3, Hoà Xuân, Cẩm Lệ, Đà Nẵng 50000
+
 ### PRODUCTION
 ### Login with Google
 POST https://driveonbackend-production.up.railway.app/api/auth/google
@@ -203,3 +206,9 @@ Content-Type: application/json
 {
     "token": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImUxNGMzN2Q2ZTVjNzU2ZThiNzJmZGI1MDA0YzBjYzM1NjMzNzkyNGUiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJhenAiOiI0NTA5OTg0ODQ2NDgtYnYwaDFjMXY2MTZsZHJlM24yMXB2dGhtZ2kzMmR2dm0uYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJhdWQiOiI0NTA5OTg0ODQ2NDgtYnYwaDFjMXY2MTZsZHJlM24yMXB2dGhtZ2kzMmR2dm0uYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJzdWIiOiIxMDE3NjM5Nzk5MTMyMDc0NzkwNDkiLCJoZCI6ImZwdC5lZHUudm4iLCJlbWFpbCI6InR1bmFkZTE3MDI0NEBmcHQuZWR1LnZuIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsIm5iZiI6MTc0NzE5NDk2OSwibmFtZSI6Ik5ndXllbiBBbmggVHUgKEsxNyBETikiLCJwaWN0dXJlIjoiaHR0cHM6Ly9saDMuZ29vZ2xldXNlcmNvbnRlbnQuY29tL2EvQUNnOG9jS0lSV2wxbFl3cHVZd1N3N2xGTXhFdk8yTm1lLWllZTRVUmpQWFQxMDVBZ0J1eS1HZjc9czk2LWMiLCJnaXZlbl9uYW1lIjoiTmd1eWVuIEFuaCBUdSIsImZhbWlseV9uYW1lIjoiKEsxNyBETikiLCJpYXQiOjE3NDcxOTUyNjksImV4cCI6MTc0NzE5ODg2OSwianRpIjoiN2FlNmI0YTIzNTc1NWZkMWNlNzJkMjUyZjJlMzZmMjViYTA4NDZkOSJ9.p-xd4ANATMaSq6jRpDk3Vy7L0qVNNTDlJDXgZY2_nTaLhmK1092nA0WIiJTMFq0QPtdG35ryDkr7TCZIkiHXvW-SwglTBCBNWBtcpc7Qzkf0-ipPdJFKqMqFLolj_FMFu1BAhWonmjADZ1GAWRUc2rdwSwtlv0AUkftY1if5xKuOniYxWNbJqotKJaUbF7BoPiIAbmJvnvpIaS09HqirSXP1rJJcnrQuSyTjfjT-TCWa3Qj2xJnIcLUhyQ-CJKHc9HveW9Pc_Q96VKX_FIRSGtZDXQCfyJEz8G1fgXYHhJJnNK5sKa47csL3qli-lykIoloaJ7HsW-AXPwt60EZxFQ"
 }
+
+### Search
+GET https://driveonbackend-production.up.railway.app/api/service-detail/search?name=Oil Change&location=Da Nang
+
+### Emergency
+GET https://driveonbackend-production.up.railway.app/api/garage/emergency?latitude=15.976842299999998&longitude=108.26146599999998

@@ -62,7 +62,9 @@ export const createPaymentLink = async (req, res) => {
         ? garage.name.slice(0, maxNameLength - 1) + "…"
         : garage.name;
     const description = `Upgrade ${shortGarageName} (${month}M)`;
-    const fullDescription = `Upgrade ${garage.name} to the PRO plan for ${month} month${month > 1 ? "s" : ""}`;
+    const fullDescription = `Upgrade ${
+      garage.name
+    } to the PRO plan for ${month} month${month > 1 ? "s" : ""}`;
     const paymentLink = await payosService.createPaymentLink({
       garageId,
       orderCode,
@@ -107,7 +109,7 @@ export const webHook = async (req, res) => {
     const { code, data, idempotencyKey } = webhookBody;
     const { orderCode, amount } = data;
 
-console.log("webhookBody: ", webhookBody);
+    console.log("webhookBody: ", webhookBody);
 
     if (idempotencyKey) {
       const existingTransaction = await Transaction.findOne({ idempotencyKey });

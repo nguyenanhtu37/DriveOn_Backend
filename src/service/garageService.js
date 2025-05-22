@@ -575,23 +575,24 @@ export const findGarages = async ({
       status: { $in: ["approved", "enabled"] },
     });
 
-    const enhancedGarages = [];
-    for (const garage of garages) {
-      const enhancedGarage = await enhanceGarageInfo(
-        garage,
-        address,
-        openTime,
-        closeTime,
-        operatingDaysArray
-      );
-      if (enhancedGarage.isOpen && enhancedGarage.distance <= distance) {
-        enhancedGarages.push(enhancedGarage);
-      }
-    }
+    const enhancedGarages = await Promise.all(
+      garages.map((garage) =>
+        enhanceGarageInfo(
+          garage,
+          address,
+          openTime,
+          closeTime,
+          operatingDaysArray
+        )
+      )
+    );
 
-    enhancedGarages.sort(compareGarages);
+    const filteredGarages = enhancedGarages.filter(
+      (g) => g.isOpen && g.distance <= distance
+    );
 
-    return enhancedGarages;
+    filteredGarages.sort(compareGarages);
+    return filteredGarages;
   } catch (error) {
     throw new Error("Lỗi khi tìm garage: " + error.message);
   }
@@ -605,8 +606,8 @@ const enhanceGarageInfo = async (
   userCloseTime,
   userOperatingDays
 ) => {
-  const garageAddress = garage.address;
-  const distance = await getDistancesToGarages(userAddress, garageAddress);
+  const distanceResult = await getDistancesToGarages(userAddress, [garage]);
+  const distance = distanceResult[0]?.distance || null;
 
   return {
     ...garage.toObject(),

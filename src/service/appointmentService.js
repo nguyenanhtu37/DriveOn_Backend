@@ -436,13 +436,13 @@ export const createAppointmentService = async ({
 
 // Separate function to handle email sending in the background
 async function sendAppointmentEmails(
-    appointmentId,
-    userId,
-    garageId,
-    vehicleId,
-    note,
-    start,
-    end
+  appointmentId,
+  userId,
+  garageId,
+  vehicleId,
+  note,
+  start,
+  end
 ) {
   try {
     // Get user information
@@ -460,7 +460,7 @@ async function sendAppointmentEmails(
     }
 
     // Get vehicle information
-    const vehicle = await Vehicle.findById(vehicleId).populate('carOwner');
+    const vehicle = await Vehicle.findById(vehicleId).populate("carOwner");
     if (!vehicle) {
       console.error("Vehicle not found for email notification");
       return;
@@ -494,12 +494,16 @@ async function sendAppointmentEmails(
         <ul>
           <li><strong>Garage:</strong> ${garage.name}</li>
           <li><strong>Location:</strong> ${garage.address}</li>
-          <li><strong>Vehicle:</strong> ${vehicle.carName} (${vehicle.carPlate})</li>
+          <li><strong>Vehicle:</strong> ${vehicle.carName} (${
+        vehicle.carPlate
+      })</li>
           <li><strong>Date:</strong> ${displayDate}</li>
           <li><strong>Time:</strong> ${displayStartTime} </li>
           <li><strong>Note:</strong> ${note || "None"}</li>
         </ul>
-        <p>You can view your appointment details <a href="${process.env.FRONTEND_URL}/profile">here</a>.</p>
+        <p>You can view your appointment details <a href="${
+          process.env.FRONTEND_URL
+        }/profile">here</a>.</p>
         <p>Thank you for choosing our service!</p>
       `,
     });
@@ -533,13 +537,19 @@ async function sendAppointmentEmails(
           <p>A new appointment has been booked at your garage.</p>
           <h3>Appointment Details:</h3>
           <ul>
-            <li><strong>Customer:</strong> ${customer.name} (${customer.email})</li>
-            <li><strong>Vehicle:</strong> ${vehicle.carName} (${vehicle.carPlate})</li>
+            <li><strong>Customer:</strong> ${customer.name} (${
+          customer.email
+        })</li>
+            <li><strong>Vehicle:</strong> ${vehicle.carName} (${
+          vehicle.carPlate
+        })</li>
             <li><strong>Date:</strong> ${displayDate}</li>
             <li><strong>Time:</strong> ${displayStartTime} </li>
             <li><strong>Note:</strong> ${note || "None"}</li>
           </ul>
-          <p>Please <a href="${process.env.FRONTEND_URL}/garageManagement/${garage._id}/appointments">confirm or deny</a> this appointment request as soon as possible.</p>
+          <p>Please <a href="${process.env.FRONTEND_URL}/garageManagement/${
+          garage._id
+        }/appointments">confirm or deny</a> this appointment request as soon as possible.</p>
         `,
       });
     }
@@ -574,7 +584,7 @@ export const getAppointmentByIdService = async (appointmentId) => {
     .populate("assignedStaff", "name avatar"); // Add staff information
 };
 
-export const getAppointmentsByVehicleService = async (vehicleId,userId) => {
+export const getAppointmentsByVehicleService = async (vehicleId, userId) => {
   // Check if the vehicle exists
   const vehicle = await Vehicle.findById(vehicleId);
   if (!vehicle) {
@@ -584,8 +594,11 @@ export const getAppointmentsByVehicleService = async (vehicleId,userId) => {
     throw new Error("Unauthorized - Vehicle doesn't belong to this user");
   }
 
-  // Find all appointments for this vehicle
-  return await Appointment.find({ vehicle: vehicleId })
+  // Find only completed appointments for this vehicle
+  return await Appointment.find({
+    vehicle: vehicleId,
+    status: "Completed" // Only return completed appointments
+  })
       .populate("user", "name email avatar")
       .populate("garage", "name address")
       .populate({
@@ -634,11 +647,11 @@ export const confirmAppointmentService = async (appointmentId, userId) => {
 
   // Send confirmation email asynchronously (fire and forget)
   sendConfirmationEmail(
-      appointmentId,
-      appointment.user,
-      appointment.garage,
-      appointment.start,
-      appointment.end
+    appointmentId,
+    appointment.user,
+    appointment.garage,
+    appointment.start,
+    appointment.end
   ).catch((error) => console.error("Error sending confirmation email:", error));
 
   // Return immediately after saving
@@ -647,11 +660,11 @@ export const confirmAppointmentService = async (appointmentId, userId) => {
 
 // Separate function to handle email sending in background
 async function sendConfirmationEmail(
-    appointmentId,
-    customerId,
-    garageId,
-    startTime,
-    endTime
+  appointmentId,
+  customerId,
+  garageId,
+  startTime,
+  endTime
 ) {
   try {
     // Get user information
@@ -670,8 +683,8 @@ async function sendConfirmationEmail(
 
     // Get appointment details
     const appointment = await Appointment.findById(appointmentId)
-        .populate("vehicle")
-        .populate("service");
+      .populate("vehicle")
+      .populate("service");
     if (!appointment) {
       console.error("Appointment not found for confirmation email");
       return;
@@ -705,12 +718,16 @@ async function sendConfirmationEmail(
         <ul>
           <li><strong>Garage:</strong> ${garage.name}</li>
           <li><strong>Location:</strong> ${garage.address}</li>
-          <li><strong>Vehicle:</strong> ${appointment.vehicle.carName} (${appointment.vehicle.carPlate})</li>
+          <li><strong>Vehicle:</strong> ${appointment.vehicle.carName} (${
+        appointment.vehicle.carPlate
+      })</li>
           <li><strong>Date:</strong> ${displayDate}</li>
           <li><strong>Time:</strong> ${displayStartTime} - ${displayEndTime}</li>
           <li><strong>Note:</strong> ${appointment.note || "None"}</li>
         </ul>
-        <p>You can view your appointment details <a href="${process.env.FRONTEND_URL}/profile">here</a>.</p>
+        <p>You can view your appointment details <a href="${
+          process.env.FRONTEND_URL
+        }/profile">here</a>.</p>
         <p>Thank you for choosing our service!</p>
       `,
     });
@@ -741,11 +758,11 @@ export const denyAppointmentService = async (appointmentId, userId) => {
 
   // Send rejection email asynchronously (fire and forget)
   sendRejectionEmail(
-      appointmentId,
-      appointment.user,
-      appointment.garage,
-      appointment.start,
-      appointment.end
+    appointmentId,
+    appointment.user,
+    appointment.garage,
+    appointment.start,
+    appointment.end
   ).catch((error) => console.error("Error sending rejection email:", error));
 
   // Return immediately after saving
@@ -754,11 +771,11 @@ export const denyAppointmentService = async (appointmentId, userId) => {
 
 // Separate function to handle email sending in background
 async function sendRejectionEmail(
-    appointmentId,
-    customerId,
-    garageId,
-    startTime,
-    endTime
+  appointmentId,
+  customerId,
+  garageId,
+  startTime,
+  endTime
 ) {
   try {
     // Get user information
@@ -777,8 +794,8 @@ async function sendRejectionEmail(
 
     // Get appointment details
     const appointment = await Appointment.findById(appointmentId)
-        .populate("vehicle")
-        .populate("service");
+      .populate("vehicle")
+      .populate("service");
     if (!appointment) {
       console.error("Appointment not found for rejection email");
       return;
@@ -822,10 +839,10 @@ async function sendRejectionEmail(
 }
 
 export const completeAppointmentService = async (
-    appointmentId,
-    userId,
-    updatedEndTime = null,
-    nextMaintenance = null
+  appointmentId,
+  userId,
+  updatedEndTime = null,
+  nextMaintenance = null
 ) => {
   const appointment = await Appointment.findById(appointmentId);
   if (!appointment) {
@@ -872,13 +889,13 @@ export const completeAppointmentService = async (
 
   // Send completion email asynchronously (fire and forget)
   sendCompletionEmail1(
-      appointmentId,
-      appointment.user,
-      appointment.garage,
-      appointment.start,
-      appointment.end,
-      userId,
-      nextMaintenance
+    appointmentId,
+    appointment.user,
+    appointment.garage,
+    appointment.start,
+    appointment.end,
+    userId,
+    nextMaintenance
   ).catch((error) => console.error("Error sending completion email:", error));
 
   // Return immediately after saving
@@ -887,13 +904,13 @@ export const completeAppointmentService = async (
 
 // Separate function to handle email sending in background
 async function sendCompletionEmail1(
-    appointmentId,
-    customerId,
-    garageId,
-    startTime,
-    endTime,
-    staffId,
-    nextMaintenance
+  appointmentId,
+  customerId,
+  garageId,
+  startTime,
+  endTime,
+  staffId,
+  nextMaintenance
 ) {
   try {
     // Get user information
@@ -919,8 +936,8 @@ async function sendCompletionEmail1(
 
     // Get appointment details
     const appointment = await Appointment.findById(appointmentId)
-        .populate("vehicle")
-        .populate("service");
+      .populate("vehicle")
+      .populate("service");
     if (!appointment) {
       console.error("Appointment not found for completion email");
       return;
@@ -966,13 +983,21 @@ async function sendCompletionEmail1(
         <ul>
           <li><strong>Garage:</strong> ${garage.name}</li>
           <li><strong>Location:</strong> ${garage.address}</li>
-          <li><strong>Vehicle:</strong> ${appointment.vehicle.carName} (${appointment.vehicle.carPlate})</li>
+          <li><strong>Vehicle:</strong> ${appointment.vehicle.carName} (${
+        appointment.vehicle.carPlate
+      })</li>
           <li><strong>Date:</strong> ${displayDate}</li>
           <li><strong>Time:</strong> ${displayStartTime} - ${displayEndTime}</li>
           <li><strong>Completed by:</strong> ${staffInfo.name}</li>
-          ${nextMaintenanceDisplay ? `<li><strong>Next Recommended Maintenance:</strong> ${nextMaintenanceDisplay}</li>` : ''}
+          ${
+            nextMaintenanceDisplay
+              ? `<li><strong>Next Recommended Maintenance:</strong> ${nextMaintenanceDisplay}</li>`
+              : ""
+          }
         </ul>
-        <p>You can view your service history <a href="${process.env.FRONTEND_URL}/profile">here</a>.</p>
+        <p>You can view your service history <a href="${
+          process.env.FRONTEND_URL
+        }/profile">here</a>.</p>
         <p>Thank you for choosing our service!</p>
       `,
     });
@@ -1308,10 +1333,10 @@ export const getAcceptedAppointmentsService = async (userId, garageId) => {
   }
 
   return await Appointment.find({ status: "Accepted", garage: garageId })
-      .populate("user", "name email avatar")
-      .populate("garage", "name address")
-      .populate("vehicle", "carBrand carName carPlate")
-      .populate("service");
+    .populate("user", "name email avatar")
+    .populate("garage", "name address")
+    .populate("vehicle", "carBrand carName carPlate")
+    .populate("service");
 };
 
 export const cancelAppointmentService = async (appointmentId, userId) => {
@@ -1330,13 +1355,13 @@ export const cancelAppointmentService = async (appointmentId, userId) => {
 
   // Send cancellation emails asynchronously
   sendCancellationEmails(
-      appointmentId,
-      appointment.user,
-      appointment.garage,
-      appointment.start,
-      appointment.end
+    appointmentId,
+    appointment.user,
+    appointment.garage,
+    appointment.start,
+    appointment.end
   ).catch((error) =>
-      console.error("Error sending cancellation emails:", error)
+    console.error("Error sending cancellation emails:", error)
   );
 
   // Return immediately after saving
@@ -1345,11 +1370,11 @@ export const cancelAppointmentService = async (appointmentId, userId) => {
 
 // Separate function to handle email sending in background
 async function sendCancellationEmails(
-    appointmentId,
-    customerId,
-    garageId,
-    startTime,
-    endTime
+  appointmentId,
+  customerId,
+  garageId,
+  startTime,
+  endTime
 ) {
   try {
     // Get user information
@@ -1368,8 +1393,8 @@ async function sendCancellationEmails(
 
     // Get appointment details
     const appointment = await Appointment.findById(appointmentId)
-        .populate("vehicle")
-        .populate("service");
+      .populate("vehicle")
+      .populate("service");
     if (!appointment) {
       console.error("Appointment not found for cancellation email");
       return;
@@ -1428,7 +1453,9 @@ async function sendCancellationEmails(
               <li><strong>Customer:</strong> ${customer.name}</li>
               <li><strong>Date:</strong> ${displayDate}</li>
               <li><strong>Time:</strong> ${displayStartTime}</li>
-              <li><strong>Vehicle:</strong> ${appointment.vehicle ? appointment.vehicle.carPlate : 'N/A'}</li>
+              <li><strong>Vehicle:</strong> ${
+                appointment.vehicle ? appointment.vehicle.carPlate : "N/A"
+              }</li>
             </ul>
             <p>This time slot is now available for other bookings.</p>
           `,
@@ -1440,17 +1467,20 @@ async function sendCancellationEmails(
   }
 }
 
-
-export const updateAppointmentByStaffService = async (appointmentId, staffId, updateData) => {
+export const updateAppointmentByStaffService = async (
+  appointmentId,
+  staffId,
+  updateData
+) => {
   // Extract only allowed fields for staff updates
   const allowedUpdates = {
     service: updateData.service,
-    note: updateData.note
+    note: updateData.note,
   };
 
   // Remove undefined fields
   Object.keys(allowedUpdates).forEach(
-      (key) => allowedUpdates[key] === undefined && delete allowedUpdates[key]
+    (key) => allowedUpdates[key] === undefined && delete allowedUpdates[key]
   );
 
   // Check if there are any valid updates
@@ -1493,8 +1523,8 @@ export const updateAppointmentByStaffService = async (appointmentId, staffId, up
 
     // Calculate new end time based on new services
     const validationResult = await convertAndValidateDateTime(
-        appointment.start,
-        allowedUpdates.service
+      appointment.start,
+      allowedUpdates.service
     );
 
     if (!validationResult.isValid) {
@@ -1507,28 +1537,35 @@ export const updateAppointmentByStaffService = async (appointmentId, staffId, up
 
   // Update appointment in the database
   const updatedAppointment = await Appointment.findByIdAndUpdate(
-      appointmentId,
-      updateObj,
-      { new: true }
+    appointmentId,
+    updateObj,
+    { new: true }
   )
-      .populate("user", "name email")
-      .populate("garage", "name address")
-      .populate("service", "name duration price")
-      .populate("vehicle", "carBrand carName carPlate");
+    .populate("user", "name email")
+    .populate("garage", "name address")
+    .populate("service", "name duration price")
+    .populate("vehicle", "carBrand carName carPlate");
 
   // Send email notification asynchronously
   sendServiceUpdateEmail(
-      appointmentId,
-      staffId,
-      updatedAppointment,
-      allowedUpdates.service !== undefined
-  ).catch(error => console.error("Error sending service update notification:", error));
+    appointmentId,
+    staffId,
+    updatedAppointment,
+    allowedUpdates.service !== undefined
+  ).catch((error) =>
+    console.error("Error sending service update notification:", error)
+  );
 
   return updatedAppointment;
 };
 
 // Helper function to send notification emails
-async function sendServiceUpdateEmail(appointmentId, staffId, appointment, serviceChanged) {
+async function sendServiceUpdateEmail(
+  appointmentId,
+  staffId,
+  appointment,
+  serviceChanged
+) {
   try {
     const staff = await User.findById(staffId);
     const customer = await User.findById(appointment.user._id);
@@ -1542,23 +1579,25 @@ async function sendServiceUpdateEmail(appointmentId, staffId, appointment, servi
       weekday: "long",
       year: "numeric",
       month: "long",
-      day: "numeric"
+      day: "numeric",
     });
 
     const displayStartTime = appointment.start.toLocaleTimeString("en-US", {
       timeZone: "Asia/Ho_Chi_Minh",
       hour: "2-digit",
-      minute: "2-digit"
+      minute: "2-digit",
     });
 
     const displayEndTime = appointment.end.toLocaleTimeString("en-US", {
       timeZone: "Asia/Ho_Chi_Minh",
       hour: "2-digit",
-      minute: "2-digit"
+      minute: "2-digit",
     });
 
     // Format services for display
-    const servicesList = appointment.service.map(s => `${s.name} (VND:${s.price})`).join(", ");
+    const servicesList = appointment.service
+      .map((s) => `${s.name} (VND:${s.price})`)
+      .join(", ");
 
     let serviceUpdateText = "";
     if (serviceChanged) {
@@ -1572,7 +1611,9 @@ async function sendServiceUpdateEmail(appointmentId, staffId, appointment, servi
       subject: "Appointment Update Notification from Garage",
       html: `
         <h2>Hello ${customer.name},</h2>
-        <p>Your appointment has been <span style="color: #007bff; font-weight: bold;">updated</span> by staff member ${staff.name}.</p>
+        <p>Your appointment has been <span style="color: #007bff; font-weight: bold;">updated</span> by staff member ${
+          staff.name
+        }.</p>
         ${serviceUpdateText}
         <h3>Appointment Details:</h3>
         <ul>
@@ -1580,14 +1621,18 @@ async function sendServiceUpdateEmail(appointmentId, staffId, appointment, servi
           <li><strong>Address:</strong> ${garage.address}</li>
           <li><strong>Date:</strong> ${displayDate}</li>
           <li><strong>Time:</strong> ${displayStartTime} - ${displayEndTime}</li>
-          <li><strong>Vehicle:</strong>  ${appointment.vehicle.carName} (${appointment.vehicle.carPlate})</li>
+          <li><strong>Vehicle:</strong>  ${appointment.vehicle.carName} (${
+        appointment.vehicle.carPlate
+      })</li>
           <li><strong>Notes:</strong> ${appointment.note || "None"}</li>
         </ul>
 
         <p>If you have any questions, please contact the garage directly.</p>
-        <p>View appointment details <a href="${process.env.FRONTEND_URL}/profile">here</a>.</p>
+        <p>View appointment details <a href="${
+          process.env.FRONTEND_URL
+        }/profile">here</a>.</p>
         <p>Thank you for using our services!</p>
-      `
+      `,
     });
   } catch (error) {
     console.error("Error sending service update notification email:", error);
@@ -1645,4 +1690,67 @@ export const getAppointmentPercentsService = async () => {
     console.error("Error in getAppointmentPercentsService:", error);
     throw error;
   }
+};
+
+// Set hourly appointment limit for a garage
+export const setHourlyAppointmentLimitService = async (garageId, userId, limit) => {
+  // Check if the garage exists
+  const garage = await Garage.findById(garageId);
+  if (!garage) {
+    throw new Error("Garage not found");
+  }
+
+  // Check if user is authorized (is in garage.user array)
+  if (!garage.user.includes(userId)) {
+    throw new Error("Unauthorized - Only garage managers can set appointment limits");
+  }
+
+  // Validate the limit
+  const hourlyLimit = parseInt(limit);
+  if (isNaN(hourlyLimit) || hourlyLimit < 0) {
+    throw new Error("Invalid limit value - must be a non-negative number");
+  }
+
+  // Update the garage with the new limit
+  garage.hourlyAppointmentLimit = hourlyLimit;
+  await garage.save();
+
+  return garage;
+};
+
+// Get the hourly appointment limit for a garage
+export const getHourlyAppointmentLimitService = async (garageId) => {
+  const garage = await Garage.findById(garageId);
+  if (!garage) {
+    throw new Error("Garage not found");
+  }
+
+  return { hourlyAppointmentLimit: garage.hourlyAppointmentLimit || 0 };
+};
+
+// Get all appointments in a specific 1-hour window for a garage
+export const countPendingAppointmentsInHour = async (garageId, date) => {
+  // date: Date object or ISO string
+  const startDate = new Date(date);
+  if (isNaN(startDate.getTime())) throw new Error("Invalid date");
+
+  // Set to start of the hour
+  startDate.setMinutes(0, 0, 0);
+  const endDate = new Date(startDate);
+  endDate.setHours(endDate.getHours() + 1);
+
+  // Get all appointments in the time period, not just count
+  const appointments = await Appointment.find({
+    garage: garageId,
+    status: "Pending",
+    start: { $gte: startDate, $lt: endDate },
+  })
+      .populate("user", "name email phone avatar")
+      .populate("vehicle", "carBrand carName carPlate")
+      .populate("service", "name price duration");
+
+  return {
+    count: appointments.length,
+    appointments: appointments
+  };
 };

@@ -70,7 +70,7 @@ export const searchServices = async (req, res) => {
     const { name, location } = req.query;
 
     if (!name) {
-      return res.status(400).json({ error: "Service name is required" });
+      return res.status(400).json({ error: "Keyword is required" });
     }
 
     const services = await serviceDetailService.searchServices(name, location);

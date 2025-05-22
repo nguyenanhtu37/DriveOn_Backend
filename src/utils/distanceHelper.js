@@ -11,8 +11,10 @@ export const haversineDistance = (lat1, lon1, lat2, lon2) => {
   const dLon = toRad(lon2 - lon1);
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    Math.cos(toRad(lat1)) *
+      Math.cos(toRad(lat2)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c; // Khoảng cách (km)
 };
@@ -31,7 +33,10 @@ export const getDrivingDistance = async (origin, destination) => {
       const distance = response.data.rows[0].elements[0].distance.value; // kcach tính theo met
       return distance / 1000; // convert sang km
     } else {
-      console.error("Error from DistanceMatrix.ai:", response.data.error_message);
+      console.error(
+        "Error from DistanceMatrix.ai:",
+        response.data.error_message
+      );
       return null;
     }
   } catch (error) {
@@ -56,7 +61,10 @@ export const getDrivingDistance = async (origin, destination) => {
 
 export const getDistancesToGarages = async (userLocation, garageList) => {
   if (!Array.isArray(garageList)) {
-    console.error("Invalid garageList passed to getDistancesToGarages:", garageList);
+    console.error(
+      "Invalid garageList passed to getDistancesToGarages:",
+      garageList
+    );
     return [];
   }
 
@@ -74,11 +82,18 @@ export const getDistancesToGarages = async (userLocation, garageList) => {
 
 export const getCoordinates = async (address) => {
   try {
-    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`;
-    const response = await axios.get(url, { headers: { "User-Agent": "DriveOn-App" } });
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
+      address
+    )}&format=json&limit=1`;
+    const response = await axios.get(url, {
+      headers: { "User-Agent": "DriveOn-App" },
+    });
 
     if (response.data.length === 0) return null;
-    return { lat: parseFloat(response.data[0].lat), lon: parseFloat(response.data[0].lon) };
+    return {
+      lat: parseFloat(response.data[0].lat),
+      lon: parseFloat(response.data[0].lon),
+    };
   } catch {
     console.error("Error getting coordinates:", error);
     return null;

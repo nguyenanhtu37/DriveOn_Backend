@@ -32,7 +32,14 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-const server = http.createServer(app);
+
+app.set("trust proxy", 1);
+
+app.use((req, res, next) => {
+  console.log("Client IP:", req.ip);
+  next();
+});
+
 // Middleware
 // app.use(express.json());
 // app.use(bodyParser.json());
@@ -69,6 +76,8 @@ app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Credentials", "true");
   next();
 });
+
+const server = http.createServer(app);
 
 // Connect to Database
 connectDB();

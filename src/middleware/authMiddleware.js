@@ -13,6 +13,7 @@ const authMiddleware = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET, {
       algorithms: ["HS256"],
     });
+    console.log("decoded: ", decoded);
 
     // Kiểm tra xem user có roles hợp lệ không
     if (!decoded.roles || !Array.isArray(decoded.roles)) {
