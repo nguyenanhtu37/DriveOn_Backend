@@ -3,8 +3,8 @@ import { brandSchema } from "../validator/brandValidator.js";
 
 const addBrand = async (brandName, logo) => {
   try {
-    brandSchema.parse({brandName, logo});
-    const brand_in_DB = await Brand.findOne({brandName});
+    brandSchema.parse({ brandName, logo });
+    const brand_in_DB = await Brand.findOne({ brandName });
     if (brand_in_DB) {
       throw new Error(`Brand ${brandName} already exists!`);
     }
@@ -16,9 +16,9 @@ const addBrand = async (brandName, logo) => {
   }
 };
 
-const getBrands = async (req, res) => {
+const getBrands = async () => {
   try {
-    const brandList = await Brand.find();
+    const brandList = await Brand.find({ isDeleted: false });
     return brandList;
   } catch (err) {
     throw new Error("Cannot get brand list!");
@@ -30,11 +30,11 @@ const updateBrand = async (brandId, brandName, logo) => {
     if (!brandId) {
       throw new Error("Invalid brand!");
     }
-    brandSchema.parse({brandName, logo});
+    brandSchema.parse({ brandName, logo });
     const updatedBrand = await Brand.findByIdAndUpdate(
       brandId,
       { brandName, logo },
-      { new: true } 
+      { new: true }
     );
     if (!updatedBrand) {
       throw new Error("Brand not found!");
@@ -49,9 +49,12 @@ const deleteBrand = async (brandId) => {
   try {
     if (!brandId) {
       throw new Error("Invalid brand!");
-    };
-    
-    const result = await Brand.findByIdAndDelete(brandId);
+    }
+    const result = await Brand.findByIdAndUpdate(
+      brandId,
+      { isDeleted: true },
+      { new: true }
+    );
     return result;
   } catch (err) {
     throw new Error(err.message);

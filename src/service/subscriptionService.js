@@ -1,7 +1,13 @@
 import Subscription from "../models/subscription.js";
 import { subscriptionSchema } from "../validator/subscriptionValidator.js";
 
-export const addSubscription = async ({ name, code, description, price, month }) => {
+export const addSubscription = async ({
+  name,
+  code,
+  description,
+  price,
+  month,
+}) => {
   try {
     subscriptionSchema.parse({ name, code, description, price, month });
 

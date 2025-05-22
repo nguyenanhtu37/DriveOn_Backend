@@ -89,127 +89,267 @@ export const getServiceDetailById = async (serviceDetailId) => {
   return serviceDetail;
 };
 
+// export const searchServices = async (name, location) => {
+//   try {
+//     let garages = [];
+
+//     // Nếu có location, tìm kiếm garage gần vị trí
+//     if (location) {
+//       let parsedLocation;
+//       try {
+//         // Sử dụng DistanceMatrix.ai để chuyển đổi địa chỉ thành tọa độ
+//         const apiKey = process.env.DISTANCEMATRIX_API_KEY;
+//         const url = `https://api.distancematrix.ai/maps/api/geocode/json?address=${encodeURIComponent(
+//           location
+//         )}&key=${apiKey}`;
+
+//         const response = await axios.get(url);
+
+//         // Kiểm tra nếu không tìm thấy kết quả
+//         if (
+//           !response.data ||
+//           response.data.status !== "OK" ||
+//           !response.data.result ||
+//           response.data.result.length === 0
+//         ) {
+//           throw new Error("Invalid location. Unable to find coordinates.");
+//         }
+
+//         // Lấy tọa độ từ kết quả trả về
+//         const { lat, lng } = response.data.result[0].geometry.location;
+//         parsedLocation = { lat, lon: lng };
+//       } catch (error) {
+//         console.error(
+//           "Error fetching coordinates from DistanceMatrix.ai:",
+//           error.message
+//         );
+//         throw new Error("Failed to fetch coordinates from location.");
+//       }
+
+//       const { lat, lon } = parsedLocation;
+
+//       // Tìm kiếm garage gần vị trí
+//       garages = await Garage.aggregate([
+//         {
+//           $geoNear: {
+//             near: {
+//               type: "Point",
+//               coordinates: [parseFloat(lon), parseFloat(lat)],
+//             },
+//             distanceField: "distance",
+//             maxDistance: 50000, // 50km
+//             spherical: true,
+//             distanceMultiplier: 0.001
+//           },
+//         },
+//         {
+//           $match: {
+//             status: { $all: ["enabled", "approved"] },
+//           },
+//         },
+//       ]);
+//     }
+//     // console.log("Garages found:", garages);
+
+//     const garageIds =
+//       garages.length > 0 ? garages.map((garage) => garage._id) : null;
+
+//     const query = {
+//       name: { $regex: name, $options: "i" },
+//     };
+//     if (garageIds) {
+//       query.garage = { $in: garageIds };
+//     }
+
+//     let services = await ServiceDetail.find(query).populate(
+//       "garage",
+//       "name address location tag ratingAverage openTime closeTime operating_days"
+//     );
+//     console.log("Services before filter:", services);
+
+//     const currentHour = new Date().getHours();
+//     const currentDay = new Date().toLocaleString("en-US", { weekday: "long" });
+
+//     services = services.filter((service) => {
+//       const garage = service.garage;
+//       // console.log("Garage operating_days:", garage.operating_days);
+//       // console.log("Current day:", currentDay);
+//       if (!garage) return false;
+
+//       if (!garage.operating_days.includes(currentDay)) return false;
+
+//       const openHour = parseInt(garage.openTime.split(":")[0], 10);
+//       const closeHour = parseInt(garage.closeTime.split(":")[0], 10);
+//       return currentHour >= openHour && currentHour < closeHour;
+//     });
+//     // console.log("Services after filter:", services);
+
+//     services.sort((a, b) => {
+//       const garageA = a.garage;
+//       const garageB = b.garage;
+
+//       if (garageA.tag === "pro" && garageB.tag !== "pro") return -1;
+//       if (garageA.tag !== "pro" && garageB.tag === "pro") return 1;
+
+//       return garageB.ratingAverage - garageA.ratingAverage;
+//     });
+
+//     if (location) {
+//       services = services.map((service) => {
+//         const garage = garages.find(
+//           (g) => g._id.toString() === service.garage._id.toString()
+//         );
+//         return {
+//           ...service.toObject(),
+//           distance: garage ? garage.distance : null,
+//         };
+//       });
+//     }
+//     // console.log("Services after map:", services);
+
+//     return services;
+//   } catch (error) {
+//     console.error("Error in searchServices:", error);
+//     throw new Error("Failed to search services");
+//   }
+// };
+
 export const searchServices = async (name, location) => {
-  try {
-    let garages = [];
+  let garageResult = [];
+  let serviceResult = [];
 
-    // Nếu có location, tìm kiếm garage gần vị trí
-    if (location) {
-      let parsedLocation;
-      try {
-        // Sử dụng DistanceMatrix.ai để chuyển đổi địa chỉ thành tọa độ
-        const apiKey = process.env.DISTANCEMATRIX_API_KEY;
-        const url = `https://api.distancematrix.ai/maps/api/geocode/json?address=${encodeURIComponent(
-          location
-        )}&key=${apiKey}`;
+  let parsedLocation = null;
 
-        const response = await axios.get(url);
+  // Parse location (optional)
+  if (location) {
+    try {
+      const apiKey = process.env.DISTANCEMATRIX_API_KEY;
+      const url = `https://api.distancematrix.ai/maps/api/geocode/json?address=${encodeURIComponent(
+        location
+      )}&key=${apiKey}`;
+      const response = await axios.get(url);
 
-        // Kiểm tra nếu không tìm thấy kết quả
-        if (
-          !response.data ||
-          response.data.status !== "OK" ||
-          !response.data.result ||
-          response.data.result.length === 0
-        ) {
-          throw new Error("Invalid location. Unable to find coordinates.");
-        }
-
-        // Lấy tọa độ từ kết quả trả về
-        const { lat, lng } = response.data.result[0].geometry.location;
-        parsedLocation = { lat, lon: lng };
-      } catch (error) {
-        console.error(
-          "Error fetching coordinates from DistanceMatrix.ai:",
-          error.message
-        );
-        throw new Error("Failed to fetch coordinates from location.");
+      if (
+        !response.data ||
+        response.data.status !== "OK" ||
+        !response.data.result ||
+        response.data.result.length === 0
+      ) {
+        throw new Error("Invalid location. Unable to find coordinates.");
       }
 
-      const { lat, lon } = parsedLocation;
+      const { lat, lng } = response.data.result[0].geometry.location;
+      parsedLocation = { lat, lon: lng };
+    } catch (error) {
+      console.error(
+        "Error fetching coordinates from DistanceMatrix.ai:",
+        error.message
+      );
+      throw new Error("Failed to fetch coordinates from location.");
+    }
+  }
 
-      // Tìm kiếm garage gần vị trí
-      garages = await Garage.aggregate([
-        {
-          $geoNear: {
-            near: {
-              type: "Point",
-              coordinates: [parseFloat(lon), parseFloat(lat)],
-            },
-            distanceField: "distance",
-            maxDistance: 10000, // 10km
-            spherical: true,
+  // 1. Provided location
+  if (parsedLocation) {
+    const { lat, lon } = parsedLocation;
+
+    // 1.1. Search garage match vs keyword input, gan location do
+    garageResult = await Garage.aggregate([
+      {
+        $geoNear: {
+          near: {
+            type: "Point",
+            coordinates: [parseFloat(lon), parseFloat(lat)],
+          },
+          distanceField: "distance",
+          maxDistance: 50000,
+          spherical: true,
+          distanceMultiplier: 0.001,
+          query: {
+            status: { $all: ["enabled", "approved"] },
+            name: { $regex: name, $options: "i" },
           },
         },
-        {
-          $match: {
+      },
+    ]);
+
+    // 1.2. Search service match vs input keyword, trong khu vuc location (qua garage.location)
+    const nearbyGarage = await Garage.aggregate([
+      {
+        $geoNear: {
+          near: {
+            type: "Point",
+            coordinates: [parseFloat(lon), parseFloat(lat)],
+          },
+          distanceField: "distance",
+          maxDistance: 50000,
+          spherical: true,
+          distanceMultiplier: 0.001,
+          query: {
             status: { $all: ["enabled", "approved"] },
           },
         },
-      ]);
-    }
+      },
+    ]);
 
-    const garageIds =
-      garages.length > 0 ? garages.map((garage) => garage._id) : null;
+    const nearbyGarageIds = nearbyGarage.map((g) => g._id);
 
-    const query = {
+    serviceResult = await ServiceDetail.find({
       name: { $regex: name, $options: "i" },
-    };
-    if (garageIds) {
-      query.garage = { $in: garageIds };
-    }
-
-    let services = await ServiceDetail.find(query).populate(
+      garage: { $in: nearbyGarageIds },
+      isDeleted: false,
+    }).populate(
       "garage",
       "name address location tag ratingAverage openTime closeTime operating_days"
     );
-    // console.log("Services before filter:", services);
-
-    const currentHour = new Date().getHours();
-    const currentDay = new Date().toLocaleString("en-US", { weekday: "long" });
-
-    services = services.filter((service) => {
-      const garage = service.garage;
-      // console.log("Garage operating_days:", garage.operating_days);
-      // console.log("Current day:", currentDay);
-      if (!garage) return false;
-
-      if (!garage.operating_days.includes(currentDay)) return false;
-
-      const openHour = parseInt(garage.openTime.split(":")[0], 10);
-      const closeHour = parseInt(garage.closeTime.split(":")[0], 10);
-      return currentHour >= openHour && currentHour < closeHour;
-    });
-    // console.log("Services after filter:", services);
-
-    services.sort((a, b) => {
-      const garageA = a.garage;
-      const garageB = b.garage;
-
-      if (garageA.tag === "pro" && garageB.tag !== "pro") return -1;
-      if (garageA.tag !== "pro" && garageB.tag === "pro") return 1;
-
-      return garageB.ratingAverage - garageA.ratingAverage;
+  } else {
+    // kco provided location
+    // Search garage theo ten => match input
+    garageResult = await Garage.find({
+      name: { $regex: name, $options: "i" },
+      status: { $all: ["enabled", "approved"] },
     });
 
-    if (location) {
-      services = services.map((service) => {
-        const garage = garages.find(
-          (g) => g._id.toString() === service.garage._id.toString()
-        );
-        return {
-          ...service.toObject(),
-          distance: garage ? garage.distance : null,
-        };
-      });
-    }
-    // console.log("Services after map:", services);
-
-    return services;
-  } catch (error) {
-    console.error("Error in searchServices:", error);
-    throw new Error("Failed to search services");
+    // search service theo ten => match input
+    serviceResult = await ServiceDetail.find({
+      name: { $regex: name, $options: "i" },
+      isDeleted: false,
+    }).populate(
+      "garage",
+      "name address location tag ratingAverage openTime closeTime operating_days"
+    );
   }
+
+  // sort
+  serviceResult.sort((a, b) => {
+    const garageA = a.garage || {};
+    const garageB = b.garage || {};
+
+    const tagA = garageA.tag || "";
+    const tagB = garageB.tag || "";
+
+    const ratingA =
+      typeof garageA.ratingAverage === "number" ? garageA.ratingAverage : 0;
+    const ratingB =
+      typeof garageB.ratingAverage === "number" ? garageB.ratingAverage : 0;
+
+    // pro top
+    if (tagA === "pro" && tagB !== "pro") return -1;
+    if (tagA !== "pro" && tagB === "pro") return 1;
+
+    // cung pro => high rating > low rating
+    if (ratingA !== ratingB) return ratingB - ratingA;
+
+    // rating = nhau => sort theo name (alphabet)
+    const nameA = garageA.name || "";
+    const nameB = garageB.name || "";
+    return nameA.localeCompare(nameB);
+  });
+
+  return {
+    garageResult,
+    serviceResult,
+  };
 };
 
 export const getEmergency = async (latitude, longitude) => {
@@ -352,9 +492,9 @@ export const getServiceUsageCounts = async () => {
   }
 };
 
-export const searchServiceKeyword = async ({ keyword, lat, lon }) => {
+export const searchServicename = async ({ name, lat, lon }) => {
   try {
-    const regex = new RegExp(keyword, "i");
+    const regex = new RegExp(name, "i");
     const services = await ServiceDetail.find({
       name: regex,
     }).populate(
@@ -421,9 +561,24 @@ export const searchServiceKeyword = async ({ keyword, lat, lon }) => {
       farServices: [],
     };
   } catch (error) {
-    console.error("Error in searchServicesByKeyword:", error);
-    throw new Error("Failed to search services by keyword");
+    console.error("Error in searchServicesByname:", error);
+    throw new Error("Failed to search services by name");
   }
+};
+
+export const softDeleteServiceDetail = async (serviceDetailId) => {
+  // Tìm serviceDetail theo ID
+  const serviceDetail = await ServiceDetail.findById(serviceDetailId);
+  if (!serviceDetail) {
+    throw new Error("Service detail not found");
+  }
+
+  // Thực hiện xóa mềm
+  serviceDetail.isDeleted = true;
+  serviceDetail.updatedAt = new Date();
+  await serviceDetail.save();
+
+  return { message: "Service detail soft deleted successfully" };
 };
 
 export {

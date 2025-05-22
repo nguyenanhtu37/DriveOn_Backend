@@ -47,9 +47,9 @@ router.get(
 ); // Get appointments by garage
 
 router.get(
-    "/vehicle/:vehicleId",
-    authorizeRoles(["carowner"]),
-    getAppointmentsByVehicle
+  "/vehicle/:vehicleId",
+  authorizeRoles(["carowner"]),
+  getAppointmentsByVehicle
 ); // Get appointments by vehicle ID
 
 router.put(
@@ -87,6 +87,7 @@ router.put(
     authorizeRoles(["manager", "staff"]),
     updateAppointmentByStaff
 ); // Update appointment by staff
+
 
 router.get(
   "/garage/:garageId/next-maintenance",

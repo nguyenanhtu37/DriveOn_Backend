@@ -8,6 +8,7 @@ import {
   searchServices,
   getEmergency,
   searchServicesByKeyword,
+  softDeleteServiceDetail,
 } from "../controller/serviceDetailController.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 
@@ -23,8 +24,10 @@ router.get("/searchService", searchServicesByKeyword);
 router.post("/add", authMiddleware, addServiceDetail); // Add new service detail by garage
 router.get("/garage/:garageId", getServiceDetailsByGarage); // Get service details by garage ID
 router.put("/:id", authMiddleware, updateServiceDetail); // Update service detail by ID
-router.delete("/:id", authMiddleware, deleteServiceDetail); // Delete service detail by ID
+router.delete("/:id", authMiddleware, softDeleteServiceDetail); // Delete service detail by ID
 
 router.get("/:id", getServiceDetailById); // Get service detail by ID
+
+// router.delete("/soft-delete/:id", authMiddleware, softDeleteServiceDetail); // Soft delete service detail by ID
 
 export default router;

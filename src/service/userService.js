@@ -1,7 +1,11 @@
-import bcrypt from 'bcrypt';
-import User from '../models/user.js';
+import bcrypt from "bcrypt";
+import User from "../models/user.js";
 import Role from "../models/role.js";
-import { validateUserData, validateUpdateProfile, validateChangePassword } from '../validator/userValidator.js';
+import {
+  validateUserData,
+  validateUpdateProfile,
+  validateChangePassword,
+} from "../validator/userValidator.js";
 
 const changePassword = async (userId, oldPassword, newPassword) => {
   // Validate dữ liệu
@@ -47,7 +51,6 @@ const updatePersonalProfile = async (userId, userData) => {
   }
 };
 
-
 const getAllUsers = async (page = 1, limit = 10) => {
   try {
     const adminRole = await Role.findOne({ roleName: "admin" }).select("_id");
@@ -58,14 +61,16 @@ const getAllUsers = async (page = 1, limit = 10) => {
     const skip = (page - 1) * limit;
 
     // Lấy list user với phân trang
-    const users = await User.find({ roles: { $ne: adminRole._id } }) 
-      .populate("roles", "roleName") 
-      .select("name email phone roles status createdAt updatedAt") 
-      .skip(skip) 
-      .limit(limit); 
+    const users = await User.find({ roles: { $ne: adminRole._id } })
+      .populate("roles", "roleName")
+      .select("name email phone roles status createdAt updatedAt")
+      .skip(skip)
+      .limit(limit);
 
     // Đếm total tài khoản (ko có tkhoan admin)
-    const totalUsers = await User.countDocuments({ roles: { $ne: adminRole._id } });
+    const totalUsers = await User.countDocuments({
+      roles: { $ne: adminRole._id },
+    });
 
     return {
       users,
@@ -80,11 +85,11 @@ const getAllUsers = async (page = 1, limit = 10) => {
 
 const getUserById = async (userId) => {
   try {
-    // Tìm user theo ID 
+    // Tìm user theo ID
     const user = await User.findById(userId)
-      .populate("roles", "roleName") 
-      .populate("vehicles", "carName carPlate") 
-      .select("name email phone roles status createdAt updatedAt"); 
+      .populate("roles", "roleName")
+      .populate("vehicles", "carName carPlate")
+      .select("name email phone roles status createdAt updatedAt");
 
     if (!user) {
       throw new Error("User not found");
@@ -199,4 +204,12 @@ export const getUserCountsByRole = async () => {
   }
 };
 
-export { changePassword, viewPersonalProfile, updatePersonalProfile, getAllUsers, getUserById, enableUser, disableUser };
+export {
+  changePassword,
+  viewPersonalProfile,
+  updatePersonalProfile,
+  getAllUsers,
+  getUserById,
+  enableUser,
+  disableUser,
+};

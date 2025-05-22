@@ -18,7 +18,9 @@ export const addFeedback = async (userId, feedbackData) => {
   }
 
   if (appointmentData.user.toString() !== userId) {
-    throw new Error("You are not authorized to provide feedback for this appointment");
+    throw new Error(
+      "You are not authorized to provide feedback for this appointment"
+    );
   }
 
   if (appointmentData.status !== "Completed") {
@@ -68,14 +70,14 @@ export const addFeedback = async (userId, feedbackData) => {
 export const getFeedbackByGarageId = async (garageId) => {
   try {
     const feedbacks = await Feedback.find({ garage: garageId })
-      .populate("user", "name avatar") 
+      .populate("user", "name avatar")
       // .populate("garage", "name")
       .populate({
-        path: "appointment", 
-        select: "start end service vehicle", 
+        path: "appointment",
+        select: "start end service vehicle",
         populate: [
-          { path: "service", select: "name" }, 
-          { path: "vehicle", select: "carName carPlate" }, 
+          { path: "service", select: "name" },
+          { path: "vehicle", select: "carName carPlate" },
         ],
       });
 
@@ -180,5 +182,32 @@ export const deleteFeedbackByGarage = async (feedbackId) => {
   if (garage) {
     garage.ratingAverage = Math.round(averageRating * 10) / 10;
     await garage.save();
+  }
+};
+
+export const getFeedbackByServiceDetailInGarage = async (
+  garageId,
+  serviceDetailId
+) => {
+  try {
+    const feedbacks = await Feedback.find({ garage: garageId })
+      .populate({
+        path: "appointment",
+        match: { service: serviceDetailId },
+        select: "start end service vehicle",
+        populate: [
+          { path: "service", select: "name" },
+          { path: "vehicle", select: "carName carPlate" },
+        ],
+      })
+      .populate("user", "name avatar");
+
+    const filteredFeedbacks = feedbacks.filter(
+      (feedback) => feedback.appointment !== null
+    );
+
+    return filteredFeedbacks;
+  } catch (err) {
+    throw new Error(err.message);
   }
 };

@@ -5,7 +5,10 @@ import transporter from "./mailer.js";
 const downgradeExpiredGarages = async () => {
   try {
     const nowUtc = new Date();
-    console.log("Running cron job to downgrade expired garages at:", nowUtc.toISOString());
+    console.log(
+      "Running cron job to downgrade expired garages at:",
+      nowUtc.toISOString()
+    );
 
     const expiredGarages = await Garage.find({
       expiredTime: { $lt: nowUtc },
@@ -25,14 +28,20 @@ const downgradeExpiredGarages = async () => {
 
     for (const garage of expiredGarages) {
       try {
-        console.log(`Downgrading garage ${garage._id} (expired at ${garage.expiredTime?.toISOString()})`);
+        console.log(
+          `Downgrading garage ${
+            garage._id
+          } (expired at ${garage.expiredTime?.toISOString()})`
+        );
         garage.tag = "normal";
         garage.expiredTime = undefined;
         await garage.save();
         console.log(`Garage ${garage._id} downgraded to 'normal'`);
 
         if (!garage.user || garage.user.length === 0) {
-          console.warn(`Garage ${garage._id} has no associated users, skipping...`);
+          console.warn(
+            `Garage ${garage._id} has no associated users, skipping...`
+          );
           continue;
         }
 
@@ -41,7 +50,9 @@ const downgradeExpiredGarages = async () => {
         );
 
         if (!manager || !manager.email) {
-          console.warn(`Garage ${garage._id} has no manager with email, skipping...`);
+          console.warn(
+            `Garage ${garage._id} has no manager with email, skipping...`
+          );
           continue;
         }
 
@@ -93,9 +104,14 @@ const downgradeExpiredGarages = async () => {
           html: text,
         });
 
-        console.log(`Notification email sent to ${manager.email} for garage downgrade ${garage._id}`);
+        console.log(
+          `Notification email sent to ${manager.email} for garage downgrade ${garage._id}`
+        );
       } catch (error) {
-        console.error(`Failed to downgrade and notify garage ${garage._id}:`, error);
+        console.error(
+          `Failed to downgrade and notify garage ${garage._id}:`,
+          error
+        );
       }
     }
   } catch (error) {
@@ -103,7 +119,7 @@ const downgradeExpiredGarages = async () => {
   }
 };
 
-cron.schedule("00 8 * * *", downgradeExpiredGarages, { // bao cao 15:00, co nen setup tgian quet 16h?
+cron.schedule("40 18 * * *", downgradeExpiredGarages, {
   timezone: "Asia/Ho_Chi_Minh",
 });
 
@@ -113,7 +129,10 @@ export const notifyExpiringGarages = async () => {
     const threeDaysLater = new Date(nowUtc);
     threeDaysLater.setDate(nowUtc.getDate() + 3);
 
-    console.log("Running cron job to notify expiring garages at:", nowUtc.toISOString());
+    console.log(
+      "Running cron job to notify expiring garages at:",
+      nowUtc.toISOString()
+    );
 
     const expiringGarages = await Garage.find({
       expiredTime: { $gte: nowUtc, $lt: threeDaysLater },
@@ -138,13 +157,18 @@ export const notifyExpiringGarages = async () => {
         );
 
         if (!manager || !manager.email) {
-          console.warn(`Garage ${garage._id} has no manager with email, skipping...`);
+          console.warn(
+            `Garage ${garage._id} has no manager with email, skipping...`
+          );
           continue;
         }
 
-        const expireTimeVN = new Date(garage.expiredTime).toLocaleString("en-US", {
-          timeZone: "Asia/Ho_Chi_Minh",
-        });
+        const expireTimeVN = new Date(garage.expiredTime).toLocaleString(
+          "en-US",
+          {
+            timeZone: "Asia/Ho_Chi_Minh",
+          }
+        );
 
         const subject = "Your Garage Subscription is Expiring Soon";
         const text = `
@@ -189,7 +213,9 @@ export const notifyExpiringGarages = async () => {
           html: text,
         });
 
-        console.log(`Notification email sent to ${manager.email} for garage ${garage._id}`);
+        console.log(
+          `Notification email sent to ${manager.email} for garage ${garage._id}`
+        );
       } catch (error) {
         console.error(`Failed to send email for garage ${garage._id}:`, error);
       }
@@ -199,7 +225,7 @@ export const notifyExpiringGarages = async () => {
   }
 };
 
-cron.schedule("07 3 * * *", notifyExpiringGarages, {
+cron.schedule("35 18 * * *", notifyExpiringGarages, {
   timezone: "Asia/Ho_Chi_Minh",
 });
 

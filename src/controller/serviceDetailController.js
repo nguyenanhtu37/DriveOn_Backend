@@ -70,7 +70,7 @@ export const searchServices = async (req, res) => {
     const { name, location } = req.query;
 
     if (!name) {
-      return res.status(400).json({ error: "Service name is required" });
+      return res.status(400).json({ error: "Keyword is required" });
     }
 
     const services = await serviceDetailService.searchServices(name, location);
@@ -129,6 +129,17 @@ export const searchServicesByKeyword = async (req, res) => {
     res.status(500).json({ error: "Failed to search services by keyword" });
   }
 };
+
+export const softDeleteServiceDetail = async (req, res) => {
+  const { id } = req.params; // Lấy serviceDetailId từ URL
+  try {
+    const result = await serviceDetailService.softDeleteServiceDetail(id);
+    res.status(200).json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 export {
   addServiceDetail,
   getServiceDetailsByGarage,

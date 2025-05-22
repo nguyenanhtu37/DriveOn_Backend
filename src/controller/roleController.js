@@ -1,4 +1,4 @@
-import * as roleService from '../service/roleService.js';
+import * as roleService from "../service/roleService.js";
 
 export const addRole = async (req, res) => {
   const { roleName } = req.body;

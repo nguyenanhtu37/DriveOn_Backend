@@ -46,11 +46,20 @@ const deleteService = async (req, res) => {
 
 const searchServiceByName = async (req, res) => {
   try {
-    const services = await serviceService.searchServiceByName(req.query.name, req.query.limit);
+    const services = await serviceService.searchServiceByName(
+      req.query.name,
+      req.query.limit
+    );
     res.status(200).json(services);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-export { addService, getAllServices, updateService, deleteService, searchServiceByName };
+export {
+  addService,
+  getAllServices,
+  updateService,
+  deleteService,
+  searchServiceByName,
+};

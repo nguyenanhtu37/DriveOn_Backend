@@ -283,14 +283,14 @@ const addStaff = async (userId, garageId, staffData) => {
       phone,
       password: hashedPassword,
       roles: [defaultRole._id],
-      status: "active"
+      status: "active",
       // Removing garageList field as it's not in your schema
     });
     await newUser.save();
 
     // Add staff to garage.staffs array
     await Garage.findByIdAndUpdate(garageId, {
-      $push: { staffs: newUser._id }
+      $push: { staffs: newUser._id },
     });
 
     return newUser;
@@ -313,7 +313,7 @@ const viewStaff = async (userId, garageId) => {
   // Get all users in the staffs array
   const staffList = await User.find({
     _id: { $in: garage.staffs },
-    roles: "67b60df8c465fe4f943b98cc" // Staff role ID
+    roles: "67b60df8c465fe4f943b98cc", // Staff role ID
   });
 
   return staffList;
@@ -424,7 +424,7 @@ const enableGarage = async (garageId) => {
     }
 
     if (!garage.status.includes("enabled")) {
-      garage.status = garage.status.filter(status => status !== "disabled");
+      garage.status = garage.status.filter((status) => status !== "disabled");
       garage.status.push("enabled");
     }
 
@@ -446,7 +446,7 @@ const disableGarage = async (garageId) => {
     }
 
     if (!garage.status.includes("disabled")) {
-      garage.status = garage.status.filter(status => status !== "enabled");
+      garage.status = garage.status.filter((status) => status !== "enabled");
       garage.status.push("disabled");
     }
 
@@ -574,23 +574,24 @@ export const findGarages = async ({
       status: { $in: ["approved", "enabled"] },
     });
 
-    const enhancedGarages = [];
-    for (const garage of garages) {
-      const enhancedGarage = await enhanceGarageInfo(
-        garage,
-        address,
-        openTime,
-        closeTime,
-        operatingDaysArray
-      );
-      if (enhancedGarage.isOpen && enhancedGarage.distance <= distance) {
-        enhancedGarages.push(enhancedGarage);
-      }
-    }
+    const enhancedGarages = await Promise.all(
+      garages.map((garage) =>
+        enhanceGarageInfo(
+          garage,
+          address,
+          openTime,
+          closeTime,
+          operatingDaysArray
+        )
+      )
+    );
 
-    enhancedGarages.sort(compareGarages);
+    const filteredGarages = enhancedGarages.filter(
+      (g) => g.isOpen && g.distance <= distance
+    );
 
-    return enhancedGarages;
+    filteredGarages.sort(compareGarages);
+    return filteredGarages;
   } catch (error) {
     throw new Error("Lỗi khi tìm garage: " + error.message);
   }
@@ -604,8 +605,8 @@ const enhanceGarageInfo = async (
   userCloseTime,
   userOperatingDays
 ) => {
-  const garageAddress = garage.address;
-  const distance = await getDistancesToGarages(userAddress, garageAddress);
+  const distanceResult = await getDistancesToGarages(userAddress, [garage]);
+  const distance = distanceResult[0]?.distance || null;
 
   return {
     ...garage.toObject(),
@@ -847,36 +848,31 @@ export const findRescueGarages = async (latitude, longitude) => {
             Object.keys(Garage.schema.paths).map((key) => [key, 1])
           ),
           deviceTokens: 1,
+          distance: 1,
         },
       },
     ]);
     console.log("Garage from DB: ", garages);
-
     /*
     Từ kết quả phía trên, tiếp tục check để giữ lại garage nào đang mở thôi, còn đóng thì khỏi
     Cách check: lấy thời gian hiện tại mà người dùng gọi cứu hộ
     Ngày hoạt động của garage operating_days include ngày hiện tại mà người dùng check => hợp lệ. else loại
     Giờ mở cửa của garage <= giờ hiện tại người dùng gọi cứu hộ < giờ đóng cửa của garage => hợp lệ. Ko thì loại
     */
-
     dayjs.extend(utc);
     dayjs.extend(timezone);
-
     // Lấy giờ VN
     const currentHour = dayjs().tz("Asia/Ho_Chi_Minh").hour();
     const currentDay = dayjs().tz("Asia/Ho_Chi_Minh").format("dddd");
     console.log("currentHour: ", currentHour);
     console.log("currentDay: ", currentDay);
-
     const openGarages = garages.filter((garage) => {
       try {
         if (!garage.openTime || !garage.closeTime) return false;
-
         const openHour = parseInt(garage.openTime.split(":")[0], 10);
         const closeHour = parseInt(garage.closeTime.split(":")[0], 10) || 24;
         console.log("openHour: ", openHour);
         console.log("closeHour: ", closeHour);
-
         return (
           Array.isArray(garage.operating_days) &&
           garage.operating_days.includes(currentDay) &&
@@ -888,7 +884,6 @@ export const findRescueGarages = async (latitude, longitude) => {
       }
     });
     // console.log("openGarages: ", openGarages);
-
     /*
     Tìm xem garage nào có dịch vụ thì ưu tiên lên đầu. Tổng sẽ hiển thị ra cho user chọn 10 garages.
     Đang khẩn cấp mà cho 1 cái list cả mấy chục cái garage thì lú. Nên giới hạn 10 cái thôi.
@@ -896,23 +891,23 @@ export const findRescueGarages = async (latitude, longitude) => {
     hoặc user đang ở ngoại thành, ví dụ có đủ 10 garage đi, nhưng chỉ có 6 garage cứu hộ
     => 6 garage cứu hộ đó được hiển thị trước. phần thiếu thì lấy garage KO có cứu hộ bù vô
     */
-    const emergencyService = await Service.findOne({ name: "Dịch vụ cứu hộ" });
+    const emergencyService = await Service.findOne({
+      name: "Emergency",
+      isDeleted: false,
+    });
     if (!emergencyService) throw new Error("Emergency service not found");
-
     const emergencyServiceDetails = await ServiceDetail.find({
       service: emergencyService._id,
+      isDeleted: false,
     }).select("garage");
-
     const emergencyGarageIds = emergencyServiceDetails.map((d) =>
       d.garage.toString()
     );
-
     // Gắn thêm response để return về, cho phía FE xử lý
     const garagesWithFlag = openGarages.map((garage) => ({
       ...garage,
       hasEmergency: emergencyGarageIds.includes(garage._id.toString()),
     }));
-
     /*
     Sort:
     Trong phạm vi 50km, đang mở:
@@ -934,37 +929,30 @@ export const findRescueGarages = async (latitude, longitude) => {
     const sortedGarages = garagesWithFlag.sort((a, b) => {
       if (a.hasEmergency && !b.hasEmergency) return -1;
       if (!a.hasEmergency && b.hasEmergency) return 1;
-
       if (a.tag === "pro" && b.tag !== "pro") return -1;
       if (a.tag !== "pro" && b.tag === "pro") return 1;
-
       if (a.distance !== b.distance) return a.distance - b.distance;
       return b.ratingAverage - a.ratingAverage;
     });
-
     // Lấy top 10 garage
     const topGarages = sortedGarages.slice(0, 10);
     // console.log("Top garages with emergency: ", JSON.stringify(topGarages, null, 2));
-
-    const deviceTokens = topGarages.flatMap(
-      (garage) => garage.deviceTokens || []
-    );
-
-    if (deviceTokens.length > 0) {
-      // gui th bao den cac garage
-      const title = "Yêu cầu cứu hộ";
-      const body = "Có yêu cầu cứu hộ gần garage của bạn.";
-      const notificationResponse = await sendMultipleNotifications(
-        deviceTokens,
-        title,
-        body
-      );
-
-      console.log("Notification response: ", notificationResponse);
-    } else {
-      console.log("No device tokens found for the top garages.");
-    }
-
+    // const deviceTokens = topGarages.flatMap(
+    //   (garage) => garage.deviceTokens || []
+    // );
+    // if (deviceTokens.length > 0) {
+    //   // gui th bao den cac garage
+    //   const title = "Yêu cầu cứu hộ";
+    //   const body = "Có yêu cầu cứu hộ gần garage của bạn.";
+    //   const notificationResponse = await sendMultipleNotifications(
+    //     deviceTokens,
+    //     title,
+    //     body
+    //   );
+    //   console.log("Notification response: ", notificationResponse);
+    // } else {
+    //   console.log("No device tokens found for the top garages.");
+    // }
     return topGarages;
   } catch (error) {
     console.error("Error in findRescueGarages:", error.message);
