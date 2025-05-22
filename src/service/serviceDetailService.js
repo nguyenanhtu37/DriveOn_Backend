@@ -302,7 +302,8 @@ export const searchServices = async (name, location) => {
       "garage",
       "name address location tag ratingAverage openTime closeTime operating_days"
     );
-  } else { // kco provided location
+  } else {
+    // kco provided location
     // Search garage theo ten => match input
     garageResult = await Garage.find({
       name: { $regex: name, $options: "i" },
@@ -319,7 +320,7 @@ export const searchServices = async (name, location) => {
     );
   }
 
-  // sort 
+  // sort
   serviceResult.sort((a, b) => {
     const garageA = a.garage || {};
     const garageB = b.garage || {};

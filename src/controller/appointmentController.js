@@ -39,7 +39,11 @@ export const getAppointmentsByVehicle = async (req, res) => {
   const userId = req.user.id; // Get userId from token
 
   try {
-    const appointments = await appointmentService.getAppointmentsByVehicleService(vehicleId,userId);
+    const appointments =
+      await appointmentService.getAppointmentsByVehicleService(
+        vehicleId,
+        userId
+      );
     res.status(200).json(appointments);
   } catch (err) {
     if (err.message === "Vehicle not found") {
@@ -199,21 +203,22 @@ export const updateAppointmentByStaff = async (req, res) => {
   const staffId = req.user.id;
 
   try {
-    const updatedAppointment = await appointmentService.updateAppointmentByStaffService(
+    const updatedAppointment =
+      await appointmentService.updateAppointmentByStaffService(
         appointmentId,
         staffId,
         req.body
-    );
+      );
 
     res.status(200).json({
       success: true,
       message: "Appointment updated successfully",
-      appointment: updatedAppointment
+      appointment: updatedAppointment,
     });
   } catch (err) {
     res.status(400).json({
       success: false,
-      message: err.message
+      message: err.message,
     });
   }
 };

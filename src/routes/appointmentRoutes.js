@@ -13,7 +13,7 @@ import {
   getNextMaintenanceList,
   createAppointmentByStaff,
   isCalledAppointment,
-  getAppointmentsByVehicle
+  getAppointmentsByVehicle,
 } from "../controller/appointmentController.js";
 import { authorizeRoles } from "../middleware/authorizeRoles.js";
 
@@ -42,25 +42,25 @@ router.get(
   authorizeRoles(["manager", "staff"]),
   getAppointmentsByGarage
 ); // Get appointments by garage
+
 // Add this to the existing routes
 router.get(
-    "/vehicle/:vehicleId",
-    authorizeRoles(["carowner"]),
-    getAppointmentsByVehicle
+  "/vehicle/:vehicleId",
+  authorizeRoles(["carowner"]),
+  getAppointmentsByVehicle
 ); // Get appointments by vehicle ID
+
 router.put(
   "/:appointmentId/confirm",
   authorizeRoles(["manager", "staff"]),
   confirmAppointment
 ); // Confirm appointment
 
-
 router.put(
   "/:appointmentId/deny",
   authorizeRoles(["manager", "staff"]),
   denyAppointment
 ); // Deny appointment
-
 
 router.put(
   "/:appointmentId/complete",
@@ -81,15 +81,17 @@ router.put(
 ); // Cancel appointment
 
 router.put(
-    "/:appointmentId/update-by-staff",
-    authorizeRoles(["manager", "staff"]),
-    updateAppointmentByStaff
+  "/:appointmentId/update-by-staff",
+  authorizeRoles(["manager", "staff"]),
+  updateAppointmentByStaff
 ); // Update appointment by staff // Update appointment
+
 router.get(
   "/garage/:garageId/next-maintenance",
   authorizeRoles(["manager", "staff"]),
   getNextMaintenanceList
 ); // Get next maintenance list
+
 router.post(
   "/create-by-staff",
   authorizeRoles(["staff", "manager"]),

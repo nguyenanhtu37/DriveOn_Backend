@@ -4,6 +4,6 @@ export const subscriptionSchema = z.object({
   name: z.string(),
   code: z.string(),
   description: z.string(),
-  price: z.number(),        
-  month: z.number(),         
+  price: z.number(),
+  month: z.number(),
 });
