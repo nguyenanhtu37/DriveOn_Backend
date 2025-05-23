@@ -38,9 +38,10 @@ const getServiceDetailsByGarage = async (garageId) => {
   if (!garageExists) {
     throw new Error("Garage not found");
   }
-  const serviceDetails = await ServiceDetail.find({ garage: garageId })
-    .populate("service")
-    .populate("garage");
+  const serviceDetails = await ServiceDetail.find({
+    garage: garageId,
+  }).populate("service", "name");
+  // .populate("garage");
   const sortedServiceDetails = serviceDetails.sort((a, b) =>
     a.name.localeCompare(b.name)
   );
