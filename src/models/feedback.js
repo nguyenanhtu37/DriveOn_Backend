@@ -21,6 +21,11 @@ const feedbackSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Appointment",
     },
+    serviceDetail: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "ServiceDetail",
+      required: true,
+    },
   },
   {
     timestamps: true,
