@@ -39,7 +39,11 @@ export const getAppointmentsByVehicle = async (req, res) => {
   const userId = req.user.id; // Get userId from token
 
   try {
-    const appointments = await appointmentService.getAppointmentsByVehicleService(vehicleId,userId);
+    const appointments =
+      await appointmentService.getAppointmentsByVehicleService(
+        vehicleId,
+        userId
+      );
     res.status(200).json(appointments);
   } catch (err) {
     if (err.message === "Vehicle not found") {
@@ -199,21 +203,22 @@ export const updateAppointmentByStaff = async (req, res) => {
   const staffId = req.user.id;
 
   try {
-    const updatedAppointment = await appointmentService.updateAppointmentByStaffService(
+    const updatedAppointment =
+      await appointmentService.updateAppointmentByStaffService(
         appointmentId,
         staffId,
         req.body
-    );
+      );
 
     res.status(200).json({
       success: true,
       message: "Appointment updated successfully",
-      appointment: updatedAppointment
+      appointment: updatedAppointment,
     });
   } catch (err) {
     res.status(400).json({
       success: false,
-      message: err.message
+      message: err.message,
     });
   }
 };
@@ -322,6 +327,53 @@ export const getAppointmentPercents = async (req, res) => {
     res.status(200).json(appointmentPercents);
   } catch (err) {
     console.error("Error in getAppointmentPercents:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const countPendingAppointmentsInHour = async (req, res) => {
+  const { garageId } = req.params;
+  const { date } = req.query; // ISO string or date string
+  if (!date) {
+    return res.status(400).json({ error: "Missing date query parameter" });
+  }
+  try {
+    const count = await appointmentService.countPendingAppointmentsInHour(garageId, date);
+    res.status(200).json({ count });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const setHourlyAppointmentLimit = async (req, res) => {
+  const { garageId } = req.params;
+  const userId = req.user.id;
+  const { limit } = req.body;
+
+  try {
+    const garage = await appointmentService.setHourlyAppointmentLimitService(garageId, userId, limit);
+    res.status(200).json({
+      message: "Hourly appointment limit updated successfully",
+      hourlyAppointmentLimit: garage.hourlyAppointmentLimit
+    });
+  } catch (err) {
+    if (err.message.includes("Unauthorized")) {
+      return res.status(403).json({ error: err.message });
+    }
+    if (err.message.includes("Invalid limit")) {
+      return res.status(400).json({ error: err.message });
+    }
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const getHourlyAppointmentLimit = async (req, res) => {
+  const { garageId } = req.params;
+
+  try {
+    const result = await appointmentService.getHourlyAppointmentLimitService(garageId);
+    res.status(200).json(result);
+  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };

@@ -1,5 +1,5 @@
-import PayOS from '@payos/node';
-import dotenv from 'dotenv';
+import PayOS from "@payos/node";
+import dotenv from "dotenv";
 
 dotenv.config();
 

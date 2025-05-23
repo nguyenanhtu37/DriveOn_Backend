@@ -11,20 +11,18 @@ import {
   getTransactionsByGarageId,
 } from "../controller/transactionController.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
-import {
-  authorizeRoles
-} from "../middleware/authorizeRoles.js";
+import { authorizeRoles } from "../middleware/authorizeRoles.js";
 
 const router = express.Router();
 
 // Create a new transaction
-router.post("/",  authorizeRoles(["manager", "carowner"]), createTransaction);
+router.post("/", authorizeRoles(["manager", "carowner"]), createTransaction);
 
 // Get all transactions with pagination
-router.get("/",  authorizeRoles(["admin"]), getTransactions);
+router.get("/", authorizeRoles(["admin"]), getTransactions);
 
 // Get transaction by ID
-router.get("/:id",  authorizeRoles(["admin"]), getTransactionById);
+router.get("/:id", authorizeRoles(["admin"]), getTransactionById);
 
 // Get transaction by order code
 router.get("/order/:orderCode", authMiddleware, getTransactionByOrderCode);
