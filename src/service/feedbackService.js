@@ -10,27 +10,27 @@ import {
 export const addFeedback = async (userId, feedbackData) => {
   validateAddFeedback(feedbackData);
 
-  const { garage, rating, content, appointment } = feedbackData;
+  const { garage, rating, content, appointment, serviceDetail } = feedbackData;
 
+  // Kiểm tra appointment
   const appointmentData = await Appointment.findById(appointment);
-  if (!appointmentData) {
-    throw new Error("Appointment not found");
-  }
-
-  if (appointmentData.user.toString() !== userId) {
-    throw new Error(
-      "You are not authorized to provide feedback for this appointment"
-    );
-  }
-
-  if (appointmentData.status !== "Completed") {
+  if (!appointmentData) throw new Error("Appointment not found");
+  if (appointmentData.user.toString() !== userId)
+    throw new Error("You are not authorized to provide feedback for this appointment");
+  if (appointmentData.status !== "Completed")
     throw new Error("You can only provide feedback for completed appointments");
-  }
 
+  // Kiểm tra garage
   const garageExists = await Garage.findById(garage);
-  if (!garageExists) {
-    throw new Error("Garage ID does not exist");
-  }
+  if (!garageExists) throw new Error("Garage ID does not exist");
+
+  // Kiểm tra serviceDetail có nằm trong appointment không
+  if (!appointmentData.service.map(id => id.toString()).includes(serviceDetail))
+    throw new Error("This service was not used in the appointment");
+
+  // Kiểm tra đã feedback chưa (mỗi user chỉ feedback 1 lần cho 1 service trong 1 appointment)
+  const existed = await Feedback.findOne({ user: userId, appointment, serviceDetail });
+  if (existed) throw new Error("You have already given feedback for this service in this appointment");
 
   const newFeedback = new Feedback({
     user: userId,
@@ -38,34 +38,23 @@ export const addFeedback = async (userId, feedbackData) => {
     rating,
     content,
     appointment,
+    serviceDetail,
     createdAt: new Date(),
     updatedAt: new Date(),
   });
 
   await newFeedback.save();
 
-  // Cập nhật rating trung bình cho garage
+  // Cập nhật rating trung bình cho garage (nếu muốn)
   const feedbacks = await Feedback.find({ garage });
   const averageRating =
-    feedbacks.reduce((acc, feedback) => acc + feedback.rating, 0) /
-      feedbacks.length || 0;
+    feedbacks.reduce((acc, feedback) => acc + feedback.rating, 0) / (feedbacks.length || 1);
 
   garageExists.ratingAverage = Math.round(averageRating * 10) / 10;
   await garageExists.save();
 
   return newFeedback;
 };
-
-// export const getFeedbackByGarageId = async (garageId) => {
-//   try {
-//     const feedbacks = await Feedback.find({ garage: garageId })
-//       .populate("user", "name avatar")
-//       .populate("garage", "name");
-//     return feedbacks;
-//   } catch (err) {
-//     throw new Error(err.message);
-//   }
-// };
 
 export const getFeedbackByGarageId = async (garageId) => {
   try {
@@ -185,28 +174,17 @@ export const deleteFeedbackByGarage = async (feedbackId) => {
   }
 };
 
-export const getFeedbackByServiceDetailInGarage = async (
-  garageId,
-  serviceDetailId
-) => {
+export const getFeedbackByServiceDetailInGarage = async (garageId, serviceDetailId) => {
   try {
-    const feedbacks = await Feedback.find({ garage: garageId })
-      .populate({
-        path: "appointment",
-        match: { service: serviceDetailId },
-        select: "start end service vehicle",
-        populate: [
-          { path: "service", select: "name" },
-          { path: "vehicle", select: "carName carPlate" },
-        ],
-      })
-      .populate("user", "name avatar");
+    const feedbacks = await Feedback.find({
+      garage: garageId,
+      serviceDetail: serviceDetailId,
+    })
+      .populate("user", "name avatar")
+      .populate("appointment", "start end")
+      .populate("serviceDetail", "name price duration");
 
-    const filteredFeedbacks = feedbacks.filter(
-      (feedback) => feedback.appointment !== null
-    );
-
-    return filteredFeedbacks;
+    return feedbacks;
   } catch (err) {
     throw new Error(err.message);
   }
