@@ -74,3 +74,12 @@ export const viewFeedbackByServiceDetailInGarage = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+export const addMultiFeedback = async (req, res) => {
+  try {
+    const results = await feedbackService.addFeedback(req.user.id, req.body);
+    res.status(200).json(results);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
