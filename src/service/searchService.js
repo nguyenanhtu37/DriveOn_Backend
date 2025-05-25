@@ -16,6 +16,7 @@ const searchByKeyword = async (keyword) => {
 
     // Map garages and services to unified format
     const garageResults = garages.map((g) => ({
+      garageId: g._id,
       name: g.name,
       type: "garage",
       description: g.description || "",
@@ -24,6 +25,7 @@ const searchByKeyword = async (keyword) => {
     }));
 
     const serviceResults = services.map((s) => ({
+      garageId: s.garage,
       name: s.name,
       type: "service",
       description: s.description || "",
