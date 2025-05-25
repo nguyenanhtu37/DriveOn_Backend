@@ -6,7 +6,9 @@ import {
   deleteFeedback,
   deleteFeedbackByGarage,
   viewFeedbackByServiceDetailInGarage,
-  addMultiFeedback
+  addMultiFeedback,
+  viewFeedbackForGarageDetail,
+  getFeedbackByAppointmentId,
 } from "../controller/feedbackController.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import { authorizeRoles } from "../middleware/authorizeRoles.js";
@@ -16,7 +18,8 @@ const router = express.Router();
 // router.post("/add", authMiddleware, addFeedback);
 router.post("/add", authMiddleware, addMultiFeedback); // add feedback
 router.get("/garage/:id", viewFeedbackByGarageId);
-router.put("/:id", authMiddleware, updateFeedback);
+router.get("/appointment/:appointmentId", getFeedbackByAppointmentId);
+router.put("/appointment/:appointmentId", authMiddleware, updateFeedback);
 router.delete("/:id", authMiddleware, deleteFeedback);
 router.delete(
   "/delete/:id",
@@ -26,6 +29,8 @@ router.delete(
 router.get(
   "/garage/:garageId/service/:serviceDetailId",
   viewFeedbackByServiceDetailInGarage
-); // ng dùng vào phần service trong 1 garage detail sẽ xem được toàn bộ feedback của service đó
-// router.post("/add", authMiddleware, addMultiFeedback); // add feedback
+);
+
+router.get("/garageDetail/:garageId", viewFeedbackForGarageDetail);
+
 export default router;
