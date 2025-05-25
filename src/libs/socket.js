@@ -15,10 +15,19 @@ export function initializeSocket(httpServer) {
     console.log("A user connected", socket.id);
 
     const userId = socket.handshake.query.userId;
-    if (userId) userSocketMap[userId] = socket.id;
+    const garageId = socket.handshake.query.garageId;
 
-    // io.emit() is used to send events to all the connected clients
-    io.emit("getOnlineUsers", Object.keys(userSocketMap));
+    const garages = garageId ? garageId.split(",").map((id) => id.trim()) : [];
+
+    console.log(garages);
+
+    if (garages.length > 0) {
+      garages.forEach((garage) => {
+        socket.join(garage);
+      });
+    }
+
+    if (userId) userSocketMap[userId] = socket.id;
 
     socket.on("disconnect", () => {
       console.log("A user disconnected", socket.id);

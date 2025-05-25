@@ -73,43 +73,37 @@ export const getFeedbackByGarageId = async (garageId) => {
   }
 };
 
-export const updateFeedback = async (userId, feedbackId, updateData) => {
-  validateUpdateFeedback(updateData);
-  const { rating, content } = updateData;
+export const viewFeedbackForGarageDetail = async (garageId) => {
+  try {
+    const feedbacks = await Feedback.find({ garage: garageId, type: "general" })
+      .populate("user", "name avatar")
+      // .populate("garage", "name")
+      .populate({
+        path: "appointment",
+        select: "start end service vehicle",
+        populate: [
+          { path: "service", select: "name" },
+          { path: "vehicle", select: "carName carPlate" },
+        ],
+      });
 
-  // Tìm feedback theo ID
-  const feedback = await Feedback.findById(feedbackId).populate("appointment");
-  if (!feedback) {
-    throw new Error("Feedback not found");
+    return feedbacks;
+  } catch (err) {
+    throw new Error(err.message);
+  }
+};
+
+export const updateFeedback = async (userId, appointmentId, updateData) => {
+  const feedbacks = await Feedback.find({ appointment: appointmentId });
+  if (feedbacks.length === 0) {
+    throw new Error("No feedback found for this appointment");
+  }
+  // remove feedback
+  for (const feedback of feedbacks) {
+    await feedback.deleteOne();
   }
 
-  if (feedback.user.toString() !== userId) {
-    throw new Error("Unauthorized");
-  }
-
-  if (feedback.appointment.status !== "Completed") {
-    throw new Error("You can only update feedback for completed appointments");
-  }
-
-  feedback.rating = rating !== undefined ? rating : feedback.rating;
-  feedback.content = content !== undefined ? content : feedback.content;
-  feedback.updatedAt = new Date();
-
-  await feedback.save();
-
-  // Cập nhật rating trung bình cho garage
-  const feedbacks = await Feedback.find({ garage: feedback.garage });
-  const averageRating =
-    feedbacks.reduce((acc, feedback) => acc + feedback.rating, 0) /
-      feedbacks.length || 0;
-
-  const garage = await Garage.findById(feedback.garage);
-  if (garage) {
-    garage.ratingAverage = Math.round(averageRating * 10) / 10;
-    await garage.save();
-  }
-
-  return feedback;
+  return await addFeedback(userId, updateData);
 };
 
 export const deleteFeedback = async (userId, feedbackId) => {
@@ -171,13 +165,16 @@ export const deleteFeedbackByGarage = async (feedbackId) => {
   }
 };
 
-
 // xem được toàn bộ feedback về service đó
-export const getFeedbackByServiceDetailInGarage = async (garageId, serviceDetailId) => {
+export const getFeedbackByServiceDetailInGarage = async (
+  garageId,
+  serviceDetailId
+) => {
   try {
     const feedbacks = await Feedback.find({
       garage: garageId,
       serviceDetail: serviceDetailId,
+      type: "specific",
     })
       .populate("user", "name avatar")
       .populate("appointment", "start end")
@@ -190,13 +187,15 @@ export const getFeedbackByServiceDetailInGarage = async (garageId, serviceDetail
 };
 
 export const addFeedback = async (userId, feedbackData) => {
-  const { garage, appointment, specific } = feedbackData;
+  const { type, garage, appointment, specific, rating, content } = feedbackData;
 
   // Ktra appointment
   const appointmentData = await Appointment.findById(appointment);
   if (!appointmentData) throw new Error("Appointment not found");
   if (appointmentData.user.toString() !== userId)
-    throw new Error("You are not authorized to provide feedback for this appointment");
+    throw new Error(
+      "You are not authorized to provide feedback for this appointment"
+    );
   if (appointmentData.status !== "Completed")
     throw new Error("You can only provide feedback for completed appointments");
 
@@ -205,46 +204,58 @@ export const addFeedback = async (userId, feedbackData) => {
   if (!garageExists) throw new Error("Garage ID does not exist");
 
   // Lấy danh sách serviceId hợp lệ trong appointment
-  const validServiceIds = appointmentData.service.map(id => id.toString());
+  // const validServiceIds = appointmentData.service.map((id) => id.toString());
 
-  const results = [];
-  for (const item of specific) {
-    const { service, content, rating } = item;
-
-    // Ktra service có trong appointment ko
-    if (!validServiceIds.includes(service)) {
-      results.push({ service, error: "This service was not used in the appointment" });
-      continue;
-    }
-
-    // Ktra đã feedback ch
-    const existed = await Feedback.findOne({ user: userId, appointment, serviceDetail: service });
-    if (existed) {
-      results.push({ service, error: "You have already given feedback for this service in this appointment" });
-      continue;
-    }
-
+  if (type === "general") {
     const newFeedback = new Feedback({
       user: userId,
       garage,
       rating,
       content,
       appointment,
-      serviceDetail: service,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      type: "general",
     });
     await newFeedback.save();
-    results.push({ service, success: true });
+  } else if (type === "specific") {
+    for (const item of specific) {
+      const { service, content, rating } = item;
+
+      const newFeedback = new Feedback({
+        type: "specific",
+        user: userId,
+        garage,
+        rating,
+        content,
+        appointment,
+        serviceDetail: service,
+      });
+      await newFeedback.save();
+    }
   }
+
+  await Appointment.findByIdAndUpdate(
+    appointment,
+    {
+      isFeedbacked: true,
+    },
+    { new: true }
+  );
 
   // Cập nhật rating trung bình cho garage
   const feedbacks = await Feedback.find({ garage });
   const averageRating =
-    feedbacks.reduce((acc, feedback) => acc + feedback.rating, 0) / (feedbacks.length || 1);
+    feedbacks.reduce((acc, feedback) => acc + feedback.rating, 0) /
+    (feedbacks.length || 1);
 
   garageExists.ratingAverage = Math.round(averageRating * 10) / 10;
   await garageExists.save();
+};
 
-  return results;
+export const getFeedbackByAppointmentId = async (appointmentId) => {
+  try {
+    const feedbacks = await Feedback.find({ appointment: appointmentId });
+    return feedbacks;
+  } catch (error) {
+    throw new Error("Error fetching feedbacks for the appointment");
+  }
 };
