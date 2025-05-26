@@ -870,13 +870,7 @@ export const findRescueGarages = async (latitude, longitude) => {
         },
       },
     ]);
-    console.log("Garage from DB: ", garages);
-    /*
-    Từ kết quả phía trên, tiếp tục check để giữ lại garage nào đang mở thôi, còn đóng thì khỏi
-    Cách check: lấy thời gian hiện tại mà người dùng gọi cứu hộ
-    Ngày hoạt động của garage operating_days include ngày hiện tại mà người dùng check => hợp lệ. else loại
-    Giờ mở cửa của garage <= giờ hiện tại người dùng gọi cứu hộ < giờ đóng cửa của garage => hợp lệ. Ko thì loại
-    */
+
     dayjs.extend(utc);
     dayjs.extend(timezone);
     // Lấy giờ VN
@@ -884,6 +878,7 @@ export const findRescueGarages = async (latitude, longitude) => {
     const currentDay = dayjs().tz("Asia/Ho_Chi_Minh").format("dddd");
     console.log("currentHour: ", currentHour);
     console.log("currentDay: ", currentDay);
+
     const openGarages = garages.filter((garage) => {
       try {
         if (!garage.openTime || !garage.closeTime) return false;
@@ -901,49 +896,27 @@ export const findRescueGarages = async (latitude, longitude) => {
         return false;
       }
     });
-    // console.log("openGarages: ", openGarages);
-    /*
-    Tìm xem garage nào có dịch vụ thì ưu tiên lên đầu. Tổng sẽ hiển thị ra cho user chọn 10 garages.
-    Đang khẩn cấp mà cho 1 cái list cả mấy chục cái garage thì lú. Nên giới hạn 10 cái thôi.
-    Trong trường hợp db ko đủ data (cái này thì phải chuẩn bị data ko bị sấy),
-    hoặc user đang ở ngoại thành, ví dụ có đủ 10 garage đi, nhưng chỉ có 6 garage cứu hộ
-    => 6 garage cứu hộ đó được hiển thị trước. phần thiếu thì lấy garage KO có cứu hộ bù vô
-    */
+
     const emergencyService = await Service.findOne({
-      name: "Dịch vụ cứu hộ",
+      name: "Emergency",
       isDeleted: false,
     });
-    if (!emergencyService) throw new Error("Emergency service not found");
+    if (!emergencyService) throw new Error("Không tìm thấy dịch vụ cứu hộ");
+
     const emergencyServiceDetails = await ServiceDetail.find({
       service: emergencyService._id,
       isDeleted: false,
     }).select("garage");
+
     const emergencyGarageIds = emergencyServiceDetails.map((d) =>
       d.garage.toString()
     );
-    // Gắn thêm response để return về, cho phía FE xử lý
+
     const garagesWithFlag = openGarages.map((garage) => ({
       ...garage,
       hasEmergency: emergencyGarageIds.includes(garage._id.toString()),
     }));
-    /*
-    Sort:
-    Trong phạm vi 50km, đang mở:
-    CCó dịch vụ cứu hộ:
-      Tất cả garage pro lên đầu
-        Nhiều hơn 1 garage pro => distance gần hơn lên trước, xa hơn ra sau
-          Nhiều hơn 1 garage pro có distance bằng nhau, rating cao lên trước, thấp ra sau
-      Tất cả garage KO PHẢI pro, ra sau
-        Nhiều hơn 1 garage bth => distance gần hơn lên trước, xa hơn ra sau
-          Nhiều hơn 1 garage bth có distance bằng nhau, rating cao lên trước, thấp ra sau
-    KO CÓ dịch vụ cứu hộ (trong trường hợp ko đủ 10 garage cứu hộ):
-      Tất cả garage pro lên đầu
-        Nhiều hơn 1 garage pro => distance gần hơn lên trước, xa hơn ra sau
-          Nhiều hơn 1 garage pro có distance bằng nhau, rating cao lên trước, thấp ra sau
-      Tất cả garage KO PHẢI pro, ra sau
-        Nhiều hơn 1 garage bth => distance gần hơn lên trước, xa hơn ra sau
-          Nhiều hơn 1 garage bth có distance bằng nhau, rating cao lên trước, thấp ra sau
-    */
+
     const sortedGarages = garagesWithFlag.sort((a, b) => {
       if (a.hasEmergency && !b.hasEmergency) return -1;
       if (!a.hasEmergency && b.hasEmergency) return 1;
@@ -952,29 +925,11 @@ export const findRescueGarages = async (latitude, longitude) => {
       if (a.distance !== b.distance) return a.distance - b.distance;
       return b.ratingAverage - a.ratingAverage;
     });
-    // Lấy top 10 garage
-    const topGarages = sortedGarages.slice(0, 10);
-    // console.log("Top garages with emergency: ", JSON.stringify(topGarages, null, 2));
-    // const deviceTokens = topGarages.flatMap(
-    //   (garage) => garage.deviceTokens || []
-    // );
-    // if (deviceTokens.length > 0) {
-    //   // gui th bao den cac garage
-    //   const title = "Yêu cầu cứu hộ";
-    //   const body = "Có yêu cầu cứu hộ gần garage của bạn.";
-    //   const notificationResponse = await sendMultipleNotifications(
-    //     deviceTokens,
-    //     title,
-    //     body
-    //   );
-    //   console.log("Notification response: ", notificationResponse);
-    // } else {
-    //   console.log("No device tokens found for the top garages.");
-    // }
-    return topGarages;
+
+    return sortedGarages.slice(0, 10);
   } catch (error) {
     console.error("Error in findRescueGarages:", error.message);
-    throw new Error("Failed to find rescue garages");
+    throw new Error(error.message || "Không thể tìm garage cứu hộ");
   }
 };
 
