@@ -427,6 +427,14 @@ export const getGarageStatusCountsByMonth = async (req, res) => {
   }
 };
 
+export const getGarageList = async (req, res) => {
+  const garage = await garageService.getGarageList();
+  if (!garage) {
+    return res.status(404).json({ message: "Garage not found" });
+  }
+  res.status(200).json(garage);
+};
+
 export {
   registerGarage,
   viewGarages,

@@ -27,7 +27,6 @@ const login = async (req, res) => {
       req.body.password,
       req.body.deviceToken
     );
-    console.log("Response login: ", result);
     res.status(200).json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });

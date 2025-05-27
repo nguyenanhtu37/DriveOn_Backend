@@ -10,6 +10,7 @@ import Vehicle from "../models/vehicle.js";
 import ServiceDetail from "../models/serviceDetail.js";
 import Role from "../models/role.js";
 import mongoose from "mongoose";
+import { sendSocketEvent } from "../libs/socketEvent.js";
 
 const checkBooking = async (
   vehicleId,
@@ -419,6 +420,8 @@ export const createAppointmentService = async ({
 
   await newAppointment.save();
 
+  sendSocketEvent("newAppointment", garage, garage);
+
   // Send emails asynchronously - fire and forget
   sendAppointmentEmails(
     newAppointment._id,
@@ -594,8 +597,11 @@ export const getAppointmentsByVehicleService = async (vehicleId, userId) => {
     throw new Error("Unauthorized - Vehicle doesn't belong to this user");
   }
 
-  // Find all appointments for this vehicle
-  return await Appointment.find({ vehicle: vehicleId })
+  // Find only completed appointments for this vehicle
+  return await Appointment.find({
+    vehicle: vehicleId,
+    status: "Completed", // Only return completed appointments
+  })
     .populate("user", "name email avatar")
     .populate("garage", "name address")
     .populate({
@@ -1687,4 +1693,73 @@ export const getAppointmentPercentsService = async () => {
     console.error("Error in getAppointmentPercentsService:", error);
     throw error;
   }
+};
+
+// Set hourly appointment limit for a garage
+export const setHourlyAppointmentLimitService = async (
+  garageId,
+  userId,
+  limit
+) => {
+  // Check if the garage exists
+  const garage = await Garage.findById(garageId);
+  if (!garage) {
+    throw new Error("Garage not found");
+  }
+
+  // Check if user is authorized (is in garage.user array)
+  if (!garage.user.includes(userId)) {
+    throw new Error(
+      "Unauthorized - Only garage managers can set appointment limits"
+    );
+  }
+
+  // Validate the limit
+  const hourlyLimit = parseInt(limit);
+  if (isNaN(hourlyLimit) || hourlyLimit < 0) {
+    throw new Error("Invalid limit value - must be a non-negative number");
+  }
+
+  // Update the garage with the new limit
+  garage.hourlyAppointmentLimit = hourlyLimit;
+  await garage.save();
+
+  return garage;
+};
+
+// Get the hourly appointment limit for a garage
+export const getHourlyAppointmentLimitService = async (garageId) => {
+  const garage = await Garage.findById(garageId);
+  if (!garage) {
+    throw new Error("Garage not found");
+  }
+
+  return { hourlyAppointmentLimit: garage.hourlyAppointmentLimit || 0 };
+};
+
+// Get all appointments in a specific 1-hour window for a garage
+export const countPendingAppointmentsInHour = async (garageId, date) => {
+  // date: Date object or ISO string
+  const startDate = new Date(date);
+  if (isNaN(startDate.getTime())) throw new Error("Invalid date");
+
+  // Set to start of the hour
+  startDate.setMinutes(0, 0, 0);
+  const endDate = new Date(startDate);
+  endDate.setHours(endDate.getHours() + 1);
+
+  // Get all appointments in the time period, not just count
+  const appointments = await Appointment.find({
+    garage: garageId,
+    status: "Pending",
+    start: { $gte: startDate, $lt: endDate },
+  })
+    .populate("user", "name email phone avatar")
+    .populate("vehicle", "carBrand carName carPlate")
+    .populate("service", "name price duration");
+
+  return {
+    count: appointments.length,
+    appointments: appointments,
+  };
 };

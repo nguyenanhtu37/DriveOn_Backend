@@ -24,6 +24,7 @@ import { sendMultipleNotifications } from "./fcmService.js";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 import timezone from "dayjs/plugin/timezone.js";
+import Favorite from "../models/favorite.js";
 
 const registerGarage = async (user, garageData) => {
   console.log(garageData);
@@ -724,6 +725,8 @@ const viewGaragesWithSearchParams = async ({
   closeTime,
   distance,
   currentLocation,
+  page = 1,
+  limit = 10,
 }) => {
   try {
     const query = { status: { $in: ["enabled"] } };
@@ -735,14 +738,13 @@ const viewGaragesWithSearchParams = async ({
     if (tag) query.tag = tag;
 
     if (openTime && closeTime) {
-      query.$and = [
-        { openTime: { $lte: openTime } },
-        { closeTime: { $gte: closeTime } },
-      ];
+      query.$and = [];
+      query.$and.push({ openTime: { $lte: openTime } });
+      query.$and.push({ closeTime: { $gte: closeTime } });
     }
 
     if (province || district) {
-      query.$and = [];
+      if (!query.$and) query.$and = [];
       if (province)
         query.$and.push({ address: { $regex: new RegExp(province, "i") } });
       if (district) {
@@ -811,7 +813,23 @@ const viewGaragesWithSearchParams = async ({
       if (a.tag !== "pro" && b.tag === "pro") return 1;
       return 0;
     });
-    return garages;
+
+    // Calculate pagination metadata
+    const totalItems = garages.length;
+    const totalPages = Math.ceil(totalItems / limit);
+
+    // Apply pagination
+    const paginatedGarages = garages.slice((page - 1) * limit, page * limit);
+
+    return {
+      garages: paginatedGarages,
+      pagination: {
+        totalItems,
+        totalPages,
+        currentPage: parseInt(page),
+        limit: parseInt(limit),
+      },
+    };
   } catch (err) {
     console.error("Error in viewGaragesWithSearchParams:", err.message);
     throw new Error(err.message);
@@ -852,13 +870,7 @@ export const findRescueGarages = async (latitude, longitude) => {
         },
       },
     ]);
-    console.log("Garage from DB: ", garages);
-    /*
-    Từ kết quả phía trên, tiếp tục check để giữ lại garage nào đang mở thôi, còn đóng thì khỏi
-    Cách check: lấy thời gian hiện tại mà người dùng gọi cứu hộ
-    Ngày hoạt động của garage operating_days include ngày hiện tại mà người dùng check => hợp lệ. else loại
-    Giờ mở cửa của garage <= giờ hiện tại người dùng gọi cứu hộ < giờ đóng cửa của garage => hợp lệ. Ko thì loại
-    */
+
     dayjs.extend(utc);
     dayjs.extend(timezone);
     // Lấy giờ VN
@@ -866,6 +878,7 @@ export const findRescueGarages = async (latitude, longitude) => {
     const currentDay = dayjs().tz("Asia/Ho_Chi_Minh").format("dddd");
     console.log("currentHour: ", currentHour);
     console.log("currentDay: ", currentDay);
+
     const openGarages = garages.filter((garage) => {
       try {
         if (!garage.openTime || !garage.closeTime) return false;
@@ -883,49 +896,27 @@ export const findRescueGarages = async (latitude, longitude) => {
         return false;
       }
     });
-    // console.log("openGarages: ", openGarages);
-    /*
-    Tìm xem garage nào có dịch vụ thì ưu tiên lên đầu. Tổng sẽ hiển thị ra cho user chọn 10 garages.
-    Đang khẩn cấp mà cho 1 cái list cả mấy chục cái garage thì lú. Nên giới hạn 10 cái thôi.
-    Trong trường hợp db ko đủ data (cái này thì phải chuẩn bị data ko bị sấy),
-    hoặc user đang ở ngoại thành, ví dụ có đủ 10 garage đi, nhưng chỉ có 6 garage cứu hộ
-    => 6 garage cứu hộ đó được hiển thị trước. phần thiếu thì lấy garage KO có cứu hộ bù vô
-    */
+
     const emergencyService = await Service.findOne({
       name: "Emergency",
       isDeleted: false,
     });
-    if (!emergencyService) throw new Error("Emergency service not found");
+    if (!emergencyService) throw new Error("Không tìm thấy dịch vụ cứu hộ");
+
     const emergencyServiceDetails = await ServiceDetail.find({
       service: emergencyService._id,
       isDeleted: false,
     }).select("garage");
+
     const emergencyGarageIds = emergencyServiceDetails.map((d) =>
       d.garage.toString()
     );
-    // Gắn thêm response để return về, cho phía FE xử lý
+
     const garagesWithFlag = openGarages.map((garage) => ({
       ...garage,
       hasEmergency: emergencyGarageIds.includes(garage._id.toString()),
     }));
-    /*
-    Sort:
-    Trong phạm vi 50km, đang mở:
-    CCó dịch vụ cứu hộ:
-      Tất cả garage pro lên đầu
-        Nhiều hơn 1 garage pro => distance gần hơn lên trước, xa hơn ra sau
-          Nhiều hơn 1 garage pro có distance bằng nhau, rating cao lên trước, thấp ra sau
-      Tất cả garage KO PHẢI pro, ra sau
-        Nhiều hơn 1 garage bth => distance gần hơn lên trước, xa hơn ra sau
-          Nhiều hơn 1 garage bth có distance bằng nhau, rating cao lên trước, thấp ra sau
-    KO CÓ dịch vụ cứu hộ (trong trường hợp ko đủ 10 garage cứu hộ):
-      Tất cả garage pro lên đầu
-        Nhiều hơn 1 garage pro => distance gần hơn lên trước, xa hơn ra sau
-          Nhiều hơn 1 garage pro có distance bằng nhau, rating cao lên trước, thấp ra sau
-      Tất cả garage KO PHẢI pro, ra sau
-        Nhiều hơn 1 garage bth => distance gần hơn lên trước, xa hơn ra sau
-          Nhiều hơn 1 garage bth có distance bằng nhau, rating cao lên trước, thấp ra sau
-    */
+
     const sortedGarages = garagesWithFlag.sort((a, b) => {
       if (a.hasEmergency && !b.hasEmergency) return -1;
       if (!a.hasEmergency && b.hasEmergency) return 1;
@@ -934,29 +925,11 @@ export const findRescueGarages = async (latitude, longitude) => {
       if (a.distance !== b.distance) return a.distance - b.distance;
       return b.ratingAverage - a.ratingAverage;
     });
-    // Lấy top 10 garage
-    const topGarages = sortedGarages.slice(0, 10);
-    // console.log("Top garages with emergency: ", JSON.stringify(topGarages, null, 2));
-    // const deviceTokens = topGarages.flatMap(
-    //   (garage) => garage.deviceTokens || []
-    // );
-    // if (deviceTokens.length > 0) {
-    //   // gui th bao den cac garage
-    //   const title = "Yêu cầu cứu hộ";
-    //   const body = "Có yêu cầu cứu hộ gần garage của bạn.";
-    //   const notificationResponse = await sendMultipleNotifications(
-    //     deviceTokens,
-    //     title,
-    //     body
-    //   );
-    //   console.log("Notification response: ", notificationResponse);
-    // } else {
-    //   console.log("No device tokens found for the top garages.");
-    // }
-    return topGarages;
+
+    return sortedGarages.slice(0, 10);
   } catch (error) {
     console.error("Error in findRescueGarages:", error.message);
-    throw new Error("Failed to find rescue garages");
+    throw new Error(error.message || "Không thể tìm garage cứu hộ");
   }
 };
 
@@ -1138,6 +1111,69 @@ export const getGarageCountByStatusAndMonth = async () => {
   }
 };
 
+const getGarageList = async () => {
+  const garagePros = await Garage.find({ tag: "pro" });
+  const topFavoritesAgg = await Favorite.aggregate([
+    { $group: { _id: "$garage", count: { $sum: 1 } } },
+    {
+      $lookup: {
+        from: "garages",
+        localField: "_id",
+        foreignField: "_id",
+        as: "garage",
+      },
+    },
+    { $unwind: "$garage" },
+    {
+      $replaceRoot: { newRoot: "$garage" },
+    },
+    // Add fields for sorting
+    {
+      $addFields: {
+        isPro: { $cond: [{ $eq: ["$tag", "pro"] }, 1, 0] },
+      },
+    },
+    // Sort: pro first, then by ratingAverage desc
+    {
+      $sort: { isPro: -1, ratingAverage: -1 },
+    },
+    { $limit: 10 },
+  ]);
+  const topFavorites = topFavoritesAgg;
+
+  const topRated = await Garage.find().sort({ ratingAverage: -1 }).limit(10);
+
+  const mostBooked = await Appointment.aggregate([
+    { $group: { _id: "$garage", count: { $sum: 1 } } },
+    {
+      $lookup: {
+        from: "garages",
+        localField: "_id",
+        foreignField: "_id",
+        as: "garage",
+      },
+    },
+    { $unwind: "$garage" },
+    {
+      $addFields: {
+        isPro: { $cond: [{ $eq: ["$garage.tag", "pro"] }, 1, 0] },
+        ratingAverage: "$garage.ratingAverage",
+      },
+    },
+    // Sort: pro first, then by ratingAverage desc, then by most booked
+    { $sort: { isPro: -1, ratingAverage: -1, count: -1 } },
+    { $replaceRoot: { newRoot: "$garage" } },
+    { $limit: 10 },
+  ]);
+
+  return {
+    garagePros,
+    topFavorites,
+    topRated,
+    mostBooked,
+  };
+};
+
 export {
   registerGarage,
   viewGarages,
@@ -1161,4 +1197,5 @@ export {
   viewGarageRegistrationsCarOwner,
   viewDashboardOverview,
   viewDashboardChart,
+  getGarageList,
 };

@@ -205,8 +205,7 @@ const verifyEmail = async (token) => {
 };
 
 const login = async (email, password, deviceToken) => {
-  console.log("deviceToken for login: ", deviceToken);
-  validateLogin(email, password);
+  // validateLogin(email, password);
   const user = await User.findOne({ email }).populate("roles");
   // .populate("garageList");
   if (!user) throw createError(401, "Invalid email or password");
@@ -228,23 +227,24 @@ const login = async (email, password, deviceToken) => {
     process.env.JWT_SECRET,
     { algorithm: "HS256", expiresIn: "5h" }
   );
-  // luu deviceToken vao garage (neu co) => tim kiem theo id
-  // if (deviceToken && user.garageList.length > 0) {
-  //   try {
-  //     await Promise.all(
-  //       user.garageList.map((garageId) =>
-  //         Garage.findByIdAndUpdate(
-  //           garageId,
-  //           { $addToSet: { deviceTokens: deviceToken } },
-  //           { new: true }
-  //         )
-  //       )
-  //     );
-  //   } catch (err) {
-  //     console.error("Failed to save deviceToken:", err);
-  //   }
-  // }
-  return { user, token };
+
+  if (user.roles.some((userRole) => userRole.roleName === "staff")) {
+    const garage = await Garage.findOne({ staffs: { $in: [user._id] } });
+
+    if (garage) {
+      return { user, token, garageId: garage._id };
+    }
+  }
+
+  if (user.roles.some((userRole) => userRole.roleName === "manager")) {
+    const garage = await Garage.find({ user: user._id });
+
+    const garageListIds = garage.map((g) => g._id);
+    if (garage.length > 0) {
+      return { user, token, garageId: garageListIds };
+    }
+  }
+  return { user, token, garageId: null };
 };
 
 const requestPasswordReset = async (email) => {

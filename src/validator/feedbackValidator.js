@@ -6,8 +6,9 @@ const feedbackSchema = z.object({
     .number()
     .min(1, "Rating must be at least 1")
     .max(5, "Rating must be at most 5"),
-  text: z.string().optional(), // Text là optional
-  service: z.string().optional(), // Service ID là optional
+  content: z.string().optional(),
+  appointment: z.string().nonempty("Appointment ID is required"),
+  serviceDetail: z.string().nonempty("ServiceDetail ID is required"),
 });
 
 export const validateAddFeedback = (feedbackData) => {

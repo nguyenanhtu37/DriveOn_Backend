@@ -14,6 +14,9 @@ import {
   createAppointmentByStaff,
   isCalledAppointment,
   getAppointmentsByVehicle,
+  countPendingAppointmentsInHour,
+  setHourlyAppointmentLimit,
+  getHourlyAppointmentLimit
 } from "../controller/appointmentController.js";
 import { authorizeRoles } from "../middleware/authorizeRoles.js";
 
@@ -43,7 +46,6 @@ router.get(
   getAppointmentsByGarage
 ); // Get appointments by garage
 
-// Add this to the existing routes
 router.get(
   "/vehicle/:vehicleId",
   authorizeRoles(["carowner"]),
@@ -81,10 +83,11 @@ router.put(
 ); // Cancel appointment
 
 router.put(
-  "/:appointmentId/update-by-staff",
-  authorizeRoles(["manager", "staff"]),
-  updateAppointmentByStaff
-); // Update appointment by staff // Update appointment
+    "/:appointmentId/update-by-staff",
+    authorizeRoles(["manager", "staff"]),
+    updateAppointmentByStaff
+); // Update appointment by staff
+
 
 router.get(
   "/garage/:garageId/next-maintenance",
@@ -102,6 +105,25 @@ router.put(
   "/isCalled/:appointmentId",
   authorizeRoles(["manager", "staff"]),
   isCalledAppointment
-); // Mark appointment as called);
+); // Mark appointment as called
+
+// NEW ROUTES FOR HOURLY APPOINTMENT LIMIT FEATURE
+router.get(
+  "/garage/:garageId/hour-count",
+  authorizeRoles(["manager", "staff"]),
+  countPendingAppointmentsInHour
+); // Count pending appointments in a specific hour
+
+router.put(
+  "/garage/:garageId/hour-limit",
+  authorizeRoles(["manager"]),
+  setHourlyAppointmentLimit
+); // Set hourly appointment limit
+
+router.get(
+  "/garage/:garageId/hour-limit",
+  authorizeRoles(["manager", "staff"]),
+  getHourlyAppointmentLimit
+); // Get hourly appointment limit
 
 export default router;
