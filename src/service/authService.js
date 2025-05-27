@@ -218,6 +218,7 @@ const login = async (email, password, deviceToken) => {
     );
   const isMatch = await bcrypt.compare(password, user.password);
   if (!isMatch) throw createError(401, "Invalid email or password");
+  console.log("User roles:", user.roles);
   const token = jwt.sign(
     {
       id: user._id,

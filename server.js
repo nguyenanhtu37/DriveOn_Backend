@@ -24,6 +24,7 @@ import adminRoutes from "./src/routes/adminRoutes.js";
 import fcmRoutes from "./src/routes/fcmRoutes.js";
 import subscriptionRoutes from "./src/routes/subscriptionRoutes.js";
 import transactionRoutes from "./src/routes/transactionRoutes.js";
+import cozeRoutes from "./src/routes/cozeRoutes.js";
 
 // Load environment variables
 dotenv.config();
@@ -98,6 +99,7 @@ app.use("/api/payos", payosRoutes);
 app.use("/api/subscription", subscriptionRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/transaction", transactionRoutes);
+app.use("/api/coze", cozeRoutes);
 
 // Test Route
 app.get("/", (req, res) => {
