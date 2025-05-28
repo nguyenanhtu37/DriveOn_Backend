@@ -134,12 +134,24 @@ const addStaff = async (req, res) => {
 };
 
 const viewStaff = async (req, res) => {
-  const { id } = req.params; // garage id
   try {
-    const staffList = await garageService.viewStaff(req.user.id, id);
-    res.status(200).json(staffList);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    const { id: userId } = req.user;
+    const { id: garageId } = req.params;
+    const { page = 1, limit = 10 } = req.query;
+
+    const result = await garageService.viewStaff(userId, garageId, page, limit);
+
+    return res.status(200).json({
+      success: true,
+      message: "Staff list retrieved successfully",
+      data: result.staffList,
+      pagination: result.pagination
+    });
+  } catch (error) {
+    return res.status(400).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
