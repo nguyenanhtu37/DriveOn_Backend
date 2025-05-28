@@ -898,7 +898,7 @@ export const findRescueGarages = async (latitude, longitude) => {
     });
 
     const emergencyService = await Service.findOne({
-      name: "Emergency",
+      name: "Cứu hộ",
       isDeleted: false,
     });
     if (!emergencyService) throw new Error("Không tìm thấy dịch vụ cứu hộ");
