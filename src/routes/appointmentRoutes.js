@@ -14,7 +14,7 @@ import {
   createAppointmentByStaff,
   isCalledAppointment,
   getAppointmentsByVehicle,
-  countPendingAppointmentsInHour,
+  getAppointmentsInTimeRange,
   setHourlyAppointmentLimit,
   getHourlyAppointmentLimit,
   getFilteredAppointments
@@ -109,11 +109,7 @@ router.put(
 ); // Mark appointment as called
 
 // NEW ROUTES FOR HOURLY APPOINTMENT LIMIT FEATURE
-router.get(
-  "/garage/:garageId/hour-count",
-  authorizeRoles(["manager", "staff"]),
-  countPendingAppointmentsInHour
-); // Count pending appointments in a specific hour
+
 
 router.put(
   "/garage/:garageId/hour-limit",
@@ -126,7 +122,11 @@ router.get(
   authorizeRoles(["manager", "staff"]),
   getHourlyAppointmentLimit
 ); // Get hourly appointment limit
-
+router.get(
+    "/garage/:garageId/time-range",
+    authorizeRoles(["manager", "staff"]),
+    getAppointmentsInTimeRange
+);
 
 router.get(
     "/",

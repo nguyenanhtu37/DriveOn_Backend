@@ -397,20 +397,36 @@ export const getAppointmentPercents = async (req, res) => {
   }
 };
 
-export const countPendingAppointmentsInHour = async (req, res) => {
-  const { garageId } = req.params;
-  const { date } = req.query; // ISO string or date string
-  if (!date) {
-    return res.status(400).json({ error: "Missing date query parameter" });
-  }
+export const getAppointmentsInTimeRange = async (req, res) => {
   try {
-    const count = await appointmentService.countPendingAppointmentsInHour(garageId, date);
-    res.status(200).json({ count });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    const { garageId } = req.params;
+    const { startDate, endDate } = req.query;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+
+    if (!garageId || !startDate || !endDate) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required parameters: garageId, startDate, and endDate are required",
+      });
+    }
+
+    const result = await appointmentService.getAppointmentsInTimeRangeService(garageId, startDate, endDate, page, limit);
+
+    return res.status(200).json({
+      success: true,
+      appointments: result.appointments,
+      pagination: result.pagination,
+      count: result.pagination.totalCount
+    });
+  } catch (error) {
+    console.error("Error in getAppointmentsInTimeRange:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Server error while fetching appointments",
+    });
   }
 };
-
 export const setHourlyAppointmentLimit = async (req, res) => {
   const { garageId } = req.params;
   const userId = req.user.id;

@@ -1901,28 +1901,64 @@ export const getHourlyAppointmentLimitService = async (garageId) => {
 };
 
 // Get all appointments in a specific 1-hour window for a garage
-export const countPendingAppointmentsInHour = async (garageId, date) => {
-  // date: Date object or ISO string
-  const startDate = new Date(date);
-  if (isNaN(startDate.getTime())) throw new Error("Invalid date");
+export const getAppointmentsInTimeRangeService = async (garageId, startDate, endDate, page = 1, limit = 10) => {
+  // Validate inputs
+  if (!garageId) throw new Error("Garage ID is required");
 
-  // Set to start of the hour
-  startDate.setMinutes(0, 0, 0);
-  const endDate = new Date(startDate);
-  endDate.setHours(endDate.getHours() + 1);
+  const start = new Date(startDate);
+  const end = new Date(endDate);
 
-  // Get all appointments in the time period, not just count
-  const appointments = await Appointment.find({
+  if (isNaN(start.getTime())) throw new Error("Invalid start date");
+  if (isNaN(end.getTime())) throw new Error("Invalid end date");
+
+  // Validate and parse pagination parameters
+  page = parseInt(page);
+  limit = parseInt(limit);
+  if (isNaN(page) || page < 1) page = 1;
+  if (isNaN(limit) || limit < 1) limit = 10;
+
+  // Calculate skip value for pagination
+  const skip = (page - 1) * limit;
+
+  // Query to find appointments in the specific time range for the garage
+  const query = {
     garage: garageId,
-    status: "Pending",
-    start: { $gte: startDate, $lt: endDate },
-  })
-    .populate("user", "name email phone avatar")
-    .populate("vehicle", "carBrand carName carPlate")
-    .populate("service", "name price duration");
+    start: { $gte: start, $lt: end },
+    status: { $in: ["Pending", "Accepted"] } // Only count pending and accepted appointments
+  };
+
+  // Get total count for pagination metadata
+  const totalCount = await Appointment.countDocuments(query);
+
+  // Get paginated appointments
+  const appointments = await Appointment.find(query)
+      .populate("user", "name email avatar")
+      .populate("garage", "name address")
+      .populate({
+        path: "vehicle",
+        select: "carBrand carName carPlate",
+        populate: {
+          path: "carBrand",
+          select: "name image",
+        }
+      })
+      .populate("service", "name price duration")
+      .sort({ start: 1 }) // Sort by start time ascending
+      .skip(skip)
+      .limit(limit);
+
+  // Calculate pagination metadata
+  const totalPages = Math.ceil(totalCount / limit);
 
   return {
-    count: appointments.length,
-    appointments: appointments,
+    appointments,
+    pagination: {
+      currentPage: page,
+      totalPages,
+      pageSize: limit,
+      totalCount,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1
+    }
   };
 };
