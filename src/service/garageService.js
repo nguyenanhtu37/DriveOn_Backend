@@ -301,25 +301,52 @@ const addStaff = async (userId, garageId, staffData) => {
   }
 };
 
-const viewStaff = async (userId, garageId) => {
+export const viewStaff = async (userId, garageId, page = 1, limit = 10) => {
+  // Validate and convert pagination parameters
+  page = parseInt(page);
+  limit = parseInt(limit);
+  if (isNaN(page) || page < 1) page = 1;
+  if (isNaN(limit) || limit < 1) limit = 10;
+
+  // Find garage to verify it exists
   const garage = await Garage.findById(garageId);
   if (!garage) {
     throw new Error("Garage not found");
   }
 
-  if (!garage.user.includes(userId)) {
-    throw new Error("Unauthorized");
+  if (garage.user.toString() !== userId) {
+    throw new Error("Unauthorized - You don't have permission …");
   }
+  // Calculate skip value for pagination
+  const skip = (page - 1) * limit;
 
-  // Get all users in the staffs array
+  // Find staff users with pagination
   const staffList = await User.find({
-    _id: { $in: garage.staffs },
-    roles: "67b60df8c465fe4f943b98cc", // Staff role ID
+    _id: { $in: garage.staffs }})
+      .select("name email avatar phone ")
+      .skip(skip)
+      .limit(limit);
+
+  // Get total count for pagination metadata
+  const totalStaff = await User.countDocuments({
+    _id: { $in: garage.staffs }
   });
 
-  return staffList;
-};
+  // Calculate pagination metadata
+  const totalPages = Math.ceil(totalStaff / limit);
 
+  return {
+    staffList,
+    pagination: {
+      currentPage: page,
+      totalPages,
+      pageSize: limit,
+      totalCount: totalStaff,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1
+    }
+  };
+};
 const viewGarageExisting = async () => {
   try {
     const garages = await Garage.find({ status: "enabled" });
@@ -1185,7 +1212,6 @@ export {
   rejectGarageRegistration,
   getGarageRegistrationById,
   addStaff,
-  viewStaff,
   disableStaff,
   enableStaff,
   getStaffById,
