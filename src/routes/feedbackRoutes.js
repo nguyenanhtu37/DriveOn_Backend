@@ -26,10 +26,7 @@ router.delete(
   authorizeRoles(["staff", "manager"]),
   deleteFeedbackByGarage
 );
-router.get(
-  "/garage/:garageId/service/:serviceDetailId",
-  viewFeedbackByServiceDetailInGarage
-);
+router.get("/service/:serviceDetailId", viewFeedbackByServiceDetailInGarage);
 
 router.get("/garageDetail/:garageId", viewFeedbackForGarageDetail);
 
