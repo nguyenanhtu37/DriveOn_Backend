@@ -940,10 +940,9 @@ const viewDashboardOverview = async (garageId, userId) => {
       "service",
       "name"
     );
-    const staff = await User.find({
-      garageList: garageId,
-      roles: "67b60df8c465fe4f943b98cc",
-    });
+
+    const garage = await Garage.findById(garageId).populate("staffs");
+    const totalStaff = garage && garage.staffs ? garage.staffs.length : 0;
 
     const appointments = await Appointment.find({ garage: garageId });
     const totalAppointments = appointments.length;
@@ -953,7 +952,7 @@ const viewDashboardOverview = async (garageId, userId) => {
     return {
       totalFeedbacks,
       totalServices,
-      totalStaff: staff.length,
+      totalStaff,
       totalAppointments,
     };
   } catch (err) {
