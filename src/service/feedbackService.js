@@ -55,7 +55,7 @@ import {
 
 export const getFeedbackByGarageId = async (garageId) => {
   try {
-    const feedbacks = await Feedback.find({ garage: garageId })
+    const feedbacks = await Feedback.find({ garage: garageId, type: "general" })
       .populate("user", "name avatar")
       // .populate("garage", "name")
       .populate({
@@ -165,20 +165,19 @@ export const deleteFeedbackByGarage = async (feedbackId) => {
   }
 };
 
-// xem được toàn bộ feedback về service đó
-export const getFeedbackByServiceDetailInGarage = async (
-  garageId,
-  serviceDetailId
-) => {
+export const getFeedbackByServiceDetailInGarage = async (serviceDetailId) => {
   try {
     const feedbacks = await Feedback.find({
-      garage: garageId,
       serviceDetail: serviceDetailId,
       type: "specific",
     })
       .populate("user", "name avatar")
-      .populate("appointment", "start end")
-      .populate("serviceDetail", "name price duration");
+      .populate("serviceDetail", "name price duration")
+      .populate({
+        path: "appointment",
+        select: "start end service vehicle",
+        populate: [{ path: "service", select: "name" }],
+      });
 
     return feedbacks;
   } catch (err) {
