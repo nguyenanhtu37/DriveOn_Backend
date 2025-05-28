@@ -20,8 +20,9 @@ const addService = async (serviceData) => {
   return newService;
 };
 
+
 const getAllServices = async () => {
-  const services = await Service.find();
+  const services = await Service.find({ isDeleted: false });
   const sortedServices = services.sort((a, b) => a.name.localeCompare(b.name));
   return sortedServices;
 };
@@ -69,10 +70,22 @@ const searchServiceByName = async (name, limit = 10) => {
   }
 };
 
+const softDeleteService = async (serviceId) => {
+  const service = await Service.findById(serviceId);
+  if (!service) {
+    throw new Error("Service not found");
+  }
+  service.isDeleted = true;
+  service.updatedAt = new Date();
+  await service.save();
+  return { message: "Service soft deleted successfully" };
+};
+
 export {
   addService,
   getAllServices,
   updateService,
   deleteService,
   searchServiceByName,
+  softDeleteService,
 };
