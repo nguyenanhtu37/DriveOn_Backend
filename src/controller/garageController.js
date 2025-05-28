@@ -447,6 +447,16 @@ export const getGarageList = async (req, res) => {
   res.status(200).json(garage);
 };
 
+export const getGarageStatusCountsByQuarter = async (req, res) => {
+  try {
+    const statusCountsByQuarter =
+      await garageService.getGarageCountByStatusAndQuarter();
+    res.status(200).json(statusCountsByQuarter);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 export {
   registerGarage,
   viewGarages,

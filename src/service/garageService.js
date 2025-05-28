@@ -715,7 +715,7 @@ const viewAllGaragesByAdmin = async (page = 1, limit = 10, keySearch) => {
   try {
     const skip = (page - 1) * limit;
     const query = {
-      status: { $in: ["approved", "rejected", "enabled", "disabled"] },
+      status: { $in: ["enabled", "disabled"] },
     };
 
     if (keySearch) {
@@ -1080,7 +1080,7 @@ const viewDashboardChart = async (garageId, userId) => {
 
 export const getAdminDashboardOverview = async () => {
   try {
-    const totalGarages = await Garage.countDocuments();
+    const totalGarages = await Garage.countDocuments({ status: { $in: ["enabled"] } });
     const totalBrands = await Brand.countDocuments();
     const totalServices = await Service.countDocuments();
     const totalUsers = await User.countDocuments();
@@ -1136,6 +1136,52 @@ export const getGarageCountByStatusAndMonth = async () => {
     throw new Error(err.message);
   }
 };
+
+// export const getGarageCountByStatusAndMonth = async (year) => {
+//   try {
+//     const selectedYear = year ? parseInt(year) : new Date().getFullYear();
+
+//     const result = await Garage.aggregate([
+//       {
+//         $match: {
+//           status: { $in: ["enabled"] }, // chỉ lấy garage đã approved
+//           createdAt: {
+//             $gte: new Date(selectedYear, 0, 1),
+//             $lt: new Date(selectedYear + 1, 0, 1),
+//           },
+//         },
+//       },
+//       {
+//         $group: {
+//           _id: { month: { $month: "$createdAt" } },
+//           garages: { $sum: 1 },
+//         },
+//       },
+//       {
+//         $project: {
+//           _id: 0,
+//           month: "$_id.month",
+//           garages: 1,
+//         },
+//       },
+//     ]);
+
+//     // Fill đủ 12 tháng
+//     const fullMonths = Array.from({ length: 12 }, (_, i) => {
+//       const month = i + 1;
+//       const found = result.find((r) => r.month === month);
+//       return {
+//         month,
+//         garages: found ? found.garages : 0,
+//       };
+//     });
+
+//     return fullMonths;
+//   } catch (err) {
+//     console.error("Error in getGarageCountByStatusAndMonth:", err.message);
+//     throw new Error(err.message);
+//   }
+// };
 
 const getGarageList = async () => {
   const garagePros = await Garage.find({ tag: "pro" });
@@ -1198,6 +1244,51 @@ const getGarageList = async () => {
     topRated,
     mostBooked,
   };
+};
+
+export const getGarageCountByStatusAndQuarter = async () => {
+  try {
+    const result = await Garage.aggregate([
+      {
+        $match: {
+          status: { $in: ["enabled", "disabled"] }, 
+        },
+      },
+      {
+        $project: {
+          quarter: { $ceil: { $divide: [{ $month: "$createdAt" }, 3] } },
+        },
+      },
+      {
+        $group: {
+          _id: { quarter: "$quarter" },
+          garages: { $sum: 1 },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          quarter: "$_id.quarter",
+          garages: 1,
+        },
+      },
+      { $sort: { quarter: 1 } },
+    ]);
+
+    // Fill đủ 4 quý
+    const fullQuarters = Array.from({ length: 4 }, (_, i) => {
+      const quarter = i + 1;
+      const found = result.find((r) => r.quarter === quarter);
+      return {
+        quarter,
+        garages: found ? found.garages : 0,
+      };
+    });
+
+    return fullQuarters;
+  } catch (err) {
+    throw new Error(err.message);
+  }
 };
 
 export {
