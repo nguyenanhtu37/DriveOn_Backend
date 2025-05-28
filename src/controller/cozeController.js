@@ -13,20 +13,17 @@ export const getServices = async (req, res) => {
 
 export const searchServices = async (req, res) => {
   try {
-    let { name, location } = req.query;
+    const { name, location } = req.query;
 
     if (!name) {
-      return res.status(400).json({ message: "Keyword is required" });
+      return res.status(400).json({ error: "Keyword is required" });
     }
 
-    // 🔍 Extract keyword từ mô tả người dùng
-    const refinedKeyword = cozeService.extractKeyword(name);
-    console.log("Extracted keyword:", refinedKeyword);
-
-    const services = await cozeService.searchServices(refinedKeyword, location);
+    const services = await cozeService.searchServices(name, location);
+    // console.log("Services returned to controller:", services);
     res.status(200).json({ services });
   } catch (error) {
     console.error("Error searching services:", error);
-    res.status(500).json({ message: "Failed to search services" });
+    res.status(500).json({ error: "Failed to search services" });
   }
 };
