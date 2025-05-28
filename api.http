@@ -215,7 +215,7 @@ Content-Type: application/json
 }
 
 ### Search
-GET https://driveonbackend-production.up.railway.app/api/service-detail/search?name=Phanh
+GET https://driveonbackend-production.up.railway.app/api/service-detail/search?name=kiểm tra và sửa chữa phanh&location=Đà Nẵng
 
 ### Emergency
 GET https://driveonbackend-production.up.railway.app/api/garage/emergency?latitude=15.976842299999998&longitude=108.26146599999998
