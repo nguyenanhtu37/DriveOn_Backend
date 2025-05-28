@@ -563,14 +563,43 @@ async function sendAppointmentEmails(
 
 // No change needed to the main createAppointmentService function as it just calls sendAppointmentEmails
 
-export const getAppointmentsByUserService = async (userId) => {
-  return await Appointment.find({ user: userId })
-    .populate("user", "name email")
-    .populate("garage", "name address")
-    .populate("vehicle", "carBrand carName carPlate")
-    .populate("service", "");
-};
+export const getAppointmentsByUserService = async (userId, page = 1, limit = 10) => {
+  // Validate page and limit parameters
+  page = parseInt(page);
+  limit = parseInt(limit);
+  if (isNaN(page) || page < 1) page = 1;
+  if (isNaN(limit) || limit < 1) limit = 10;
 
+  // Calculate skip value for pagination
+  const skip = (page - 1) * limit;
+
+  // Get total count for pagination metadata
+  const totalCount = await Appointment.countDocuments({ user: userId });
+
+  // Get paginated appointments
+  const appointments = await Appointment.find({ user: userId })
+      .populate("user", "name email")
+      .populate("garage", "name address")
+      .populate("vehicle", "carBrand carName carPlate")
+      .populate("service", "")
+      .skip(skip)
+      .limit(limit);
+
+  // Calculate pagination metadata
+  const totalPages = Math.ceil(totalCount / limit);
+
+  return {
+    appointments,
+    pagination: {
+      currentPage: page,
+      totalPages,
+      pageSize: limit,
+      totalCount,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1
+    }
+  };
+};
 export const getAppointmentByIdService = async (appointmentId) => {
   return await Appointment.findById(appointmentId)
     .populate("user", "avatar name email locale phone") // Select basic user information
@@ -587,45 +616,108 @@ export const getAppointmentByIdService = async (appointmentId) => {
     .populate("assignedStaff", "name avatar"); // Add staff information
 };
 
-export const getAppointmentsByVehicleService = async (vehicleId, userId) => {
+export const getAppointmentsByVehicleService = async (vehicleId, userId, page = 1, limit = 10) => {
+  // Validate page and limit parameters
+  page = parseInt(page);
+  limit = parseInt(limit);
+  if (isNaN(page) || page < 1) page = 1;
+  if (isNaN(limit) || limit < 1) limit = 10;
+
   // Check if the vehicle exists
   const vehicle = await Vehicle.findById(vehicleId);
   if (!vehicle) {
     throw new Error("Vehicle not found");
   }
+
   if (vehicle.carOwner.toString() !== userId) {
     throw new Error("Unauthorized - Vehicle doesn't belong to this user");
   }
 
-  // Find only completed appointments for this vehicle
-  return await Appointment.find({
+  // Calculate skip value for pagination
+  const skip = (page - 1) * limit;
+
+  // Get total count for pagination metadata
+  const totalCount = await Appointment.countDocuments({
+    vehicle: vehicleId,
+    status: "Completed" // Only count completed appointments
+  });
+
+  // Find only completed appointments for this vehicle with pagination
+  const appointments = await Appointment.find({
     vehicle: vehicleId,
     status: "Completed", // Only return completed appointments
   })
-    .populate("user", "name email avatar")
-    .populate("garage", "name address")
-    .populate({
-      path: "vehicle",
-      select: "carBrand carName carPlate",
-      populate: {
-        path: "carBrand",
-        select: "brandName logo",
-      },
-    })
-    .populate("service", "name price duration")
-    .populate("assignedStaff", "name avatar");
-};
+      .populate("user", "name email avatar")
+      .populate("garage", "name address")
+      .populate({
+        path: "vehicle",
+        select: "carBrand carName carPlate",
+        populate: {
+          path: "carBrand",
+          select: "brandName logo",
+        },
+      })
+      .populate("service", "name price duration")
+      .populate("assignedStaff", "name avatar")
+      .skip(skip)
+      .limit(limit);
 
-export const getAppointmentsByGarageService = async (garageId) => {
+  // Calculate pagination metadata
+  const totalPages = Math.ceil(totalCount / limit);
+
+  return {
+    appointments,
+    pagination: {
+      currentPage: page,
+      totalPages,
+      pageSize: limit,
+      totalCount,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1
+    }
+  };
+};
+export const getAppointmentsByGarageService = async (garageId, page = 1, limit = 10) => {
+  // Validate page and limit parameters
+  page = parseInt(page);
+  limit = parseInt(limit);
+  if (isNaN(page) || page < 1) page = 1;
+  if (isNaN(limit) || limit < 1) limit = 10;
+
   const garage = await Garage.findById(garageId);
   if (!garage) {
     throw new Error("Garage not found");
   }
-  return await Appointment.find({ garage: garageId })
-    .populate("user", "name email avatar address") // Select basic user information
-    .populate("garage", "name address") // Select basic garage information
-    .populate("vehicle", "carBrand carName carPlate") // Select basic vehicle information
-    .populate("service"); // Populate service details
+
+  // Calculate skip value for pagination
+  const skip = (page - 1) * limit;
+
+  // Get total count for pagination metadata
+  const totalCount = await Appointment.countDocuments({ garage: garageId });
+
+  // Get paginated appointments
+  const appointments = await Appointment.find({ garage: garageId })
+      .populate("user", "name email avatar address")
+      .populate("garage", "name address")
+      .populate("vehicle", "carBrand carName carPlate")
+      .populate("service")
+      .skip(skip)
+      .limit(limit);
+
+  // Calculate pagination metadata
+  const totalPages = Math.ceil(totalCount / limit);
+
+  return {
+    appointments,
+    pagination: {
+      currentPage: page,
+      totalPages,
+      pageSize: limit,
+      totalCount,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1
+    }
+  };
 };
 
 export const confirmAppointmentService = async (appointmentId, userId) => {
@@ -1340,6 +1432,77 @@ export const getAcceptedAppointmentsService = async (userId, garageId) => {
     .populate("garage", "name address")
     .populate("vehicle", "carBrand carName carPlate")
     .populate("service");
+};
+
+
+//Filter all type appointment
+export const getFilteredAppointmentsService = async (filters = {}, page = 1, limit = 10) => {
+  // Validate page and limit parameters
+  page = parseInt(page);
+  limit = parseInt(limit);
+  if (isNaN(page) || page < 1) page = 1;
+  if (isNaN(limit) || limit < 1) limit = 10;
+
+  // Build query based on provided filters
+  const query = {};
+
+  // Add entity filters
+  if (filters.userId) query.user = filters.userId;
+  if (filters.garageId) query.garage = filters.garageId;
+  if (filters.vehicleId) query.vehicle = filters.vehicleId;
+
+  // // Add status filter
+  // if (filters.status) {
+  //   const statusList = filter.status.split(',');
+  //   query.status = { $in: statusList };
+  // }
+  // Add status filter
+  if (filters.status && filters.status !== 'all') {
+    // Chia theo dấu cách hoặc dấu phẩy
+    const statusList = filters.status.split(/[\s,]+/);
+    // Lọc những status nằm trong mảng
+    query.status = { $in: statusList };
+  }
+
+
+  // Calculate skip value for pagination
+  const skip = (page - 1) * limit;
+
+  // Get total count for pagination metadata
+  const totalCount = await Appointment.countDocuments(query);
+
+  // Get paginated appointments
+  const appointments = await Appointment.find(query)
+      .populate("user", "name email avatar address")
+      .populate("garage", "name address")
+      .populate({
+        path: "vehicle",
+        select: "carBrand carName carPlate",
+        populate: {
+          path: "carBrand",
+          select: "brandName logo",
+        },
+      })
+      .populate("service", "name price duration")
+      .populate("assignedStaff", "name avatar")
+      .sort({ start: -1 }) // Sort by appointment date, newest first
+      .skip(skip)
+      .limit(limit);
+
+  // Calculate pagination metadata
+  const totalPages = Math.ceil(totalCount / limit);
+
+  return {
+    appointments,
+    pagination: {
+      currentPage: page,
+      totalPages,
+      pageSize: limit,
+      totalCount,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1
+    }
+  };
 };
 
 export const cancelAppointmentService = async (appointmentId, userId) => {

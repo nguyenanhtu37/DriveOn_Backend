@@ -1,4 +1,11 @@
 import * as appointmentService from "../service/appointmentService.js";
+import Vehicle
+  from "../models/vehicle.js";
+
+import Garage
+  from "../models/garage.js";
+
+
 
 export const createAppointment = async (req, res) => {
   const userId = req.user.id;
@@ -25,34 +32,43 @@ export const createAppointment = async (req, res) => {
 
 export const getAppointmentsByUser = async (req, res) => {
   const userId = req.user.id; // Get userId from token
+  const { page, limit } = req.query;
+
   try {
-    const appointments = await appointmentService.getAppointmentsByUserService(
-      userId
+    const result = await appointmentService.getAppointmentsByUserService(
+        userId,
+        page,
+        limit
     );
-    res.status(200).json(appointments);
+    res.status(200).json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
+
 export const getAppointmentsByVehicle = async (req, res) => {
   const { vehicleId } = req.params;
-  const userId = req.user.id; // Get userId from token
+  const { page, limit } = req.query;
+  const userId = req.user.id;
 
   try {
-    const appointments =
-      await appointmentService.getAppointmentsByVehicleService(
+    const result = await appointmentService.getAppointmentsByVehicleService(
         vehicleId,
-        userId
-      );
-    res.status(200).json(appointments);
+        userId,
+        page,
+        limit
+    );
+    res.status(200).json(result);
   } catch (err) {
     if (err.message === "Vehicle not found") {
       return res.status(404).json({ message: "Vehicle not found" });
     }
+    if (err.message.includes("Unauthorized")) {
+      return res.status(403).json({ message: err.message });
+    }
     res.status(500).json({ error: err.message });
   }
 };
-
 export const getAppointmentById = async (req, res) => {
   const { appointmentId } = req.params;
   try {
@@ -70,10 +86,15 @@ export const getAppointmentById = async (req, res) => {
 
 export const getAppointmentsByGarage = async (req, res) => {
   const { garageId } = req.params;
+  const { page, limit } = req.query;
+
   try {
-    const appointments =
-      await appointmentService.getAppointmentsByGarageService(garageId);
-    res.status(200).json(appointments);
+    const result = await appointmentService.getAppointmentsByGarageService(
+        garageId,
+        page,
+        limit
+    );
+    res.status(200).json(result);
   } catch (err) {
     if (err.message === "Garage not found") {
       return res.status(404).json({ message: "Garage not found" });
@@ -81,7 +102,6 @@ export const getAppointmentsByGarage = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
-
 export const confirmAppointment = async (req, res) => {
   const { appointmentId } = req.params;
   const userId = req.user.id;
@@ -173,7 +193,53 @@ export const getAcceptedAppointments = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+export const getFilteredAppointments = async (req, res) => {
+  const { userId, garageId, vehicleId, status } = req.query;
+  const { page, limit } = req.query;
 
+  try {
+    // Check authorization based on the filter type
+    if (garageId) {
+      // For garage appointments, verify user is staff/manager of this garage
+      const garage = await Garage.findById(garageId);
+      if (!garage) {
+        return res.status(404).json({ message: "Garage not found" });
+      }
+      if (!garage.user.includes(req.user.id) && !garage.staffs.includes(req.user.id)) {
+        return res.status(403).json({ message: "Unauthorized to view this garage's appointments" });
+      }
+    } else if (vehicleId) {
+      // For vehicle appointments, verify user owns the vehicle
+      const vehicle = await Vehicle.findById(vehicleId);
+      if (!vehicle) {
+        return res.status(404).json({ message: "Vehicle not found" });
+      }
+      if (vehicle.carOwner.toString() !== req.user.id) {
+        return res.status(403).json({ message: "Unauthorized to view this vehicle's appointments" });
+      }
+    } else {
+      // Default to user's own appointments
+      req.query.userId = req.user.id;
+    }
+
+    const filters = {
+      userId: req.query.userId,
+      garageId,
+      vehicleId,
+      status
+    };
+
+    const result = await appointmentService.getFilteredAppointmentsService(
+        filters,
+        page,
+        limit
+    );
+
+    res.status(200).json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
 export const cancelAppointment = async (req, res) => {
   const { appointmentId } = req.params;
   const userId = req.user.id;

@@ -16,7 +16,8 @@ import {
   getAppointmentsByVehicle,
   countPendingAppointmentsInHour,
   setHourlyAppointmentLimit,
-  getHourlyAppointmentLimit
+  getHourlyAppointmentLimit,
+  getFilteredAppointments
 } from "../controller/appointmentController.js";
 import { authorizeRoles } from "../middleware/authorizeRoles.js";
 
@@ -126,4 +127,10 @@ router.get(
   getHourlyAppointmentLimit
 ); // Get hourly appointment limit
 
+
+router.get(
+    "/",
+    authorizeRoles(["manager", "staff", "carowner"]),
+    getFilteredAppointments
+); // Get appointments with filters
 export default router;
