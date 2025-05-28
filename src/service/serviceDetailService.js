@@ -33,6 +33,8 @@ const addServiceDetail = async (serviceDetailData) => {
   return newServiceDetail;
 };
 
+
+
 const getServiceDetailsByGarage = async (garageId) => {
   const garageExists = await ServiceDetail.exists({ garage: garageId });
   if (!garageExists) {
@@ -40,8 +42,8 @@ const getServiceDetailsByGarage = async (garageId) => {
   }
   const serviceDetails = await ServiceDetail.find({
     garage: garageId,
+    isDeleted: false, 
   }).populate("service", "name");
-  // .populate("garage");
   const sortedServiceDetails = serviceDetails.sort((a, b) =>
     a.name.localeCompare(b.name)
   );
@@ -76,8 +78,13 @@ const deleteServiceDetail = async (serviceDetailId) => {
   return { message: "Service detail deleted successfully" };
 };
 
+
+
 export const getServiceDetailById = async (serviceDetailId) => {
-  const serviceDetail = await ServiceDetail.findById(serviceDetailId)
+  const serviceDetail = await ServiceDetail.findOne({
+    _id: serviceDetailId,
+    isDeleted: false, 
+  })
     .populate("service")
     .populate("garage", "name address phone");
 

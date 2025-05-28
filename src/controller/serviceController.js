@@ -56,10 +56,21 @@ const searchServiceByName = async (req, res) => {
   }
 };
 
+const softDeleteService = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await serviceService.softDeleteService(id);
+    res.status(200).json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 export {
   addService,
   getAllServices,
   updateService,
   deleteService,
   searchServiceByName,
+  softDeleteService
 };
