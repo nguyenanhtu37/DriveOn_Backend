@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import cors from "cors";
 import bodyParser from "body-parser";
 import cron from "node-cron";
+import downgradeExpiredGarages from "./src/config/cron.js";
 import { sendMaintenanceReminderEmails } from "./src/service/appointmentService.js";
 
 // Import Routes
@@ -23,12 +24,21 @@ import adminRoutes from "./src/routes/adminRoutes.js";
 import fcmRoutes from "./src/routes/fcmRoutes.js";
 import subscriptionRoutes from "./src/routes/subscriptionRoutes.js";
 import transactionRoutes from "./src/routes/transactionRoutes.js";
-
+import searchRoutes from "./src/routes/searchRoutes.js";
+import http from "http";
+import { initializeSocket } from "./src/libs/socket.js";
 // Load environment variables
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+app.set("trust proxy", 1);
+
+app.use((req, res, next) => {
+  // console.log("Client IP:", req.ip);
+  next();
+});
 
 // Middleware
 // app.use(express.json());
@@ -67,8 +77,18 @@ app.use((req, res, next) => {
   next();
 });
 
+const server = http.createServer(app);
+
 // Connect to Database
 connectDB();
+
+// Initialize Socket.IO
+initializeSocket(server);
+
+// khoi dong cron job:
+downgradeExpiredGarages().then(() => {
+  console.log("Initial downgrade run completed. Cron job scheduled.");
+});
 
 // Routes
 app.use("/api/auth", authRoutes);
@@ -86,6 +106,7 @@ app.use("/api/payos", payosRoutes);
 app.use("/api/subscription", subscriptionRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/transaction", transactionRoutes);
+app.use("/api/search", searchRoutes);
 
 // Test Route
 app.get("/", (req, res) => {
@@ -93,7 +114,7 @@ app.get("/", (req, res) => {
 });
 
 // Start Server
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Server is running at: http://localhost:${PORT}`);
 });
 

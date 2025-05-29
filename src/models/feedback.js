@@ -2,6 +2,12 @@ import mongoose from "mongoose";
 
 const feedbackSchema = new mongoose.Schema(
   {
+    type: {
+      type: String,
+      enum: ["general", "specific"],
+      default: "general",
+      required: true,
+    },
     rating: {
       type: Number,
       default: 0,
@@ -14,12 +20,17 @@ const feedbackSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
-    text: {
+    content: {
       type: String,
     },
-    service: {
+    appointment: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Service",
+      ref: "Appointment",
+    },
+    serviceDetail: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "ServiceDetail",
+      required: false,
     },
   },
   {

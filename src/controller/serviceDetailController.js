@@ -2,7 +2,9 @@ import * as serviceDetailService from "../service/serviceDetailService.js";
 
 const addServiceDetail = async (req, res) => {
   try {
-    const newServiceDetail = await serviceDetailService.addServiceDetail(req.body);
+    const newServiceDetail = await serviceDetailService.addServiceDetail(
+      req.body
+    );
     res.status(201).json({
       message: "Service detail added successfully",
       serviceDetail: newServiceDetail,
@@ -16,7 +18,9 @@ const addServiceDetail = async (req, res) => {
 const getServiceDetailsByGarage = async (req, res) => {
   const { garageId } = req.params;
   try {
-    const serviceDetails = await serviceDetailService.getServiceDetailsByGarage(garageId);
+    const serviceDetails = await serviceDetailService.getServiceDetailsByGarage(
+      garageId
+    );
     res.status(200).json(serviceDetails);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -26,7 +30,10 @@ const getServiceDetailsByGarage = async (req, res) => {
 const updateServiceDetail = async (req, res) => {
   const { id } = req.params;
   try {
-    const updatedServiceDetail = await serviceDetailService.updateServiceDetail(id, req.body);
+    const updatedServiceDetail = await serviceDetailService.updateServiceDetail(
+      id,
+      req.body
+    );
     res.status(200).json({
       message: "Service detail updated successfully",
       serviceDetail: updatedServiceDetail,
@@ -63,7 +70,7 @@ export const searchServices = async (req, res) => {
     const { name, location } = req.query;
 
     if (!name) {
-      return res.status(400).json({ error: "Service name is required" });
+      return res.status(400).json({ error: "Keyword is required" });
     }
 
     const services = await serviceDetailService.searchServices(name, location);
@@ -80,10 +87,15 @@ export const getEmergency = async (req, res) => {
     const { latitude, longitude } = req.query;
 
     if (!latitude || !longitude) {
-      return res.status(400).json({ error: "Latitude and longitude are required" });
+      return res
+        .status(400)
+        .json({ error: "Latitude and longitude are required" });
     }
 
-    const emergencyGarages = await serviceDetailService.getEmergency(latitude, longitude);
+    const emergencyGarages = await serviceDetailService.getEmergency(
+      latitude,
+      longitude
+    );
 
     res.status(200).json({ emergencyGarages });
   } catch (error) {
@@ -94,11 +106,43 @@ export const getEmergency = async (req, res) => {
 
 export const getServiceUsageCounts = async (req, res) => {
   try {
-    const serviceUsageCounts = await serviceDetailService.getServiceUsageCounts();
+    const serviceUsageCounts =
+      await serviceDetailService.getServiceUsageCounts();
     res.status(200).json(serviceUsageCounts);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-export { addServiceDetail, getServiceDetailsByGarage, updateServiceDetail, deleteServiceDetail };
+export const searchServicesByKeyword = async (req, res) => {
+  try {
+    const { keyword, lat, lon } = req.query;
+
+    const services = await serviceDetailService.searchServiceKeyword({
+      keyword,
+      lat,
+      lon,
+    });
+    res.status(200).json(services);
+  } catch (error) {
+    console.error("Error searching services by keyword:", error);
+    res.status(500).json({ error: "Failed to search services by keyword" });
+  }
+};
+
+export const softDeleteServiceDetail = async (req, res) => {
+  const { id } = req.params; // Lấy serviceDetailId từ URL
+  try {
+    const result = await serviceDetailService.softDeleteServiceDetail(id);
+    res.status(200).json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export {
+  addServiceDetail,
+  getServiceDetailsByGarage,
+  updateServiceDetail,
+  deleteServiceDetail,
+};

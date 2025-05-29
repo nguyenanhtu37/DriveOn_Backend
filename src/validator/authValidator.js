@@ -1,4 +1,4 @@
-import { OAuth2Client } from 'google-auth-library';
+import { OAuth2Client } from "google-auth-library";
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -7,7 +7,7 @@ export const validateLogin = (email, password) => {
   // Email validation
   if (!email) {
     errors.push("Email không được để trống");
-  } else if (typeof email !== 'string') {
+  } else if (typeof email !== "string") {
     errors.push("Email phải là chuỗi ký tự");
   } else {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -16,10 +16,10 @@ export const validateLogin = (email, password) => {
     }
   }
   // Password validation (login = email + password)
-  if (!email?.includes('@gmail.com')) {
+  if (!email?.includes("@gmail.com")) {
     if (!password) {
       errors.push("Mật khẩu không được để trống");
-    } else if (typeof password !== 'string') {
+    } else if (typeof password !== "string") {
       errors.push("Mật khẩu phải là chuỗi ký tự");
     } else if (password.length < 6 || password.length > 50) {
       errors.push("Mật khẩu phải từ 6-50 ký tự");
@@ -39,14 +39,14 @@ export const validateResetPassword = (token, newPassword) => {
   // Validate new password
   if (!newPassword) {
     errors.push("Mật khẩu mới không được để trống");
-  } else if (typeof newPassword !== 'string') {
+  } else if (typeof newPassword !== "string") {
     errors.push("Mật khẩu phải là chuỗi ký tự");
   } else {
     // Check độ dài
     if (newPassword.length < 6 || newPassword.length > 50) {
       errors.push("Mật khẩu phải từ 6-50 ký tự");
     }
-    // Check độ phức tạp 
+    // Check độ phức tạp
     // const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{6,}$/;
     // if (!passwordRegex.test(newPassword)) {
     //   errors.push("Mật khẩu phải chứa ít nhất 1 chữ hoa, 1 chữ thường và 1 số");
@@ -62,7 +62,7 @@ export const validateSignup = (userData) => {
   // Validate email
   if (!userData.email) {
     errors.push("Email không được để trống");
-  } else if (typeof userData.email !== 'string') {
+  } else if (typeof userData.email !== "string") {
     errors.push("Email phải là chuỗi ký tự");
   } else {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -73,7 +73,7 @@ export const validateSignup = (userData) => {
   // Validate password
   if (!userData.password) {
     errors.push("Mật khẩu không được để trống");
-  } else if (typeof userData.password !== 'string') {
+  } else if (typeof userData.password !== "string") {
     errors.push("Mật khẩu phải là chuỗi ký tự");
   } else if (userData.password.length < 6) {
     errors.push("Mật khẩu phải có ít nhất 6 ký tự");
@@ -81,7 +81,7 @@ export const validateSignup = (userData) => {
   // Validate name
   if (!userData.name) {
     errors.push("Tên không được để trống");
-  } else if (typeof userData.name !== 'string') {
+  } else if (typeof userData.name !== "string") {
     errors.push("Tên phải là chuỗi ký tự");
   } else if (userData.name.trim().length < 2) {
     errors.push("Tên phải có ít nhất 2 ký tự");
@@ -95,7 +95,7 @@ export const validateSignup = (userData) => {
   }
   // Validate bankAccount (nếu có)
   if (userData.bankAccount) {
-    if (typeof userData.bankAccount !== 'string') {
+    if (typeof userData.bankAccount !== "string") {
       errors.push("Số tài khoản phải là chuỗi số");
     } else if (!/^\d+$/.test(userData.bankAccount)) {
       errors.push("Số tài khoản chỉ được chứa số");
@@ -103,7 +103,7 @@ export const validateSignup = (userData) => {
   }
   // Validate bankName (nếu có)
   if (userData.bankName) {
-    if (typeof userData.bankName !== 'string') {
+    if (typeof userData.bankName !== "string") {
       errors.push("Tên ngân hàng phải là chuỗi ký tự");
     } else if (userData.bankName.trim().length < 2) {
       errors.push("Tên ngân hàng không hợp lệ");

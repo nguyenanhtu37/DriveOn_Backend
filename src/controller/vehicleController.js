@@ -1,4 +1,4 @@
-import * as vehicleService from '../service/vehicleService.js';
+import * as vehicleService from "../service/vehicleService.js";
 
 const addVehicle = async (req, res) => {
   const user = req.user;
@@ -35,8 +35,17 @@ const getVehicleById = async (req, res) => {
 const updateVehicle = async (req, res) => {
   const { id } = req.params;
   try {
-    const updatedVehicle = await vehicleService.updateVehicle(req.user.id, id, req.body);
-    res.status(200).json({ message: "Vehicle updated successfully", vehicle: updatedVehicle });
+    const updatedVehicle = await vehicleService.updateVehicle(
+      req.user.id,
+      id,
+      req.body
+    );
+    res
+      .status(200)
+      .json({
+        message: "Vehicle updated successfully",
+        vehicle: updatedVehicle,
+      });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -52,4 +61,20 @@ const deleteVehicle = async (req, res) => {
   }
 };
 
-export { addVehicle, viewVehicles, getVehicleById, updateVehicle, deleteVehicle };
+export const softDeleteVehicle = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await vehicleService.softDeleteVehicle(req.user.id, id);
+    res.status(200).json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export {
+  addVehicle,
+  viewVehicles,
+  getVehicleById,
+  updateVehicle,
+  deleteVehicle,
+};

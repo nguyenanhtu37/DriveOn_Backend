@@ -1,4 +1,5 @@
 import bcrypt from "bcryptjs";
+import createError from "http-errors";
 import jwt from "jsonwebtoken";
 import { OAuth2Client } from "google-auth-library";
 import redis from "../config/redis.js";
@@ -135,55 +136,49 @@ const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
 const signup = async (userData) => {
   validateSignup(userData);
   const { email, password, name, phone, roles, avatar } = userData;
-
   const existingUser = await User.findOne({ email });
   if (existingUser) throw new Error("Email already exists");
-
   const hashedPassword = await bcrypt.hash(password, 10);
-
   // Store only necessary info in token (no password)
   const tokenPayload = { email, name, phone, roles, avatar, hashedPassword };
   const token = jwt.sign(tokenPayload, process.env.JWT_SECRET, {
     expiresIn: "15m",
   });
-
   await redis.setex(email, 900, token); // 15 minutes
-
   const link = `${BACKEND_URL}/api/auth/verify?token=${token}`;
   await transporter.sendMail({
     from: process.env.MAIL_USER,
     to: email,
-    subject: "Xác minh đăng ký tài khoản DriveOn",
+    subject: "Verify your DriveOn account registration",
     html: `
-      <div style="font-family: Arial, sans-serif; background-color: #f4f4f7; padding: 20px; color: #333;">
-        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
-          <h2 style="color: #4F46E5; margin-bottom: 20px;">🚗 Chào mừng đến với DriveOn!</h2>
-          <p style="font-size: 16px; margin-bottom: 12px;">
-            Cảm ơn bạn đã đăng ký tài khoản tại <strong>DriveOn</strong>.
-          </p>
-          <p style="font-size: 16px; margin-bottom: 24px;">
-            Vui lòng nhấn vào nút bên dưới để xác minh tài khoản và hoàn tất quá trình đăng ký:
-          </p>
-          <div style="text-align: center; margin-bottom: 30px;">
-            <a href="${link}" style="display: inline-block; background-color: #4F46E5; color: #fff; padding: 12px 24px; border-radius: 6px; font-size: 16px; text-decoration: none; font-weight: bold;">
-              Xác minh tài khoản
-            </a>
-          </div>
-          <p style="font-size: 14px; color: #555;">
-            Nếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email này.
-          </p>
-          <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;" />
-          <p style="font-size: 13px; color: #999; text-align: center;">
-            Mọi thắc mắc vui lòng liên hệ đội ngũ hỗ trợ của chúng tôi.
-            <br/>
-            Trân trọng,<br/>
-            <strong>Đội ngũ DriveOn</strong>
-          </p>
+    <div style="font-family: Arial, sans-serif; background-color: #f4f4f7; padding: 20px; color: #333;">
+      <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+        <h2 style="color: #4F46E5; margin-bottom: 20px;">Welcome to DriveOn!</h2>
+        <p style="font-size: 16px; margin-bottom: 12px;">
+          Thank you for signing up for <strong>DriveOn</strong>.
+        </p>
+        <p style="font-size: 16px; margin-bottom: 24px;">
+          Please click the button below to verify your account and complete your registration:
+        </p>
+        <div style="text-align: center; margin-bottom: 30px;">
+          <a href="${link}" style="display: inline-block; background-color: #4F46E5; color: #fff; padding: 12px 24px; border-radius: 6px; font-size: 16px; text-decoration: none; font-weight: bold;">
+            Verify Your Account
+          </a>
         </div>
+        <p style="font-size: 14px; color: #555;">
+          If you did not make this request, you can safely ignore this email.
+        </p>
+        <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;" />
+        <p style="font-size: 13px; color: #999; text-align: center;">
+          If you have any questions, feel free to contact our support team.
+          <br/>
+          Best regards,<br/>
+          <strong>The DriveOn Team</strong>
+        </p>
       </div>
-    `,
+    </div>
+  `,
   });
-
   return { message: "Verification email sent" };
 };
 
@@ -192,12 +187,10 @@ const verifyEmail = async (token) => {
   const storedToken = await redis.get(payload.email);
   if (!storedToken || storedToken !== token)
     throw new Error("Invalid or expired token");
-
   const defaultRoles = await Role.find({
     roleName: { $in: ["carowner", "manager"] },
   });
   if (defaultRoles.length < 2) throw new Error("Default role not found");
-
   const user = new User({
     email: payload.email,
     password: payload.hashedPassword,
@@ -207,28 +200,23 @@ const verifyEmail = async (token) => {
     avatar: payload.avatar,
   });
   await user.save();
-
   await redis.del(payload.email); // Clean up token
   return { message: "Email verified successfully" };
 };
 
 const login = async (email, password, deviceToken) => {
-  validateLogin(email, password);
-
-  const user = await User.findOne({ email })
-    .populate("roles")
-    .populate("garageList");
-  if (!user) throw new Error("Invalid email or password");
-  if (user.status !== "active") throw new Error("Account is not active");
-
+  // validateLogin(email, password);
+  const user = await User.findOne({ email }).populate("roles");
+  // .populate("garageList");
+  if (!user) throw createError(401, "Invalid email or password");
+  if (user.status !== "active") throw createError(403, "Account is not active");
   if (!user.password)
-    throw new Error(
-      "Tài khoản này đã được đăng ký bằng Google. Vui lòng sử dụng đăng nhập bằng Google."
+    throw createError(
+      400,
+      "This account was created via Google. Please use the 'Sign in with Google' option to continue."
     );
-
   const isMatch = await bcrypt.compare(password, user.password);
-  if (!isMatch) throw new Error("Invalid email or password");
-
+  if (!isMatch) throw createError(401, "Invalid email or password");
   const token = jwt.sign(
     {
       id: user._id,
@@ -236,21 +224,26 @@ const login = async (email, password, deviceToken) => {
       roles: user.roles.map((role) => role.roleName),
     },
     process.env.JWT_SECRET,
-    { algorithm: "HS256", expiresIn: "1h" }
+    { algorithm: "HS256", expiresIn: "5h" }
   );
 
-  // luu deviceToken vao garage (neu co) => tim kiem theo id
-  if (deviceToken && user.garageList.length > 0) {
-    for (const garageId of user.garageList) {
-      await Garage.findByIdAndUpdate(
-        garageId,
-        { $addToSet: { deviceTokens: deviceToken } }, // chir them neu chua ton tai trong fb
-        { new: true },
-      );
+  if (user.roles.some((userRole) => userRole.roleName === "staff")) {
+    const garage = await Garage.findOne({ staffs: { $in: [user._id] } });
+
+    if (garage) {
+      return { user, token, garageId: garage._id };
     }
   }
 
-  return { user, token };
+  if (user.roles.some((userRole) => userRole.roleName === "manager")) {
+    const garage = await Garage.find({ user: user._id });
+
+    const garageListIds = garage.map((g) => g._id);
+    if (garage.length > 0) {
+      return { user, token, garageId: garageListIds };
+    }
+  }
+  return { user, token, garageId: null };
 };
 
 const requestPasswordReset = async (email) => {
@@ -271,22 +264,22 @@ const requestPasswordReset = async (email) => {
   await transporter.sendMail({
     from: process.env.MAIL_USER,
     to: email,
-    subject: "Yêu cầu đặt lại mật khẩu tài khoản DriveOn",
+    subject: "DriveOn Password Reset Request",
     html: `
   <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #f4f4f7; color: #333;">
     <div style="max-width: 600px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.05);">
-      <h2 style="color: #4F46E5;">🔐 DriveOn Password Reset</h2>
-      <p>Xin chào <strong>${user.name || user.email}</strong>,</p>
-      <p>Chúng tôi đã nhận được yêu cầu đặt lại mật khẩu cho tài khoản DriveOn của bạn.</p>
-      <p>Nhấn vào nút bên dưới để tiếp tục:</p>
+      <h2 style="color: #4F46E5;">DriveOn Password Reset</h2>
+      <p>Hello <strong>${user.name || user.email}</strong>,</p>
+      <p>We have received a request to reset the password for your DriveOn account.</p>
+      <p>Click the button below to proceed:</p>
       <div style="text-align: center; margin: 30px 0;">
         <a href="${link}" style="display: inline-block; background-color: #4F46E5; color: #fff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold;">
-          Đặt lại mật khẩu
+          Reset Password
         </a>
       </div>
-      <p>Nếu bạn không yêu cầu thao tác này, vui lòng bỏ qua email này.</p>
+      <p>If you did not request this action, please ignore this email.</p>
       <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;" />
-      <p style="font-size: 12px; color: #888;">Liên hệ DriveOn nếu bạn cần hỗ trợ thêm.</p>
+      <p style="font-size: 12px; color: #888;">Contact DriveOn if you need further assistance.</p>
     </div>
   </div>
 `,
@@ -408,14 +401,20 @@ const logout = async (token) => {
 //   }
 // };
 
-const googleLogin = async (token) => {
+const googleLogin = async (token, deviceToken) => {
+  console.log("deviceToken for loginGoogle: ", deviceToken);
   const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-  const ticket = await client.verifyIdToken({
-    idToken: token,
-    audience: process.env.GOOGLE_CLIENT_ID,
-  });
-  const payload = ticket.getPayload();
-
+  let payload;
+  try {
+    const ticket = await client.verifyIdToken({
+      idToken: token,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    payload = ticket.getPayload();
+  } catch (error) {
+    console.error("Google token verification failed:", error);
+    throw new Error("Google token verification failed.");
+  }
   const {
     email,
     name,
@@ -426,17 +425,14 @@ const googleLogin = async (token) => {
     given_name,
     family_name,
   } = payload;
-
-  let user = await User.findOne({ email, googleId })
-    .populate("roles")
-    .populate("garageList");
-
+  let user = await User.findOne({ email, googleId }).populate("roles");
+  // .populate("garageList");
+  // console.log("Garage list for user:", user.garageList);
   if (!user) {
     const defaultRoles = await Role.find({
       roleName: { $in: ["carowner", "manager"] },
     });
     if (defaultRoles.length < 2) throw new Error("Default role not found");
-
     user = new User({
       email,
       name,
@@ -453,18 +449,36 @@ const googleLogin = async (token) => {
     });
     await user.save();
   }
-
-  const jwtToken = jwt.sign(
-    {
-      id: user._id,
-      email: user.email,
-      roles: user.roles.map((role) => role.roleName),
-    },
-    process.env.JWT_SECRET,
-    { algorithm: "HS256", expiresIn: "1h" }
-  );
-
-  // return { token: jwtToken };
+  let jwtToken;
+  try {
+    jwtToken = jwt.sign(
+      {
+        id: user._id,
+        email: user.email,
+        roles: user.roles.map((role) => role.roleName),
+      },
+      process.env.JWT_SECRET,
+      { algorithm: "HS256", expiresIn: "5h" }
+    );
+  } catch (error) {
+    console.error("Error generating JWT token:", error);
+    throw new Error("Token generation failed.");
+  }
+  // Lưu deviceToken vào garage (nếu có)
+  // if (deviceToken && user.garageList.length > 0) {
+  //   for (const garageId of user.garageList) {
+  //     try {
+  //       const updatedGarage = await Garage.findByIdAndUpdate(
+  //         garageId,
+  //         { $addToSet: { deviceTokens: deviceToken } }, // Chỉ thêm nếu chưa tồn tại
+  //         { new: true }
+  //       );
+  //       console.log(`Updated garage (${garageId}):`, updatedGarage);
+  //     } catch (error) {
+  //       console.error(`Failed to update garage (${garageId}):`, error);
+  //     }
+  //   }
+  // }
   return { user, token: jwtToken };
 };
 

@@ -1,9 +1,9 @@
 import mongoose from "mongoose";
-import dotenv from 'dotenv';
+import dotenv from "dotenv";
 import Garage from "../models/garage.js";
 import * as garageService from "../service/garageService.js";
-import {client} from "../config/twilio.js";
-import twilio from 'twilio';
+import { client } from "../config/twilio.js";
+import twilio from "twilio";
 
 dotenv.config();
 
@@ -419,11 +419,20 @@ const viewAdminDashboardOverview = async (req, res) => {
 
 export const getGarageStatusCountsByMonth = async (req, res) => {
   try {
-    const statusCountsByMonth = await garageService.getGarageCountByStatusAndMonth();
+    const statusCountsByMonth =
+      await garageService.getGarageCountByStatusAndMonth();
     res.status(200).json(statusCountsByMonth);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+};
+
+export const getGarageList = async (req, res) => {
+  const garage = await garageService.getGarageList();
+  if (!garage) {
+    return res.status(404).json({ message: "Garage not found" });
+  }
+  res.status(200).json(garage);
 };
 
 export {

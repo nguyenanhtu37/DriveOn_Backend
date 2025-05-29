@@ -1,9 +1,10 @@
 import express from "express";
-import {createPaymentLink, webHook} from '../controller/payosController.js';
+import { authMiddleware } from "../middleware/authMiddleware.js";
+import { createPaymentLink, webHook } from "../controller/payosController.js";
 
 const router = express.Router();
 
-router.post('/create-payment-link', createPaymentLink);
-router.post('/webhook', webHook);
+router.post("/create-payment-link", authMiddleware, createPaymentLink);
+router.post("/webhook", webHook);
 
 export default router;

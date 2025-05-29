@@ -29,6 +29,7 @@ import {
   viewGarageRegistrationsCarOwner,
   viewDashboardOverview,
   viewDashboardChart,
+  getGarageList,
 } from "../controller/garageController.js";
 import { authorizeRoles } from "../middleware/authorizeRoles.js";
 
@@ -86,6 +87,9 @@ router.put("/:id/enable", adminMiddleware, enableGarage);
 router.put("/:id/disable", adminMiddleware, disableGarage);
 
 router.get("/viewGarage", viewGarage);
+
+router.get("/viewGarageList", getGarageList);
+
 router.get(
   "/view-all-garages-by-admin",
   adminMiddleware,

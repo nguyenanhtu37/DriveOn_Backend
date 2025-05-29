@@ -10,6 +10,16 @@ export const viewFeedbackByGarageId = async (req, res) => {
   }
 };
 
+export const viewFeedbackForGarageDetail = async (req, res) => {
+  const { id } = req.params; // garage id
+  try {
+    const feedbacks = await feedbackService.viewFeedbackForGarageDetail(id);
+    res.status(200).json(feedbacks);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 export const addFeedback = async (req, res) => {
   const userId = req.user.id;
   try {
@@ -25,11 +35,11 @@ export const addFeedback = async (req, res) => {
 
 export const updateFeedback = async (req, res) => {
   const userId = req.user.id;
-  const { id } = req.params; // feedback ID
+  const { appointmentId } = req.params; // feedback ID
   try {
     const updatedFeedback = await feedbackService.updateFeedback(
       userId,
-      id,
+      appointmentId,
       req.body
     );
     res.status(200).json({
@@ -57,6 +67,39 @@ export const deleteFeedbackByGarage = async (req, res) => {
   try {
     const result = await feedbackService.deleteFeedbackByGarage(id);
     res.status(200).json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const viewFeedbackByServiceDetailInGarage = async (req, res) => {
+  const { serviceDetailId } = req.params;
+  try {
+    const feedbacks = await feedbackService.getFeedbackByServiceDetailInGarage(
+      serviceDetailId
+    );
+    res.status(200).json(feedbacks);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const addMultiFeedback = async (req, res) => {
+  try {
+    const results = await feedbackService.addFeedback(req.user.id, req.body);
+    res.status(200).json(results);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
+export const getFeedbackByAppointmentId = async (req, res) => {
+  const { appointmentId } = req.params;
+  try {
+    const feedbacks = await feedbackService.getFeedbackByAppointmentId(
+      appointmentId
+    );
+    res.status(200).json(feedbacks);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

@@ -24,6 +24,7 @@ import { sendMultipleNotifications } from "./fcmService.js";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 import timezone from "dayjs/plugin/timezone.js";
+import Favorite from "../models/favorite.js";
 
 const registerGarage = async (user, garageData) => {
   console.log(garageData);
@@ -272,10 +273,11 @@ const addStaff = async (userId, garageId, staffData) => {
     if (!garage.user.includes(userId)) {
       throw new Error("Unauthorized");
     }
+
     const { name, email, phone, password } = staffData;
     const hashedPassword = await bcrypt.hash(password, 10);
     const defaultRole = await Role.findOne({ roleName: "staff" });
-    console.log("defaultRole: ", defaultRole._id);
+
     const newUser = new User({
       name,
       email,
@@ -283,11 +285,15 @@ const addStaff = async (userId, garageId, staffData) => {
       password: hashedPassword,
       roles: [defaultRole._id],
       status: "active",
-      garageList: garageId,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      // Removing garageList field as it's not in your schema
     });
     await newUser.save();
+
+    // Add staff to garage.staffs array
+    await Garage.findByIdAndUpdate(garageId, {
+      $push: { staffs: newUser._id },
+    });
+
     return newUser;
   } catch (err) {
     console.error("Error adding staff:", err.message);
@@ -296,19 +302,21 @@ const addStaff = async (userId, garageId, staffData) => {
 };
 
 const viewStaff = async (userId, garageId) => {
-  console.log("userId: ", userId);
-  console.log("garageId: ", garageId);
   const garage = await Garage.findById(garageId);
-  if (!garage.user.includes(userId)) {
-    throw new Error("Unauthorized");
-  }
   if (!garage) {
     throw new Error("Garage not found");
   }
+
+  if (!garage.user.includes(userId)) {
+    throw new Error("Unauthorized");
+  }
+
+  // Get all users in the staffs array
   const staffList = await User.find({
-    garageList: garageId,
-    roles: "67b60df8c465fe4f943b98cc",
+    _id: { $in: garage.staffs },
+    roles: "67b60df8c465fe4f943b98cc", // Staff role ID
   });
+
   return staffList;
 };
 
@@ -327,16 +335,25 @@ const disableStaff = async (userId, garageId, staffId) => {
     if (!garage) {
       throw new Error("Garage not found");
     }
+
     if (!garage.user.includes(userId)) {
       throw new Error("Unauthorized");
     }
+
+    // Check if staff is associated with this garage
+    if (!garage.staffs.includes(staffId)) {
+      throw new Error("Staff not associated with this garage");
+    }
+
     const user = await User.findById(staffId);
     if (!user) {
       throw new Error("User not found");
     }
+
     user.status = "inactive";
-    user.updatedAt = new Date();
+    // timestamps will automatically update updatedAt
     await user.save();
+
     return user;
   } catch (err) {
     console.error("Error disabling staff:", err.message);
@@ -350,16 +367,25 @@ const enableStaff = async (userId, garageId, staffId) => {
     if (!garage) {
       throw new Error("Garage not found");
     }
+
     if (!garage.user.includes(userId)) {
       throw new Error("Unauthorized");
     }
+
+    // Check if staff is associated with this garage
+    if (!garage.staffs.includes(staffId)) {
+      throw new Error("Staff not associated with this garage");
+    }
+
     const user = await User.findById(staffId);
     if (!user) {
       throw new Error("User not found");
     }
+
     user.status = "active";
-    user.updatedAt = new Date();
+    // timestamps will automatically update updatedAt
     await user.save();
+
     return user;
   } catch (err) {
     console.error("Error enabling staff:", err.message);
@@ -373,10 +399,17 @@ const getStaffById = async (garageId, staffId) => {
     if (!garage) {
       throw new Error("Garage not found");
     }
+
+    // Check if staff is associated with this garage
+    if (!garage.staffs.includes(staffId)) {
+      throw new Error("Staff not associated with this garage");
+    }
+
     const staff = await User.findById(staffId);
-    if (!staff || !staff.garageList.includes(garageId)) {
+    if (!staff) {
       throw new Error("Staff not found");
     }
+
     return staff;
   } catch (err) {
     console.error("Error getting staff by ID:", err.message);
@@ -390,12 +423,15 @@ const enableGarage = async (garageId) => {
     if (!garage) {
       throw new Error("Garage not found");
     }
+
     if (!garage.status.includes("enabled")) {
       garage.status = garage.status.filter((status) => status !== "disabled");
       garage.status.push("enabled");
     }
-    garage.updatedAt = new Date();
+
+    // timestamps will automatically update updatedAt
     await garage.save();
+
     return garage;
   } catch (err) {
     console.error("Error enabling garage:", err.message);
@@ -409,12 +445,15 @@ const disableGarage = async (garageId) => {
     if (!garage) {
       throw new Error("Garage not found");
     }
+
     if (!garage.status.includes("disabled")) {
       garage.status = garage.status.filter((status) => status !== "enabled");
       garage.status.push("disabled");
     }
-    garage.updatedAt = new Date();
+
+    // timestamps will automatically update updatedAt
     await garage.save();
+
     return garage;
   } catch (err) {
     console.error("Error disabling garage:", err.message);
@@ -536,23 +575,24 @@ export const findGarages = async ({
       status: { $in: ["approved", "enabled"] },
     });
 
-    const enhancedGarages = [];
-    for (const garage of garages) {
-      const enhancedGarage = await enhanceGarageInfo(
-        garage,
-        address,
-        openTime,
-        closeTime,
-        operatingDaysArray
-      );
-      if (enhancedGarage.isOpen && enhancedGarage.distance <= distance) {
-        enhancedGarages.push(enhancedGarage);
-      }
-    }
+    const enhancedGarages = await Promise.all(
+      garages.map((garage) =>
+        enhanceGarageInfo(
+          garage,
+          address,
+          openTime,
+          closeTime,
+          operatingDaysArray
+        )
+      )
+    );
 
-    enhancedGarages.sort(compareGarages);
+    const filteredGarages = enhancedGarages.filter(
+      (g) => g.isOpen && g.distance <= distance
+    );
 
-    return enhancedGarages;
+    filteredGarages.sort(compareGarages);
+    return filteredGarages;
   } catch (error) {
     throw new Error("Lỗi khi tìm garage: " + error.message);
   }
@@ -566,8 +606,8 @@ const enhanceGarageInfo = async (
   userCloseTime,
   userOperatingDays
 ) => {
-  const garageAddress = garage.address;
-  const distance = await getDistancesToGarages(userAddress, garageAddress);
+  const distanceResult = await getDistancesToGarages(userAddress, [garage]);
+  const distance = distanceResult[0]?.distance || null;
 
   return {
     ...garage.toObject(),
@@ -685,6 +725,8 @@ const viewGaragesWithSearchParams = async ({
   closeTime,
   distance,
   currentLocation,
+  page = 1,
+  limit = 10,
 }) => {
   try {
     const query = { status: { $in: ["enabled"] } };
@@ -696,14 +738,13 @@ const viewGaragesWithSearchParams = async ({
     if (tag) query.tag = tag;
 
     if (openTime && closeTime) {
-      query.$and = [
-        { openTime: { $lte: openTime } },
-        { closeTime: { $gte: closeTime } },
-      ];
+      query.$and = [];
+      query.$and.push({ openTime: { $lte: openTime } });
+      query.$and.push({ closeTime: { $gte: closeTime } });
     }
 
     if (province || district) {
-      query.$and = [];
+      if (!query.$and) query.$and = [];
       if (province)
         query.$and.push({ address: { $regex: new RegExp(province, "i") } });
       if (district) {
@@ -727,33 +768,43 @@ const viewGaragesWithSearchParams = async ({
     }
 
     if (currentLocation && distance && garages.length > 0) {
-      const destinations = garages
-        .map(
-          (garage) =>
-            `${garage.location.coordinates[1]},${garage.location.coordinates[0]}`
-        )
-        .join("|");
-
-      const apiUrl = `https://api.distancematrix.ai/maps/api/distancematrix/json?origins=${currentLocation}&destinations=${destinations}&key=tHo8T5FZ6V3hHtK3Z0QDuCtlRiEkTxyrHOVyUJCzyD8kiNo2zzi1QBA0nMnBPgvh`;
-
-      const response = await axios.get(apiUrl);
-
-      if (response.data.status !== "OK") {
+      const [lat, lng] = currentLocation
+        .split(",")
+        .map((coord) => parseFloat(coord));
+      if (isNaN(lat) || isNaN(lng)) {
         throw new Error(
-          response.data.error_message || "Error fetching distances"
+          "Invalid location format. Expected 'latitude,longitude'"
         );
       }
 
-      const distances = response.data.rows[0].elements.map(
-        (element) => element.distance.value / 1000
-      );
+      const point = [lng, lat];
 
+      const nearbyGarages = await Garage.aggregate([
+        {
+          $geoNear: {
+            near: { type: "Point", coordinates: point },
+            distanceField: "distance",
+            maxDistance: distance * 1000,
+            spherical: true,
+            distanceMultiplier: 0.001,
+          },
+        },
+        {
+          $match: {
+            _id: { $in: garages.map((g) => g._id) },
+          },
+        },
+      ]);
+
+      const garageMap = new Map(
+        nearbyGarages.map((g) => [g._id.toString(), g.distance])
+      );
       garages = garages
-        .map((garage, index) => ({
-          ...garage.toObject(),
-          distance: distances[index],
-        }))
-        .filter((garage) => garage.distance <= distance);
+        .filter((g) => garageMap.has(g._id.toString()))
+        .map((g) => ({
+          ...g.toObject(),
+          distance: garageMap.get(g._id.toString()),
+        }));
     }
 
     garages.sort((a, b) => {
@@ -762,7 +813,23 @@ const viewGaragesWithSearchParams = async ({
       if (a.tag !== "pro" && b.tag === "pro") return 1;
       return 0;
     });
-    return garages;
+
+    // Calculate pagination metadata
+    const totalItems = garages.length;
+    const totalPages = Math.ceil(totalItems / limit);
+
+    // Apply pagination
+    const paginatedGarages = garages.slice((page - 1) * limit, page * limit);
+
+    return {
+      garages: paginatedGarages,
+      pagination: {
+        totalItems,
+        totalPages,
+        currentPage: parseInt(page),
+        limit: parseInt(limit),
+      },
+    };
   } catch (err) {
     console.error("Error in viewGaragesWithSearchParams:", err.message);
     throw new Error(err.message);
@@ -799,21 +866,13 @@ export const findRescueGarages = async (latitude, longitude) => {
             Object.keys(Garage.schema.paths).map((key) => [key, 1])
           ),
           deviceTokens: 1,
+          distance: 1,
         },
       },
     ]);
-    console.log("Garage from DB: ", garages);
 
-    /*
-    Từ kết quả phía trên, tiếp tục check để giữ lại garage nào đang mở thôi, còn đóng thì khỏi
-    Cách check: lấy thời gian hiện tại mà người dùng gọi cứu hộ
-    Ngày hoạt động của garage operating_days include ngày hiện tại mà người dùng check => hợp lệ. else loại
-    Giờ mở cửa của garage <= giờ hiện tại người dùng gọi cứu hộ < giờ đóng cửa của garage => hợp lệ. Ko thì loại
-    */
-    
     dayjs.extend(utc);
     dayjs.extend(timezone);
-
     // Lấy giờ VN
     const currentHour = dayjs().tz("Asia/Ho_Chi_Minh").hour();
     const currentDay = dayjs().tz("Asia/Ho_Chi_Minh").format("dddd");
@@ -823,12 +882,10 @@ export const findRescueGarages = async (latitude, longitude) => {
     const openGarages = garages.filter((garage) => {
       try {
         if (!garage.openTime || !garage.closeTime) return false;
-
         const openHour = parseInt(garage.openTime.split(":")[0], 10);
         const closeHour = parseInt(garage.closeTime.split(":")[0], 10) || 24;
         console.log("openHour: ", openHour);
         console.log("closeHour: ", closeHour);
-
         return (
           Array.isArray(garage.operating_days) &&
           garage.operating_days.includes(currentDay) &&
@@ -839,88 +896,40 @@ export const findRescueGarages = async (latitude, longitude) => {
         return false;
       }
     });
-    // console.log("openGarages: ", openGarages);
 
-    /*
-    Tìm xem garage nào có dịch vụ thì ưu tiên lên đầu. Tổng sẽ hiển thị ra cho user chọn 10 garages.
-    Đang khẩn cấp mà cho 1 cái list cả mấy chục cái garage thì lú. Nên giới hạn 10 cái thôi.
-    Trong trường hợp db ko đủ data (cái này thì phải chuẩn bị data ko bị sấy),
-    hoặc user đang ở ngoại thành, ví dụ có đủ 10 garage đi, nhưng chỉ có 6 garage cứu hộ
-    => 6 garage cứu hộ đó được hiển thị trước. phần thiếu thì lấy garage KO có cứu hộ bù vô
-    */
-    const emergencyService = await Service.findOne({ name: "Dịch vụ cứu hộ" });
-    if (!emergencyService) throw new Error("Emergency service not found");
+    const emergencyService = await Service.findOne({
+      name: "Emergency",
+      isDeleted: false,
+    });
+    if (!emergencyService) throw new Error("Không tìm thấy dịch vụ cứu hộ");
 
     const emergencyServiceDetails = await ServiceDetail.find({
       service: emergencyService._id,
+      isDeleted: false,
     }).select("garage");
 
     const emergencyGarageIds = emergencyServiceDetails.map((d) =>
       d.garage.toString()
     );
 
-    // Gắn thêm response để return về, cho phía FE xử lý
     const garagesWithFlag = openGarages.map((garage) => ({
       ...garage,
       hasEmergency: emergencyGarageIds.includes(garage._id.toString()),
     }));
 
-    /*
-    Sort:
-    Trong phạm vi 50km, đang mở:
-    CCó dịch vụ cứu hộ:
-      Tất cả garage pro lên đầu
-        Nhiều hơn 1 garage pro => distance gần hơn lên trước, xa hơn ra sau
-          Nhiều hơn 1 garage pro có distance bằng nhau, rating cao lên trước, thấp ra sau
-      Tất cả garage KO PHẢI pro, ra sau
-        Nhiều hơn 1 garage bth => distance gần hơn lên trước, xa hơn ra sau
-          Nhiều hơn 1 garage bth có distance bằng nhau, rating cao lên trước, thấp ra sau
-    KO CÓ dịch vụ cứu hộ (trong trường hợp ko đủ 10 garage cứu hộ):
-      Tất cả garage pro lên đầu
-        Nhiều hơn 1 garage pro => distance gần hơn lên trước, xa hơn ra sau
-          Nhiều hơn 1 garage pro có distance bằng nhau, rating cao lên trước, thấp ra sau
-      Tất cả garage KO PHẢI pro, ra sau
-        Nhiều hơn 1 garage bth => distance gần hơn lên trước, xa hơn ra sau
-          Nhiều hơn 1 garage bth có distance bằng nhau, rating cao lên trước, thấp ra sau
-    */
     const sortedGarages = garagesWithFlag.sort((a, b) => {
       if (a.hasEmergency && !b.hasEmergency) return -1;
       if (!a.hasEmergency && b.hasEmergency) return 1;
-
       if (a.tag === "pro" && b.tag !== "pro") return -1;
       if (a.tag !== "pro" && b.tag === "pro") return 1;
-
       if (a.distance !== b.distance) return a.distance - b.distance;
       return b.ratingAverage - a.ratingAverage;
     });
 
-    // Lấy top 10 garage
-    const topGarages = sortedGarages.slice(0, 10);
-    // console.log("Top garages with emergency: ", JSON.stringify(topGarages, null, 2));
-
-    const deviceTokens = topGarages.flatMap(
-      (garage) => garage.deviceTokens || []
-    );
-
-    if (deviceTokens.length > 0) {
-      // gui th bao den cac garage
-      const title = "Yêu cầu cứu hộ";
-      const body = "Có yêu cầu cứu hộ gần garage của bạn.";
-      const notificationResponse = await sendMultipleNotifications(
-        deviceTokens,
-        title,
-        body
-      );
-
-      console.log("Notification response: ", notificationResponse);
-    } else {
-      console.log("No device tokens found for the top garages.");
-    }
-
-    return topGarages;
+    return sortedGarages.slice(0, 10);
   } catch (error) {
     console.error("Error in findRescueGarages:", error.message);
-    throw new Error("Failed to find rescue garages");
+    throw new Error(error.message || "Không thể tìm garage cứu hộ");
   }
 };
 
@@ -964,8 +973,8 @@ const viewDashboardChart = async (garageId, userId) => {
       },
       {
         $project: {
-          year: { $year: "$createdAt" },
-          month: { $month: "$createdAt" },
+          year: { $year: "$end" },
+          month: { $month: "$end" },
         },
       },
       {
@@ -1102,6 +1111,69 @@ export const getGarageCountByStatusAndMonth = async () => {
   }
 };
 
+const getGarageList = async () => {
+  const garagePros = await Garage.find({ tag: "pro" });
+  const topFavoritesAgg = await Favorite.aggregate([
+    { $group: { _id: "$garage", count: { $sum: 1 } } },
+    {
+      $lookup: {
+        from: "garages",
+        localField: "_id",
+        foreignField: "_id",
+        as: "garage",
+      },
+    },
+    { $unwind: "$garage" },
+    {
+      $replaceRoot: { newRoot: "$garage" },
+    },
+    // Add fields for sorting
+    {
+      $addFields: {
+        isPro: { $cond: [{ $eq: ["$tag", "pro"] }, 1, 0] },
+      },
+    },
+    // Sort: pro first, then by ratingAverage desc
+    {
+      $sort: { isPro: -1, ratingAverage: -1 },
+    },
+    { $limit: 10 },
+  ]);
+  const topFavorites = topFavoritesAgg;
+
+  const topRated = await Garage.find().sort({ ratingAverage: -1 }).limit(10);
+
+  const mostBooked = await Appointment.aggregate([
+    { $group: { _id: "$garage", count: { $sum: 1 } } },
+    {
+      $lookup: {
+        from: "garages",
+        localField: "_id",
+        foreignField: "_id",
+        as: "garage",
+      },
+    },
+    { $unwind: "$garage" },
+    {
+      $addFields: {
+        isPro: { $cond: [{ $eq: ["$garage.tag", "pro"] }, 1, 0] },
+        ratingAverage: "$garage.ratingAverage",
+      },
+    },
+    // Sort: pro first, then by ratingAverage desc, then by most booked
+    { $sort: { isPro: -1, ratingAverage: -1, count: -1 } },
+    { $replaceRoot: { newRoot: "$garage" } },
+    { $limit: 10 },
+  ]);
+
+  return {
+    garagePros,
+    topFavorites,
+    topRated,
+    mostBooked,
+  };
+};
+
 export {
   registerGarage,
   viewGarages,
@@ -1125,4 +1197,5 @@ export {
   viewGarageRegistrationsCarOwner,
   viewDashboardOverview,
   viewDashboardChart,
+  getGarageList,
 };

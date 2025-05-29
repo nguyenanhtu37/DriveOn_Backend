@@ -1,3 +1,4 @@
+import Appointment from "../models/appointment.js";
 import Feedback from "../models/feedback.js";
 import Garage from "../models/garage.js";
 import Service from "../models/service.js";
@@ -6,92 +7,103 @@ import {
   validateUpdateFeedback,
 } from "../validator/feedbackValidator.js";
 
-export const addFeedback = async (userId, feedbackData) => {
-  validateAddFeedback(feedbackData);
+// export const addFeedback = async (userId, feedbackData) => {
+//   validateAddFeedback(feedbackData);
 
-  const { garage, rating, text, service } = feedbackData;
+//   const { garage, rating, content, appointment, serviceDetail } = feedbackData;
 
-  // Check xem garage ni có exist ko
-  const garageExists = await Garage.findById(garage);
-  if (!garageExists) {
-    throw new Error("Garage ID does not exist");
-  }
+//   const appointmentData = await Appointment.findById(appointment);
+//   if (!appointmentData) throw new Error("Appointment not found");
+//   if (appointmentData.user.toString() !== userId)
+//     throw new Error("You are not authorized to provide feedback for this appointment");
+//   if (appointmentData.status !== "Completed")
+//     throw new Error("You can only provide feedback for completed appointments");
 
-  // check service system có exist ko
-  if (service) {
-    const serviceExists = await Service.findById(service);
-    if (!serviceExists) {
-      throw new Error("Service ID does not exist");
-    }
-  }
+//   const garageExists = await Garage.findById(garage);
+//   if (!garageExists) throw new Error("Garage ID does not exist");
 
-  const newFeedback = new Feedback({
-    user: userId,
-    garage,
-    rating,
-    text,
-    service,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  });
+//   if (!appointmentData.service.map(id => id.toString()).includes(serviceDetail))
+//     throw new Error("This service was not used in the appointment");
 
-  await newFeedback.save();
+//   // Kiểm tra đã feedback ch (mỗi carowner chỉ feedback 1 lần cho 1 service trong 1 appointment)
+//   const existed = await Feedback.findOne({ user: userId, appointment, serviceDetail });
+//   if (existed) throw new Error("You have already given feedback for this service in this appointment");
 
-  // rating trung bình cho garage
-  const feedbacks = await Feedback.find({ garage });
+//   const newFeedback = new Feedback({
+//     user: userId,
+//     garage,
+//     rating,
+//     content,
+//     appointment,
+//     serviceDetail,
+//     createdAt: new Date(),
+//     updatedAt: new Date(),
+//   });
 
-  const averageRating =
-    feedbacks.reduce((acc, feedback) => acc + feedback.rating, 0) /
-      feedbacks.length || 0;
+//   await newFeedback.save();
 
-  garageExists.ratingAverage = Math.round(averageRating * 10) / 10;
-  await garageExists.save();
+//   // Cập nhật rating trung bình cho garage
+//   const feedbacks = await Feedback.find({ garage });
+//   const averageRating =
+//     feedbacks.reduce((acc, feedback) => acc + feedback.rating, 0) / (feedbacks.length || 1);
 
-  return newFeedback;
-};
+//   garageExists.ratingAverage = Math.round(averageRating * 10) / 10;
+//   await garageExists.save();
+
+//   return newFeedback;
+// };
 
 export const getFeedbackByGarageId = async (garageId) => {
   try {
-    const feedbacks = await Feedback.find({ garage: garageId })
+    const feedbacks = await Feedback.find({ garage: garageId, type: "general" })
       .populate("user", "name avatar")
-      .populate("garage", "name");
+      // .populate("garage", "name")
+      .populate({
+        path: "appointment",
+        select: "start end service vehicle",
+        populate: [
+          { path: "service", select: "name" },
+          { path: "vehicle", select: "carName carPlate" },
+        ],
+      });
+
     return feedbacks;
   } catch (err) {
     throw new Error(err.message);
   }
 };
 
-export const updateFeedback = async (userId, feedbackId, updateData) => {
-  validateUpdateFeedback(updateData);
-  const { rating, text } = updateData;
+export const viewFeedbackForGarageDetail = async (garageId) => {
+  try {
+    const feedbacks = await Feedback.find({ garage: garageId, type: "general" })
+      .populate("user", "name avatar")
+      // .populate("garage", "name")
+      .populate({
+        path: "appointment",
+        select: "start end service vehicle",
+        populate: [
+          { path: "service", select: "name" },
+          { path: "vehicle", select: "carName carPlate" },
+        ],
+      });
 
-  const feedback = await Feedback.findById(feedbackId);
-  if (!feedback) {
-    throw new Error("Feedback not found");
+    return feedbacks;
+  } catch (err) {
+    throw new Error(err.message);
+  }
+};
+
+export const updateFeedback = async (userId, appointmentId, updateData) => {
+  const feedbacks = await Feedback.find({ appointment: appointmentId });
+  if (feedbacks.length === 0) {
+    throw new Error("No feedback found for this appointment");
+  }
+  // remove feedback
+  for (const feedback of feedbacks) {
+    await feedback.deleteOne();
   }
 
-  if (feedback.user.toString() !== userId) {
-    throw new Error("Unauthorized");
-  }
-  feedback.rating = rating !== undefined ? rating : feedback.rating;
-  feedback.text = text !== undefined ? text : feedback.text;
-  feedback.updatedAt = new Date();
-
-  await feedback.save();
-
-  // Cập nhật rating trung bình cho garage
-  const feedbacks = await Feedback.find({ garage: feedback.garage });
-  const averageRating =
-    feedbacks.reduce((acc, feedback) => acc + feedback.rating, 0) /
-      feedbacks.length || 0;
-
-  const garage = await Garage.findById(feedback.garage);
-  if (garage) {
-    garage.ratingAverage = Math.round(averageRating * 10) / 10;
-    await garage.save();
-  }
-
-  return feedback;
+  return await addFeedback(userId, updateData);
 };
 
 export const deleteFeedback = async (userId, feedbackId) => {
@@ -150,5 +162,99 @@ export const deleteFeedbackByGarage = async (feedbackId) => {
   if (garage) {
     garage.ratingAverage = Math.round(averageRating * 10) / 10;
     await garage.save();
+  }
+};
+
+export const getFeedbackByServiceDetailInGarage = async (serviceDetailId) => {
+  try {
+    const feedbacks = await Feedback.find({
+      serviceDetail: serviceDetailId,
+      type: "specific",
+    })
+      .populate("user", "name avatar")
+      .populate("serviceDetail", "name price duration")
+      .populate({
+        path: "appointment",
+        select: "start end service vehicle",
+        populate: [{ path: "service", select: "name" }],
+      });
+
+    return feedbacks;
+  } catch (err) {
+    throw new Error(err.message);
+  }
+};
+
+export const addFeedback = async (userId, feedbackData) => {
+  const { type, garage, appointment, specific, rating, content } = feedbackData;
+
+  // Ktra appointment
+  const appointmentData = await Appointment.findById(appointment);
+  if (!appointmentData) throw new Error("Appointment not found");
+  if (appointmentData.user.toString() !== userId)
+    throw new Error(
+      "You are not authorized to provide feedback for this appointment"
+    );
+  if (appointmentData.status !== "Completed")
+    throw new Error("You can only provide feedback for completed appointments");
+
+  // Ktra garage
+  const garageExists = await Garage.findById(garage);
+  if (!garageExists) throw new Error("Garage ID does not exist");
+
+  // Lấy danh sách serviceId hợp lệ trong appointment
+  // const validServiceIds = appointmentData.service.map((id) => id.toString());
+
+  if (type === "general") {
+    const newFeedback = new Feedback({
+      user: userId,
+      garage,
+      rating,
+      content,
+      appointment,
+      type: "general",
+    });
+    await newFeedback.save();
+  } else if (type === "specific") {
+    for (const item of specific) {
+      const { service, content, rating } = item;
+
+      const newFeedback = new Feedback({
+        type: "specific",
+        user: userId,
+        garage,
+        rating,
+        content,
+        appointment,
+        serviceDetail: service,
+      });
+      await newFeedback.save();
+    }
+  }
+
+  await Appointment.findByIdAndUpdate(
+    appointment,
+    {
+      isFeedbacked: true,
+    },
+    { new: true }
+  );
+
+  // Cập nhật rating trung bình cho garage
+  const feedbacks = await Feedback.find({ garage });
+  const averageRating =
+    feedbacks.reduce((acc, feedback) => acc + feedback.rating, 0) /
+    (feedbacks.length || 1);
+
+  garageExists.ratingAverage = Math.round(averageRating * 10) / 10;
+  await garageExists.save();
+};
+
+export const getFeedbackByAppointmentId = async (appointmentId) => {
+  try {
+    const feedbacks = await Feedback.find({ appointment: appointmentId });
+    return feedbacks;
+  } catch (error) {
+    throw new Error("Error fetching feedbacks for the appointment");
   }
 };
