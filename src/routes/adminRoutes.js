@@ -18,7 +18,7 @@ router.get(
   "/garage-status-counts",
   adminMiddleware,
   getGarageStatusCountsByMonth
-); // Garage status counts by month
+); // Garage status counts by month (xem được các năm trước)
 router.get(
   "/garage-status-counts-quarter",
   adminMiddleware,

@@ -402,9 +402,23 @@ const viewDashboardOverview = async (req, res) => {
 const viewDashboardChart = async (req, res) => {
   const { id } = req.params;
   const user = req.user.id;
+  const { year } = req.query;
 
   try {
-    const overview = await garageService.viewDashboardChart(id, user);
+    const overview = await garageService.viewDashboardChart(id, user, year);
+    res.status(200).json(overview);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const viewDashboardChartByQuarter = async (req, res) => {
+  const { id } = req.params;
+  const user = req.user.id;
+  const { year } = req.query;
+
+  try {
+    const overview = await garageService.viewDashboardChartByQuarter(id, user, year);
     res.status(200).json(overview);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -420,19 +434,11 @@ const viewAdminDashboardOverview = async (req, res) => {
   }
 };
 
-// export const getGarageStatusCounts = async (req, res) => {
-//   try {
-//     const statusCounts = await garageService.getGarageCountByStatus();
-//     res.status(200).json(statusCounts);
-//   } catch (err) {
-//     res.status(500).json({ error: err.message });
-//   }
-// };
-
 export const getGarageStatusCountsByMonth = async (req, res) => {
   try {
+    const year = req.query.year;
     const statusCountsByMonth =
-      await garageService.getGarageCountByStatusAndMonth();
+      await garageService.getGarageCountByStatusAndMonth(year);
     res.status(200).json(statusCountsByMonth);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -449,8 +455,9 @@ export const getGarageList = async (req, res) => {
 
 export const getGarageStatusCountsByQuarter = async (req, res) => {
   try {
+    const year = req.query.year;
     const statusCountsByQuarter =
-      await garageService.getGarageCountByStatusAndQuarter();
+      await garageService.getGarageCountByStatusAndQuarter(year);
     res.status(200).json(statusCountsByQuarter);
   } catch (err) {
     res.status(500).json({ error: err.message });
