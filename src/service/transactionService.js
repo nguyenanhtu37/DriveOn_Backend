@@ -49,8 +49,8 @@ export const getTransactions = async (filter = {}, options = {}) => {
       .sort({ [sortBy]: sortOrder })
       .skip(skip)
       .limit(parseInt(limit))
-      .populate("subscriptionId", "name planType")
-      .populate("garageId", "name");
+      .populate("subscription", "name planType")
+      .populate("garage", "name");
 
     const total = await Transaction.countDocuments(filter);
 

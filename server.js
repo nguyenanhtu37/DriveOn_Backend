@@ -25,6 +25,7 @@ import fcmRoutes from "./src/routes/fcmRoutes.js";
 import subscriptionRoutes from "./src/routes/subscriptionRoutes.js";
 import transactionRoutes from "./src/routes/transactionRoutes.js";
 import searchRoutes from "./src/routes/searchRoutes.js";
+import emergencyRoutes from "./src/routes/emergencyRoutes.js";
 import http from "http";
 import { initializeSocket } from "./src/libs/socket.js";
 // Load environment variables
@@ -107,6 +108,7 @@ app.use("/api/subscription", subscriptionRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/transaction", transactionRoutes);
 app.use("/api/search", searchRoutes);
+app.use("/api/emergency", emergencyRoutes);
 
 // Test Route
 app.get("/", (req, res) => {
