@@ -322,14 +322,15 @@ export const viewStaff = async (userId, garageId, page = 1, limit = 10) => {
 
   // Find staff users with pagination
   const staffList = await User.find({
-    _id: { $in: garage.staffs }})
-      .select("name email avatar phone ")
-      .skip(skip)
-      .limit(limit);
+    _id: { $in: garage.staffs },
+  })
+    .select("name email avatar phone status ")
+    .skip(skip)
+    .limit(limit);
 
   // Get total count for pagination metadata
   const totalStaff = await User.countDocuments({
-    _id: { $in: garage.staffs }
+    _id: { $in: garage.staffs },
   });
 
   // Calculate pagination metadata
@@ -343,8 +344,8 @@ export const viewStaff = async (userId, garageId, page = 1, limit = 10) => {
       pageSize: limit,
       totalCount: totalStaff,
       hasNextPage: page < totalPages,
-      hasPrevPage: page > 1
-    }
+      hasPrevPage: page > 1,
+    },
   };
 };
 const viewGarageExisting = async () => {
@@ -1244,7 +1245,9 @@ export const viewDashboardChartByQuarter = async (garageId, userId, year) => {
 
 export const getAdminDashboardOverview = async () => {
   try {
-    const totalGarages = await Garage.countDocuments({ status: { $in: ["enabled"] } });
+    const totalGarages = await Garage.countDocuments({
+      status: { $in: ["enabled"] },
+    });
     const totalBrands = await Brand.countDocuments();
     const totalServices = await Service.countDocuments();
     const totalUsers = await User.countDocuments();
