@@ -28,13 +28,15 @@ export const createAppointment = async (req, res) => {
 
 export const getAppointmentsByUser = async (req, res) => {
   const userId = req.user.id; // Get userId from token
-  const { page, limit } = req.query;
+  const { page, limit, status, keyword } = req.query;
 
   try {
     const result = await appointmentService.getAppointmentsByUserService(
       userId,
       page,
-      limit
+      limit,
+      status,
+      keyword
     );
     res.status(200).json(result);
   } catch (err) {
