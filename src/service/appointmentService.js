@@ -566,30 +566,38 @@ async function sendAppointmentEmails(
 export const getAppointmentsByUserService = async (
   userId,
   page = 1,
-  limit = 10
+  limit = 10,
+  status,
+  keyword
 ) => {
-  // Validate page and limit parameters
   page = parseInt(page);
   limit = parseInt(limit);
   if (isNaN(page) || page < 1) page = 1;
   if (isNaN(limit) || limit < 1) limit = 10;
 
-  // Calculate skip value for pagination
+  const query = { user: userId };
+
+  if (status === "Upcoming") {
+    query.status = { $in: ["Pending", "Accepted"] };
+    query.start = { $gte: new Date() }; // Only future appointments
+  } else if (status !== "All") {
+    const statusList = status.split(",").map((s) => s.trim());
+    query.status = { $in: statusList };
+  }
+
   const skip = (page - 1) * limit;
 
-  // Get total count for pagination metadata
-  const totalCount = await Appointment.countDocuments({ user: userId });
+  const totalCount = await Appointment.countDocuments(query);
 
-  // Get paginated appointments
-  const appointments = await Appointment.find({ user: userId })
+  const appointments = await Appointment.find(query)
     .populate("user", "name email")
     .populate("garage", "name address")
     .populate("vehicle", "carBrand carName carPlate")
     .populate("service", "")
+    .sort({ start: 1 })
     .skip(skip)
     .limit(limit);
 
-  // Calculate pagination metadata
   const totalPages = Math.ceil(totalCount / limit);
 
   return {
