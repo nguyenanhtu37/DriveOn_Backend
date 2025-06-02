@@ -323,7 +323,7 @@ export const viewStaff = async (userId, garageId, page = 1, limit = 10) => {
   // Find staff users with pagination
   const staffList = await User.find({
     _id: { $in: garage.staffs }})
-      .select("name email avatar phone ")
+      .select("name email avatar phone status")
       .skip(skip)
       .limit(limit);
 
