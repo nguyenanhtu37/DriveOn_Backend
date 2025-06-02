@@ -19,8 +19,6 @@ export function initializeSocket(httpServer) {
 
     const garages = garageId ? garageId.split(",").map((id) => id.trim()) : [];
 
-    console.log(garages);
-
     if (garages.length > 0) {
       garages.forEach((garage) => {
         socket.join(garage);

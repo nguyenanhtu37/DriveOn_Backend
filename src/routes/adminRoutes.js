@@ -4,6 +4,7 @@ import { adminMiddleware } from "../middleware/adminMiddleware.js";
 import {
   viewAdminDashboardOverview,
   getGarageStatusCountsByMonth,
+  getGarageStatusCountsByQuarter,
 } from "../controller/garageController.js";
 import { getServiceUsageCounts } from "../controller/serviceDetailController.js";
 import { getTransactionsByMonth } from "../controller/payosController.js";
@@ -17,7 +18,12 @@ router.get(
   "/garage-status-counts",
   adminMiddleware,
   getGarageStatusCountsByMonth
-); // Garage status counts by month
+); // Garage status counts by month (xem được các năm trước)
+router.get(
+  "/garage-status-counts-quarter",
+  adminMiddleware,
+  getGarageStatusCountsByQuarter
+); // Garage status counts by quarter (xem theo 4 quý trong năm)
 router.get("/service-usage-counts", adminMiddleware, getServiceUsageCounts); // đếm số service đã đc gara sử dụng
 router.get("/transactions-by-month", adminMiddleware, getTransactionsByMonth); // đếm số transaction đã đc thanh toán theo tháng
 router.get("/user-counts-by-role", adminMiddleware, getUserCountsByRole); // Tỷ lệ người dùng theo vai trò

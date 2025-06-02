@@ -322,14 +322,15 @@ export const viewStaff = async (userId, garageId, page = 1, limit = 10) => {
 
   // Find staff users with pagination
   const staffList = await User.find({
-    _id: { $in: garage.staffs }})
-      .select("name email avatar phone status")
-      .skip(skip)
-      .limit(limit);
+    _id: { $in: garage.staffs },
+  })
+    .select("name email avatar phone status ")
+    .skip(skip)
+    .limit(limit);
 
   // Get total count for pagination metadata
   const totalStaff = await User.countDocuments({
-    _id: { $in: garage.staffs }
+    _id: { $in: garage.staffs },
   });
 
   // Calculate pagination metadata
@@ -343,8 +344,8 @@ export const viewStaff = async (userId, garageId, page = 1, limit = 10) => {
       pageSize: limit,
       totalCount: totalStaff,
       hasNextPage: page < totalPages,
-      hasPrevPage: page > 1
-    }
+      hasPrevPage: page > 1,
+    },
   };
 };
 const viewGarageExisting = async () => {
@@ -715,7 +716,7 @@ const viewAllGaragesByAdmin = async (page = 1, limit = 10, keySearch) => {
   try {
     const skip = (page - 1) * limit;
     const query = {
-      status: { $in: ["approved", "rejected", "enabled", "disabled"] },
+      status: { $in: ["enabled", "disabled"] },
     };
 
     if (keySearch) {
@@ -988,24 +989,35 @@ const viewDashboardOverview = async (garageId, userId) => {
   }
 };
 
-const viewDashboardChart = async (garageId, userId) => {
+const viewDashboardChart = async (garageId, userId, year) => {
   try {
+    let matchStage = {
+      garage: mongoose.Types.ObjectId.createFromHexString(garageId),
+      status: "Completed",
+    };
+    if (year) {
+      const selectedYear = parseInt(year);
+      matchStage.end = {
+        $gte: new Date(selectedYear, 0, 1),
+        $lt: new Date(selectedYear + 1, 0, 1),
+      };
+    }
+
+    // Lấy appointments completed theo tháng
     const appointments = await Appointment.aggregate([
-      {
-        $match: {
-          garage: mongoose.Types.ObjectId.createFromHexString(garageId),
-          status: "Completed",
-        },
-      },
+      { $match: matchStage },
       {
         $project: {
           year: { $year: "$end" },
           month: { $month: "$end" },
+          service: 1,
         },
       },
       {
         $group: {
           _id: { year: "$year", month: "$month" },
+          appointmentIds: { $push: "$_id" },
+          serviceIds: { $push: "$service" }, // mảng các mảng serviceId
           totalAppointments: { $sum: 1 },
         },
       },
@@ -1014,25 +1026,61 @@ const viewDashboardChart = async (garageId, userId) => {
       },
     ]);
 
+    // Tính revenue theo từng tháng
     const months = Array.from({ length: 12 }, (_, i) => i + 1);
 
+    let allServiceIds = [];
+    appointments.forEach((item) => {
+      // item.serviceIds là mảng các mảng serviceId
+      item.serviceIds.forEach((arr) => {
+        allServiceIds = allServiceIds.concat(arr);
+      });
+    });
+
+    // Lấy price
+    let serviceDetailMap = {};
+    if (allServiceIds.length > 0) {
+      const serviceDetails = await ServiceDetail.find({
+        _id: { $in: allServiceIds },
+      }).select("_id price");
+      serviceDetails.forEach((sd) => {
+        serviceDetailMap[sd._id.toString()] = sd.price;
+      });
+    }
+
+    // Map lại revenue theo từng tháng
     const result = months.map((month) => {
       const monthData = appointments.find((item) => item._id.month === month);
+      let revenue = 0;
+      if (monthData && monthData.serviceIds) {
+        monthData.serviceIds.forEach((serviceArr) => {
+          serviceArr.forEach((sid) => {
+            revenue += serviceDetailMap[sid.toString()] || 0;
+          });
+        });
+      }
       return {
         month,
         totalAppointments: monthData ? monthData.totalAppointments : 0,
+        revenue,
       };
     });
 
+    // Service usage theo năm (giữ nguyên)
+    let matchServiceStage = {
+      garage: mongoose.Types.ObjectId.createFromHexString(garageId),
+    };
+    if (year) {
+      const selectedYear = parseInt(year);
+      matchServiceStage.end = {
+        $gte: new Date(selectedYear, 0, 1),
+        $lt: new Date(selectedYear + 1, 0, 1),
+      };
+    }
+
     const serviceUsage = await Appointment.aggregate([
-      {
-        $match: {
-          garage: mongoose.Types.ObjectId.createFromHexString(garageId), // Lọc theo garageId
-        },
-      },
-      {
-        $unwind: "$service",
-      },
+      { $match: matchServiceStage },
+      { $unwind: "$service" },
       {
         $group: {
           _id: "$service",
@@ -1047,9 +1095,7 @@ const viewDashboardChart = async (garageId, userId) => {
           as: "serviceInfo",
         },
       },
-      {
-        $unwind: "$serviceInfo",
-      },
+      { $unwind: "$serviceInfo" },
       {
         $project: {
           serviceName: "$serviceInfo.name",
@@ -1061,16 +1107,9 @@ const viewDashboardChart = async (garageId, userId) => {
       { $sort: { totalUses: -1 } },
     ]);
 
-    // const staff = await User.find({
-    //   garageList: garageId,
-    //   roles: "67b60df8c465fe4f943b98cc",
-    // });
-
     return {
       appointments: result,
-      // feedbacks,
       services: serviceUsage,
-      // staff,
     };
   } catch (err) {
     console.error("Error in viewDashboardChart:", err.message);
@@ -1078,9 +1117,137 @@ const viewDashboardChart = async (garageId, userId) => {
   }
 };
 
+
+export const viewDashboardChartByQuarter = async (garageId, userId, year) => {
+  try {
+    const selectedYear = year ? parseInt(year) : new Date().getFullYear();
+
+    // Lấy appointments completed theo quý
+    const appointments = await Appointment.aggregate([
+      {
+        $match: {
+          garage: mongoose.Types.ObjectId.createFromHexString(garageId),
+          status: "Completed",
+          end: {
+            $gte: new Date(selectedYear, 0, 1),
+            $lt: new Date(selectedYear + 1, 0, 1),
+          },
+        },
+      },
+      {
+        $project: {
+          quarter: { $ceil: { $divide: [{ $month: "$end" }, 3] } },
+          service: 1,
+        },
+      },
+      {
+        $group: {
+          _id: { quarter: "$quarter" },
+          serviceIds: { $push: "$service" }, 
+          totalAppointments: { $sum: 1 },
+        },
+      },
+      { $sort: { "_id.quarter": 1 } },
+    ]);
+
+    // Lấy tất cả serviceIds của các appointment completed trong năm đó
+    let allServiceIds = [];
+    appointments.forEach((item) => {
+      item.serviceIds.forEach((arr) => {
+        allServiceIds = allServiceIds.concat(arr);
+      });
+    });
+
+    // Lấy thông tin price của các serviceDetail
+    let serviceDetailMap = {};
+    if (allServiceIds.length > 0) {
+      const serviceDetails = await ServiceDetail.find({
+        _id: { $in: allServiceIds },
+      }).select("_id price");
+      serviceDetails.forEach((sd) => {
+        serviceDetailMap[sd._id.toString()] = sd.price;
+      });
+    }
+
+    // Map lại revenue vào từng quý
+    const quarters = Array.from({ length: 4 }, (_, i) => i + 1);
+    const appointmentResult = quarters.map((quarter) => {
+      const data = appointments.find((item) => item._id.quarter === quarter);
+      let revenue = 0;
+      if (data && data.serviceIds) {
+        data.serviceIds.forEach((serviceArr) => {
+          serviceArr.forEach((sid) => {
+            revenue += serviceDetailMap[sid.toString()] || 0;
+          });
+        });
+      }
+      return {
+        quarter,
+        totalAppointments: data ? data.totalAppointments : 0,
+        revenue,
+      };
+    });
+
+    // Service usage by quarter 
+    const serviceUsage = await Appointment.aggregate([
+      {
+        $match: {
+          garage: mongoose.Types.ObjectId.createFromHexString(garageId),
+          end: {
+            $gte: new Date(selectedYear, 0, 1),
+            $lt: new Date(selectedYear + 1, 0, 1),
+          },
+        },
+      },
+      { $unwind: "$service" },
+      {
+        $project: {
+          service: 1,
+          quarter: { $ceil: { $divide: [{ $month: "$end" }, 3] } },
+        },
+      },
+      {
+        $group: {
+          _id: { service: "$service", quarter: "$quarter" },
+          totalUses: { $sum: 1 },
+        },
+      },
+      {
+        $lookup: {
+          from: "servicedetails",
+          localField: "_id.service",
+          foreignField: "_id",
+          as: "serviceInfo",
+        },
+      },
+      { $unwind: "$serviceInfo" },
+      {
+        $project: {
+          quarter: "$_id.quarter",
+          serviceName: "$serviceInfo.name",
+          serviceId: "$serviceInfo._id",
+          totalUses: 1,
+          _id: 0,
+        },
+      },
+      { $sort: { quarter: 1, totalUses: -1 } },
+    ]);
+
+    return {
+      appointments: appointmentResult, // mỗi phần tử có quarter, totalAppointments, revenue
+      services: serviceUsage,
+    };
+  } catch (err) {
+    console.error("Error in viewDashboardChartByQuarter:", err.message);
+    throw new Error(err.message);
+  }
+};
+
 export const getAdminDashboardOverview = async () => {
   try {
-    const totalGarages = await Garage.countDocuments();
+    const totalGarages = await Garage.countDocuments({
+      status: { $in: ["enabled"] },
+    });
     const totalBrands = await Brand.countDocuments();
     const totalServices = await Service.countDocuments();
     const totalUsers = await User.countDocuments();
@@ -1097,12 +1264,18 @@ export const getAdminDashboardOverview = async () => {
   }
 };
 
-export const getGarageCountByStatusAndMonth = async () => {
+export const getGarageCountByStatusAndMonth = async (year) => {
   try {
+    const selectedYear = year ? parseInt(year) : new Date().getFullYear();
+
     const result = await Garage.aggregate([
       {
         $match: {
-          status: { $in: ["enabled", "disabled"] }, // Chỉ lấy enabled hoặc disabled
+          status: { $in: ["enabled", "disabled"] },
+          createdAt: {
+            $gte: new Date(selectedYear, 0, 1),
+            $lt: new Date(selectedYear + 1, 0, 1),
+          },
         },
       },
       {
@@ -1198,6 +1371,57 @@ const getGarageList = async () => {
     topRated,
     mostBooked,
   };
+};
+
+export const getGarageCountByStatusAndQuarter = async (year) => {
+  try {
+    const selectedYear = year ? parseInt(year) : new Date().getFullYear();
+
+    const result = await Garage.aggregate([
+      {
+        $match: {
+          status: { $in: ["enabled", "disabled"] },
+          createdAt: {
+            $gte: new Date(selectedYear, 0, 1),
+            $lt: new Date(selectedYear + 1, 0, 1),
+          },
+        },
+      },
+      {
+        $project: {
+          quarter: { $ceil: { $divide: [{ $month: "$createdAt" }, 3] } },
+        },
+      },
+      {
+        $group: {
+          _id: { quarter: "$quarter" },
+          garages: { $sum: 1 },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          quarter: "$_id.quarter",
+          garages: 1,
+        },
+      },
+      { $sort: { quarter: 1 } },
+    ]);
+
+    // Fill đủ 4 quý
+    const fullQuarters = Array.from({ length: 4 }, (_, i) => {
+      const quarter = i + 1;
+      const found = result.find((r) => r.quarter === quarter);
+      return {
+        quarter,
+        garages: found ? found.garages : 0,
+      };
+    });
+
+    return fullQuarters;
+  } catch (err) {
+    throw new Error(err.message);
+  }
 };
 
 export {

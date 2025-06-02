@@ -563,29 +563,41 @@ async function sendAppointmentEmails(
 
 // No change needed to the main createAppointmentService function as it just calls sendAppointmentEmails
 
-export const getAppointmentsByUserService = async (userId, page = 1, limit = 10) => {
-  // Validate page and limit parameters
+export const getAppointmentsByUserService = async (
+  userId,
+  page = 1,
+  limit = 10,
+  status,
+  keyword
+) => {
   page = parseInt(page);
   limit = parseInt(limit);
   if (isNaN(page) || page < 1) page = 1;
   if (isNaN(limit) || limit < 1) limit = 10;
 
-  // Calculate skip value for pagination
+  const query = { user: userId };
+
+  if (status === "Upcoming") {
+    query.status = { $in: ["Pending", "Accepted"] };
+    query.start = { $gte: new Date() }; // Only future appointments
+  } else if (status !== "All") {
+    const statusList = status.split(",").map((s) => s.trim());
+    query.status = { $in: statusList };
+  }
+
   const skip = (page - 1) * limit;
 
-  // Get total count for pagination metadata
-  const totalCount = await Appointment.countDocuments({ user: userId });
+  const totalCount = await Appointment.countDocuments(query);
 
-  // Get paginated appointments
-  const appointments = await Appointment.find({ user: userId })
-      .populate("user", "name email")
-      .populate("garage", "name address")
-      .populate("vehicle", "carBrand carName carPlate")
-      .populate("service", "")
-      .skip(skip)
-      .limit(limit);
+  const appointments = await Appointment.find(query)
+    .populate("user", "name email")
+    .populate("garage", "name address")
+    .populate("vehicle", "carBrand carName carPlate")
+    .populate("service", "")
+    .sort({ start: 1 })
+    .skip(skip)
+    .limit(limit);
 
-  // Calculate pagination metadata
   const totalPages = Math.ceil(totalCount / limit);
 
   return {
@@ -596,8 +608,8 @@ export const getAppointmentsByUserService = async (userId, page = 1, limit = 10)
       pageSize: limit,
       totalCount,
       hasNextPage: page < totalPages,
-      hasPrevPage: page > 1
-    }
+      hasPrevPage: page > 1,
+    },
   };
 };
 export const getAppointmentByIdService = async (appointmentId) => {
@@ -616,7 +628,12 @@ export const getAppointmentByIdService = async (appointmentId) => {
     .populate("assignedStaff", "name avatar"); // Add staff information
 };
 
-export const getAppointmentsByVehicleService = async (vehicleId, userId, page = 1, limit = 10) => {
+export const getAppointmentsByVehicleService = async (
+  vehicleId,
+  userId,
+  page = 1,
+  limit = 10
+) => {
   // Validate page and limit parameters
   page = parseInt(page);
   limit = parseInt(limit);
@@ -639,7 +656,7 @@ export const getAppointmentsByVehicleService = async (vehicleId, userId, page = 
   // Get total count for pagination metadata
   const totalCount = await Appointment.countDocuments({
     vehicle: vehicleId,
-    status: "Completed" // Only count completed appointments
+    status: "Completed", // Only count completed appointments
   });
 
   // Find only completed appointments for this vehicle with pagination
@@ -647,37 +664,34 @@ export const getAppointmentsByVehicleService = async (vehicleId, userId, page = 
     vehicle: vehicleId,
     status: "Completed", // Only return completed appointments
   })
-      .populate("user", "name email avatar")
-      .populate("garage", "name address")
-      .populate({
-        path: "vehicle",
-        select: "carBrand carName carPlate",
-        populate: {
-          path: "carBrand",
-          select: "brandName logo",
-        },
-      })
-      .populate("service", "name price duration")
-      .populate("assignedStaff", "name avatar")
-      .skip(skip)
-      .limit(limit);
+    .populate("user", "name email avatar")
+    .populate("garage", "name address")
+    .populate({
+      path: "vehicle",
+      select: "carBrand carName carPlate",
+      populate: {
+        path: "carBrand",
+        select: "brandName logo",
+      },
+    })
+    .populate("service", "name price duration")
+    .populate("assignedStaff", "name avatar");
+  //   .skip(skip)
+  //   .limit(limit);
 
-  // Calculate pagination metadata
-  const totalPages = Math.ceil(totalCount / limit);
+  // // Calculate pagination metadata
+  // const totalPages = Math.ceil(totalCount / limit);
 
-  return {
-    appointments,
-    pagination: {
-      currentPage: page,
-      totalPages,
-      pageSize: limit,
-      totalCount,
-      hasNextPage: page < totalPages,
-      hasPrevPage: page > 1
-    }
-  };
+  return appointments;
 };
-export const getAppointmentsByGarageService = async (garageId, page = 1, limit = 10) => {
+export const getAppointmentsByGarageService = async (
+  garageId,
+  page = 1,
+  limit = 10,
+  startDate,
+  endDate,
+  status
+) => {
   // Validate page and limit parameters
   page = parseInt(page);
   limit = parseInt(limit);
@@ -689,20 +703,42 @@ export const getAppointmentsByGarageService = async (garageId, page = 1, limit =
     throw new Error("Garage not found");
   }
 
+  // Build query filters
+  const query = { garage: garageId };
+
+  // Add date range filters if provided
+  if (startDate || endDate) {
+    query.start = {};
+    if (startDate) {
+      query.start.$gte = new Date(startDate);
+    }
+    if (endDate) {
+      query.start.$lte = new Date(endDate);
+    }
+  }
+
+  // Add status filter if provided
+  if (status && status !== "all") {
+    // Support comma-separated status values
+    const statusList = status.split(",").map((s) => s.trim());
+    query.status = { $in: statusList };
+  }
+
   // Calculate skip value for pagination
   const skip = (page - 1) * limit;
 
-  // Get total count for pagination metadata
-  const totalCount = await Appointment.countDocuments({ garage: garageId });
+  // Get total count for pagination metadata using the same query
+  const totalCount = await Appointment.countDocuments(query);
 
-  // Get paginated appointments
-  const appointments = await Appointment.find({ garage: garageId })
-      .populate("user", "name email avatar address")
-      .populate("garage", "name address")
-      .populate("vehicle", "carBrand carName carPlate")
-      .populate("service")
-      .skip(skip)
-      .limit(limit);
+  // Get paginated and filtered appointments
+  const appointments = await Appointment.find(query)
+    .populate("user", "name email avatar address")
+    .populate("garage", "name address")
+    .populate("vehicle", "carBrand carName carPlate")
+    .populate("service")
+    .sort({ start: -1 }) // Sort by start date, newest first
+    .skip(skip)
+    .limit(limit);
 
   // Calculate pagination metadata
   const totalPages = Math.ceil(totalCount / limit);
@@ -715,8 +751,8 @@ export const getAppointmentsByGarageService = async (garageId, page = 1, limit =
       pageSize: limit,
       totalCount,
       hasNextPage: page < totalPages,
-      hasPrevPage: page > 1
-    }
+      hasPrevPage: page > 1,
+    },
   };
 };
 
@@ -1434,9 +1470,12 @@ export const getAcceptedAppointmentsService = async (userId, garageId) => {
     .populate("service");
 };
 
-
 //Filter all type appointment
-export const getFilteredAppointmentsService = async (filters = {}, page = 1, limit = 10) => {
+export const getFilteredAppointmentsService = async (
+  filters = {},
+  page = 1,
+  limit = 10
+) => {
   // Validate page and limit parameters
   page = parseInt(page);
   limit = parseInt(limit);
@@ -1457,13 +1496,12 @@ export const getFilteredAppointmentsService = async (filters = {}, page = 1, lim
   //   query.status = { $in: statusList };
   // }
   // Add status filter
-  if (filters.status && filters.status !== 'all') {
+  if (filters.status && filters.status !== "all") {
     // Chia theo dấu cách hoặc dấu phẩy
     const statusList = filters.status.split(/[\s,]+/);
     // Lọc những status nằm trong mảng
     query.status = { $in: statusList };
   }
-
 
   // Calculate skip value for pagination
   const skip = (page - 1) * limit;
@@ -1473,21 +1511,21 @@ export const getFilteredAppointmentsService = async (filters = {}, page = 1, lim
 
   // Get paginated appointments
   const appointments = await Appointment.find(query)
-      .populate("user", "name email avatar address")
-      .populate("garage", "name address")
-      .populate({
-        path: "vehicle",
-        select: "carBrand carName carPlate",
-        populate: {
-          path: "carBrand",
-          select: "brandName logo",
-        },
-      })
-      .populate("service", "name price duration")
-      .populate("assignedStaff", "name avatar")
-      .sort({ start: -1 }) // Sort by appointment date, newest first
-      .skip(skip)
-      .limit(limit);
+    .populate("user", "name email avatar address")
+    .populate("garage", "name address")
+    .populate({
+      path: "vehicle",
+      select: "carBrand carName carPlate",
+      populate: {
+        path: "carBrand",
+        select: "brandName logo",
+      },
+    })
+    .populate("service", "name price duration")
+    .populate("assignedStaff", "name avatar")
+    .sort({ start: -1 }) // Sort by appointment date, newest first
+    .skip(skip)
+    .limit(limit);
 
   // Calculate pagination metadata
   const totalPages = Math.ceil(totalCount / limit);
@@ -1500,8 +1538,8 @@ export const getFilteredAppointmentsService = async (filters = {}, page = 1, lim
       pageSize: limit,
       totalCount,
       hasNextPage: page < totalPages,
-      hasPrevPage: page > 1
-    }
+      hasPrevPage: page > 1,
+    },
   };
 };
 
@@ -1901,7 +1939,13 @@ export const getHourlyAppointmentLimitService = async (garageId) => {
 };
 
 // Get all appointments in a specific 1-hour window for a garage
-export const getAppointmentsInTimeRangeService = async (garageId, startDate, endDate, page = 1, limit = 10) => {
+export const getAppointmentsInTimeRangeService = async (
+  garageId,
+  startDate,
+  endDate,
+  page = 1,
+  limit = 10
+) => {
   // Validate inputs
   if (!garageId) throw new Error("Garage ID is required");
 
@@ -1924,7 +1968,7 @@ export const getAppointmentsInTimeRangeService = async (garageId, startDate, end
   const query = {
     garage: garageId,
     start: { $gte: start, $lt: end },
-    status: { $in: ["Pending", "Accepted"] } // Only count pending and accepted appointments
+    status: { $in: ["Pending", "Accepted"] }, // Only count pending and accepted appointments
   };
 
   // Get total count for pagination metadata
@@ -1932,20 +1976,20 @@ export const getAppointmentsInTimeRangeService = async (garageId, startDate, end
 
   // Get paginated appointments
   const appointments = await Appointment.find(query)
-      .populate("user", "name email avatar")
-      .populate("garage", "name address")
-      .populate({
-        path: "vehicle",
-        select: "carBrand carName carPlate",
-        populate: {
-          path: "carBrand",
-          select: "name image",
-        }
-      })
-      .populate("service", "name price duration")
-      .sort({ start: 1 }) // Sort by start time ascending
-      .skip(skip)
-      .limit(limit);
+    .populate("user", "name email avatar")
+    .populate("garage", "name address")
+    .populate({
+      path: "vehicle",
+      select: "carBrand carName carPlate",
+      populate: {
+        path: "carBrand",
+        select: "name image",
+      },
+    })
+    .populate("service", "name price duration")
+    .sort({ start: 1 }) // Sort by start time ascending
+    .skip(skip)
+    .limit(limit);
 
   // Calculate pagination metadata
   const totalPages = Math.ceil(totalCount / limit);
@@ -1958,7 +2002,7 @@ export const getAppointmentsInTimeRangeService = async (garageId, startDate, end
       pageSize: limit,
       totalCount,
       hasNextPage: page < totalPages,
-      hasPrevPage: page > 1
-    }
+      hasPrevPage: page > 1,
+    },
   };
 };

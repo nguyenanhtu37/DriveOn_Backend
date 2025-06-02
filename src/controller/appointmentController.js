@@ -1,11 +1,7 @@
 import * as appointmentService from "../service/appointmentService.js";
-import Vehicle
-  from "../models/vehicle.js";
+import Vehicle from "../models/vehicle.js";
 
-import Garage
-  from "../models/garage.js";
-
-
+import Garage from "../models/garage.js";
 
 export const createAppointment = async (req, res) => {
   const userId = req.user.id;
@@ -32,13 +28,15 @@ export const createAppointment = async (req, res) => {
 
 export const getAppointmentsByUser = async (req, res) => {
   const userId = req.user.id; // Get userId from token
-  const { page, limit } = req.query;
+  const { page, limit, status, keyword } = req.query;
 
   try {
     const result = await appointmentService.getAppointmentsByUserService(
-        userId,
-        page,
-        limit
+      userId,
+      page,
+      limit,
+      status,
+      keyword
     );
     res.status(200).json(result);
   } catch (err) {
@@ -53,10 +51,10 @@ export const getAppointmentsByVehicle = async (req, res) => {
 
   try {
     const result = await appointmentService.getAppointmentsByVehicleService(
-        vehicleId,
-        userId,
-        page,
-        limit
+      vehicleId,
+      userId,
+      page,
+      limit
     );
     res.status(200).json(result);
   } catch (err) {
@@ -86,13 +84,16 @@ export const getAppointmentById = async (req, res) => {
 
 export const getAppointmentsByGarage = async (req, res) => {
   const { garageId } = req.params;
-  const { page, limit } = req.query;
+  const { page, limit, startDate, endDate, status } = req.query;
 
   try {
     const result = await appointmentService.getAppointmentsByGarageService(
-        garageId,
-        page,
-        limit
+      garageId,
+      page,
+      limit,
+      startDate,
+      endDate,
+      status
     );
     res.status(200).json(result);
   } catch (err) {
@@ -205,8 +206,13 @@ export const getFilteredAppointments = async (req, res) => {
       if (!garage) {
         return res.status(404).json({ message: "Garage not found" });
       }
-      if (!garage.user.includes(req.user.id) && !garage.staffs.includes(req.user.id)) {
-        return res.status(403).json({ message: "Unauthorized to view this garage's appointments" });
+      if (
+        !garage.user.includes(req.user.id) &&
+        !garage.staffs.includes(req.user.id)
+      ) {
+        return res
+          .status(403)
+          .json({ message: "Unauthorized to view this garage's appointments" });
       }
     } else if (vehicleId) {
       // For vehicle appointments, verify user owns the vehicle
@@ -215,7 +221,9 @@ export const getFilteredAppointments = async (req, res) => {
         return res.status(404).json({ message: "Vehicle not found" });
       }
       if (vehicle.carOwner.toString() !== req.user.id) {
-        return res.status(403).json({ message: "Unauthorized to view this vehicle's appointments" });
+        return res.status(403).json({
+          message: "Unauthorized to view this vehicle's appointments",
+        });
       }
     } else {
       // Default to user's own appointments
@@ -226,13 +234,13 @@ export const getFilteredAppointments = async (req, res) => {
       userId: req.query.userId,
       garageId,
       vehicleId,
-      status
+      status,
     };
 
     const result = await appointmentService.getFilteredAppointmentsService(
-        filters,
-        page,
-        limit
+      filters,
+      page,
+      limit
     );
 
     res.status(200).json(result);
@@ -407,17 +415,24 @@ export const getAppointmentsInTimeRange = async (req, res) => {
     if (!garageId || !startDate || !endDate) {
       return res.status(400).json({
         success: false,
-        message: "Missing required parameters: garageId, startDate, and endDate are required",
+        message:
+          "Missing required parameters: garageId, startDate, and endDate are required",
       });
     }
 
-    const result = await appointmentService.getAppointmentsInTimeRangeService(garageId, startDate, endDate, page, limit);
+    const result = await appointmentService.getAppointmentsInTimeRangeService(
+      garageId,
+      startDate,
+      endDate,
+      page,
+      limit
+    );
 
     return res.status(200).json({
       success: true,
       appointments: result.appointments,
       pagination: result.pagination,
-      count: result.pagination.totalCount
+      count: result.pagination.totalCount,
     });
   } catch (error) {
     console.error("Error in getAppointmentsInTimeRange:", error);
@@ -433,10 +448,14 @@ export const setHourlyAppointmentLimit = async (req, res) => {
   const { limit } = req.body;
 
   try {
-    const garage = await appointmentService.setHourlyAppointmentLimitService(garageId, userId, limit);
+    const garage = await appointmentService.setHourlyAppointmentLimitService(
+      garageId,
+      userId,
+      limit
+    );
     res.status(200).json({
       message: "Hourly appointment limit updated successfully",
-      hourlyAppointmentLimit: garage.hourlyAppointmentLimit
+      hourlyAppointmentLimit: garage.hourlyAppointmentLimit,
     });
   } catch (err) {
     if (err.message.includes("Unauthorized")) {
@@ -453,7 +472,9 @@ export const getHourlyAppointmentLimit = async (req, res) => {
   const { garageId } = req.params;
 
   try {
-    const result = await appointmentService.getHourlyAppointmentLimitService(garageId);
+    const result = await appointmentService.getHourlyAppointmentLimitService(
+      garageId
+    );
     res.status(200).json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
