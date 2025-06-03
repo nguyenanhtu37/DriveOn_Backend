@@ -295,6 +295,7 @@ export const getTransactionsByMonthOrQuarter = async (type = "month") => {
               quarter: { $ceil: { $divide: [{ $month: "$paidAt" }, 3] } },
             },
             totalTransactions: { $sum: 1 },
+            totalAmount: { $sum: "$amount" }, // Tổng amount
           },
         },
         {
@@ -302,6 +303,7 @@ export const getTransactionsByMonthOrQuarter = async (type = "month") => {
             year: "$_id.year",
             quarter: "$_id.quarter",
             totalTransactions: 1,
+            totalAmount: 1,
             _id: 0,
           },
         },
@@ -314,6 +316,7 @@ export const getTransactionsByMonthOrQuarter = async (type = "month") => {
         quarter,
         year: currentYear,
         totalTransactions: 0,
+        totalAmount: 0,
       }));
 
       transactionsByQuarter.forEach((item) => {
@@ -321,13 +324,14 @@ export const getTransactionsByMonthOrQuarter = async (type = "month") => {
           const idx = filledData.findIndex((q) => q.quarter === item.quarter);
           if (idx !== -1) {
             filledData[idx].totalTransactions = item.totalTransactions;
+            filledData[idx].totalAmount = item.totalAmount;
           }
         }
       });
 
       return filledData;
     } else {
-      // Thống kê theo tháng (mặc định)
+      // Thống kê theo tháng 
       const transactionsByMonth = await Transaction.aggregate([
         {
           $match: {
@@ -341,6 +345,7 @@ export const getTransactionsByMonthOrQuarter = async (type = "month") => {
               year: { $year: "$paidAt" },
             },
             totalTransactions: { $sum: 1 },
+            totalAmount: { $sum: "$amount" }, // Tổng amount
           },
         },
         {
@@ -348,6 +353,7 @@ export const getTransactionsByMonthOrQuarter = async (type = "month") => {
             month: "$_id.month",
             year: "$_id.year",
             totalTransactions: 1,
+            totalAmount: 1,
             _id: 0,
           },
         },
@@ -363,6 +369,7 @@ export const getTransactionsByMonthOrQuarter = async (type = "month") => {
         month,
         year: currentYear,
         totalTransactions: 0,
+        totalAmount: 0,
       }));
 
       transactionsByMonth.forEach((item) => {
@@ -371,6 +378,7 @@ export const getTransactionsByMonthOrQuarter = async (type = "month") => {
         );
         if (index !== -1) {
           filledData[index].totalTransactions = item.totalTransactions;
+          filledData[index].totalAmount = item.totalAmount;
         }
       });
 
