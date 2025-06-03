@@ -278,58 +278,106 @@ export const sendPaymentSuccessEmailToAdmin = async (
   }
 };
 
-export const getTransactionsByMonth = async () => {
+export const getTransactionsByMonthOrQuarter = async (type = "month") => {
   try {
-    const transactionsByMonth = await Transaction.aggregate([
-      {
-        $match: {
-          status: "PAID", // Chỉ lấy các transaction đã thanh toán
-        },
-      },
-      {
-        $group: {
-          _id: {
-            month: { $month: "$paidAt" },
-            year: { $year: "$paidAt" },
+    if (type === "quarter") {
+      // Thống kê theo quý
+      const transactionsByQuarter = await Transaction.aggregate([
+        {
+          $match: {
+            status: "PAID",
           },
-          totalTransactions: { $sum: 1 },
         },
-      },
-      {
-        $project: {
-          month: "$_id.month",
-          year: "$_id.year",
-          totalTransactions: 1,
-          _id: 0,
+        {
+          $group: {
+            _id: {
+              year: { $year: "$paidAt" },
+              quarter: { $ceil: { $divide: [{ $month: "$paidAt" }, 3] } },
+            },
+            totalTransactions: { $sum: 1 },
+          },
         },
-      },
-      {
-        $sort: { year: 1, month: 1 },
-      },
-    ]);
+        {
+          $project: {
+            year: "$_id.year",
+            quarter: "$_id.quarter",
+            totalTransactions: 1,
+            _id: 0,
+          },
+        },
+        { $sort: { year: 1, quarter: 1 } },
+      ]);
 
-    const currentYear = new Date().getFullYear();
+      const currentYear = new Date().getFullYear();
+      const quarters = [1, 2, 3, 4];
+      const filledData = quarters.map((quarter) => ({
+        quarter,
+        year: currentYear,
+        totalTransactions: 0,
+      }));
 
-    const allMonths = Array.from({ length: 12 }, (_, i) => i + 1);
+      transactionsByQuarter.forEach((item) => {
+        if (item.year === currentYear) {
+          const idx = filledData.findIndex((q) => q.quarter === item.quarter);
+          if (idx !== -1) {
+            filledData[idx].totalTransactions = item.totalTransactions;
+          }
+        }
+      });
 
-    const filledData = allMonths.map((month) => ({
-      month,
-      year: currentYear,
-      totalTransactions: 0, // Mặc định là 0
-    }));
+      return filledData;
+    } else {
+      // Thống kê theo tháng (mặc định)
+      const transactionsByMonth = await Transaction.aggregate([
+        {
+          $match: {
+            status: "PAID",
+          },
+        },
+        {
+          $group: {
+            _id: {
+              month: { $month: "$paidAt" },
+              year: { $year: "$paidAt" },
+            },
+            totalTransactions: { $sum: 1 },
+          },
+        },
+        {
+          $project: {
+            month: "$_id.month",
+            year: "$_id.year",
+            totalTransactions: 1,
+            _id: 0,
+          },
+        },
+        {
+          $sort: { year: 1, month: 1 },
+        },
+      ]);
 
-    transactionsByMonth.forEach((item) => {
-      const index = filledData.findIndex(
-        (data) => data.month === item.month && data.year === item.year
-      );
-      if (index !== -1) {
-        filledData[index].totalTransactions = item.totalTransactions;
-      }
-    });
+      const currentYear = new Date().getFullYear();
+      const allMonths = Array.from({ length: 12 }, (_, i) => i + 1);
 
-    return filledData;
+      const filledData = allMonths.map((month) => ({
+        month,
+        year: currentYear,
+        totalTransactions: 0,
+      }));
+
+      transactionsByMonth.forEach((item) => {
+        const index = filledData.findIndex(
+          (data) => data.month === item.month && data.year === item.year
+        );
+        if (index !== -1) {
+          filledData[index].totalTransactions = item.totalTransactions;
+        }
+      });
+
+      return filledData;
+    }
   } catch (err) {
-    console.error("Error in getTransactionsByMonth:", err.message);
+    console.error("Error in getTransactionsByMonthOrQuarter:", err.message);
     throw new Error(err.message);
   }
 };
