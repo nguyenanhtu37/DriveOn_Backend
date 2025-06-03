@@ -18,10 +18,12 @@ export const viewFeedbackByGarageId = async (req, res) => {
 };
 
 export const viewFeedbackForGarageDetail = async (req, res) => {
-  const { garageId } = req.params; // garage id
+  const { garageId } = req.params;
+  const { showMoreCount } = req.query;
   try {
     const feedbacks = await feedbackService.viewFeedbackForGarageDetail(
-      garageId
+      garageId,
+      showMoreCount
     );
     res.status(200).json(feedbacks);
   } catch (err) {
