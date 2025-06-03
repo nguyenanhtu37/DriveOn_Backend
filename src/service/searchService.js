@@ -8,11 +8,12 @@ const searchByKeyword = async (keyword) => {
         { name: { $regex: keyword, $options: "i" } },
         { address: { $regex: keyword, $options: "i" } },
       ],
+      status: "enabled",
     });
 
     const services = await ServiceDetail.find({
       name: { $regex: keyword, $options: "i" },
-    }).populate('garage', 'address name');
+    }).populate("garage", "address name");
 
     // Map garages and services to unified format
     const garageResults = garages.map((g) => ({
@@ -57,12 +58,31 @@ const searchWithFilter = async ({
 
     // Keyword search
     if (keyword) {
+      // First search for garages directly
       query = {
         $or: [
           { name: { $regex: keyword, $options: "i" } },
           { address: { $regex: keyword, $options: "i" } },
         ],
+        status: "enabled",
       };
+
+      // Also find services matching the keyword
+      const matchingServices = await ServiceDetail.find({
+        name: { $regex: keyword, $options: "i" },
+      });
+
+      // Get unique garage IDs from those services
+      if (matchingServices.length > 0) {
+        const garageIdsFromServices = [
+          ...new Set(matchingServices.map((s) => s.garage)),
+        ];
+
+        // Expand the query to include garages that have matching services
+        query = {
+          $or: [query, { _id: { $in: garageIdsFromServices } }],
+        };
+      }
     }
 
     // Province filter

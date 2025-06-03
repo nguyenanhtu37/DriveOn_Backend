@@ -653,7 +653,7 @@ export const getAppointmentByIdService = async (appointmentId) => {
     .populate("garage", "name address") // Select basic garage information
     .populate({
       path: "vehicle",
-      select: "carBrand carName carPlate",
+      select: "carBrand carName carPlate carImages ",
       populate: {
         path: "carBrand",
         select: "brandName logo",

@@ -20,11 +20,60 @@ const addService = async (serviceData) => {
   return newService;
 };
 
-
 const getAllServices = async () => {
   const services = await Service.find({ isDeleted: false });
   const sortedServices = services.sort((a, b) => a.name.localeCompare(b.name));
   return sortedServices;
+};
+
+const getAllServiceByManage = async ({
+  page = 1,
+  limit = 10,
+  keyword = "",
+}) => {
+  try {
+    // Convert string parameters to numbers
+    page = parseInt(page) || 1;
+    limit = parseInt(limit) || 10;
+
+    // Create filter object
+    const filter = { isDeleted: false };
+
+    // Add name search if keyword exists
+    if (keyword && keyword.trim() !== "") {
+      filter.name = { $regex: escapeRegex(keyword), $options: "i" };
+    }
+
+    // Calculate skip for pagination
+    const skip = (page - 1) * limit;
+
+    // Get total count for pagination
+    const totalCount = await Service.countDocuments(filter);
+
+    // Get services with pagination
+    const services = await Service.find(filter)
+      .sort({ name: 1 })
+      .skip(skip)
+      .limit(limit);
+
+    // Calculate total pages
+    const totalPages = Math.ceil(totalCount / limit);
+
+    return {
+      services,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        pageSize: limit,
+        totalCount,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      },
+    };
+  } catch (error) {
+    console.error("Error fetching services:", error);
+    throw new Error("Failed to fetch services");
+  }
 };
 
 const updateService = async (serviceId, updateData) => {
@@ -88,4 +137,5 @@ export {
   deleteService,
   searchServiceByName,
   softDeleteService,
+  getAllServiceByManage,
 };

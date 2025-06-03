@@ -20,6 +20,19 @@ const getAllServices = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+const getAllServicesByManage = async (req, res) => {
+  try {
+    const { page, limit, keyword } = req.query;
+    const services = await serviceService.getAllServiceByManage({
+      page,
+      limit,
+      keyword,
+    });
+    res.status(200).json(services);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
 
 const updateService = async (req, res) => {
   const { id } = req.params;
@@ -72,5 +85,6 @@ export {
   updateService,
   deleteService,
   searchServiceByName,
-  softDeleteService
+  softDeleteService,
+  getAllServicesByManage,
 };
