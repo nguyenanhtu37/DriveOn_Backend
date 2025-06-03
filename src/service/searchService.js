@@ -12,7 +12,7 @@ const searchByKeyword = async (keyword) => {
 
     const services = await ServiceDetail.find({
       name: { $regex: keyword, $options: "i" },
-    });
+    }).populate('garage', 'address name');
 
     // Map garages and services to unified format
     const garageResults = garages.map((g) => ({
@@ -25,11 +25,12 @@ const searchByKeyword = async (keyword) => {
     }));
 
     const serviceResults = services.map((s) => ({
-      garageId: s.garage,
+      garageId: s.garage._id, // Now using _id since garage is populated
       name: s.name,
       type: "service",
       description: s.description || "",
       image: s.images[0] || "",
+      address: s.garage.address || "", // Adding the garage address
     }));
 
     return [...garageResults, ...serviceResults];
