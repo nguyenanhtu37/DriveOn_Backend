@@ -580,10 +580,11 @@ export const getAppointmentsByUserService = async (
   if (status === "Upcoming") {
     query.status = { $in: ["Pending", "Accepted"] };
     query.start = { $gte: new Date() }; // Only future appointments
-  } else if (status !== "All") {
-    const statusList = status.split(",").map((s) => s.trim());
+  } else if (status && status !== "All") {
+    const statusList = status.split(",").map(s => s.trim());
     query.status = { $in: statusList };
   }
+
 
   const skip = (page - 1) * limit;
 

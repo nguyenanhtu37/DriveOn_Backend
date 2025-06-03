@@ -989,134 +989,252 @@ const viewDashboardOverview = async (garageId, userId) => {
   }
 };
 
-const viewDashboardChart = async (garageId, userId, year) => {
+
+const viewDashboardChart = async (garageId, userId, year, type = "month") => {
   try {
-    let matchStage = {
-      garage: mongoose.Types.ObjectId.createFromHexString(garageId),
-      status: "Completed",
-    };
-    if (year) {
-      const selectedYear = parseInt(year);
-      matchStage.end = {
-        $gte: new Date(selectedYear, 0, 1),
-        $lt: new Date(selectedYear + 1, 0, 1),
-      };
-    }
+    const selectedYear = year ? parseInt(year) : new Date().getFullYear();
 
-    // Lấy appointments completed theo tháng
-    const appointments = await Appointment.aggregate([
-      { $match: matchStage },
-      {
-        $project: {
-          year: { $year: "$end" },
-          month: { $month: "$end" },
-          service: 1,
+    if (type === "quarter") {
+      // Thống kê theo quý
+      const appointments = await Appointment.aggregate([
+        {
+          $match: {
+            garage: mongoose.Types.ObjectId.createFromHexString(garageId),
+            status: "Completed",
+            end: {
+              $gte: new Date(selectedYear, 0, 1),
+              $lt: new Date(selectedYear + 1, 0, 1),
+            },
+          },
         },
-      },
-      {
-        $group: {
-          _id: { year: "$year", month: "$month" },
-          appointmentIds: { $push: "$_id" },
-          serviceIds: { $push: "$service" }, // mảng các mảng serviceId
-          totalAppointments: { $sum: 1 },
+        {
+          $project: {
+            quarter: { $ceil: { $divide: [{ $month: "$end" }, 3] } },
+            service: 1,
+          },
         },
-      },
-      {
-        $sort: { "_id.year": 1, "_id.month": 1 },
-      },
-    ]);
+        {
+          $group: {
+            _id: { quarter: "$quarter" },
+            serviceIds: { $push: "$service" },
+            totalAppointments: { $sum: 1 },
+          },
+        },
+        { $sort: { "_id.quarter": 1 } },
+      ]);
 
-    // Tính revenue theo từng tháng
-    const months = Array.from({ length: 12 }, (_, i) => i + 1);
-
-    let allServiceIds = [];
-    appointments.forEach((item) => {
-      // item.serviceIds là mảng các mảng serviceId
-      item.serviceIds.forEach((arr) => {
-        allServiceIds = allServiceIds.concat(arr);
+      // Lấy tất cả serviceIds của các appointment completed trong năm đó
+      let allServiceIds = [];
+      appointments.forEach((item) => {
+        item.serviceIds.forEach((arr) => {
+          allServiceIds = allServiceIds.concat(arr);
+        });
       });
-    });
 
-    // Lấy price
-    let serviceDetailMap = {};
-    if (allServiceIds.length > 0) {
-      const serviceDetails = await ServiceDetail.find({
-        _id: { $in: allServiceIds },
-      }).select("_id price");
-      serviceDetails.forEach((sd) => {
-        serviceDetailMap[sd._id.toString()] = sd.price;
-      });
-    }
-
-    // Map lại revenue theo từng tháng
-    const result = months.map((month) => {
-      const monthData = appointments.find((item) => item._id.month === month);
-      let revenue = 0;
-      if (monthData && monthData.serviceIds) {
-        monthData.serviceIds.forEach((serviceArr) => {
-          serviceArr.forEach((sid) => {
-            revenue += serviceDetailMap[sid.toString()] || 0;
-          });
+      // Lấy thông tin price của các serviceDetail
+      let serviceDetailMap = {};
+      if (allServiceIds.length > 0) {
+        const serviceDetails = await ServiceDetail.find({
+          _id: { $in: allServiceIds },
+        }).select("_id price");
+        serviceDetails.forEach((sd) => {
+          serviceDetailMap[sd._id.toString()] = sd.price;
         });
       }
-      return {
-        month,
-        totalAppointments: monthData ? monthData.totalAppointments : 0,
-        revenue,
-      };
-    });
 
-    // Service usage theo năm (giữ nguyên)
-    let matchServiceStage = {
-      garage: mongoose.Types.ObjectId.createFromHexString(garageId),
-    };
-    if (year) {
-      const selectedYear = parseInt(year);
-      matchServiceStage.end = {
-        $gte: new Date(selectedYear, 0, 1),
-        $lt: new Date(selectedYear + 1, 0, 1),
+      // Map lại revenue vào từng quý
+      const quarters = Array.from({ length: 4 }, (_, i) => i + 1);
+      const appointmentResult = quarters.map((quarter) => {
+        const data = appointments.find((item) => item._id.quarter === quarter);
+        let revenue = 0;
+        if (data && data.serviceIds) {
+          data.serviceIds.forEach((serviceArr) => {
+            serviceArr.forEach((sid) => {
+              revenue += serviceDetailMap[sid.toString()] || 0;
+            });
+          });
+        }
+        return {
+          quarter,
+          totalAppointments: data ? data.totalAppointments : 0,
+          revenue,
+        };
+      });
+
+      // Service usage by quarter
+      const serviceUsage = await Appointment.aggregate([
+        {
+          $match: {
+            garage: mongoose.Types.ObjectId.createFromHexString(garageId),
+            end: {
+              $gte: new Date(selectedYear, 0, 1),
+              $lt: new Date(selectedYear + 1, 0, 1),
+            },
+          },
+        },
+        { $unwind: "$service" },
+        {
+          $project: {
+            service: 1,
+            quarter: { $ceil: { $divide: [{ $month: "$end" }, 3] } },
+          },
+        },
+        {
+          $group: {
+            _id: { service: "$service", quarter: "$quarter" },
+            totalUses: { $sum: 1 },
+          },
+        },
+        {
+          $lookup: {
+            from: "servicedetails",
+            localField: "_id.service",
+            foreignField: "_id",
+            as: "serviceInfo",
+          },
+        },
+        { $unwind: "$serviceInfo" },
+        {
+          $project: {
+            quarter: "$_id.quarter",
+            serviceName: "$serviceInfo.name",
+            serviceId: "$serviceInfo._id",
+            totalUses: 1,
+            _id: 0,
+          },
+        },
+        { $sort: { quarter: 1, totalUses: -1 } },
+      ]);
+
+      return {
+        type: "quarter",
+        appointments: appointmentResult,
+        services: serviceUsage,
+      };
+    } else {
+      // Thống kê theo tháng (mặc định)
+      let matchStage = {
+        garage: mongoose.Types.ObjectId.createFromHexString(garageId),
+        status: "Completed",
+      };
+      if (year) {
+        matchStage.end = {
+          $gte: new Date(selectedYear, 0, 1),
+          $lt: new Date(selectedYear + 1, 0, 1),
+        };
+      }
+
+      // Lấy appointments completed theo tháng
+      const appointments = await Appointment.aggregate([
+        { $match: matchStage },
+        {
+          $project: {
+            year: { $year: "$end" },
+            month: { $month: "$end" },
+            service: 1,
+          },
+        },
+        {
+          $group: {
+            _id: { year: "$year", month: "$month" },
+            appointmentIds: { $push: "$_id" },
+            serviceIds: { $push: "$service" },
+            totalAppointments: { $sum: 1 },
+          },
+        },
+        {
+          $sort: { "_id.year": 1, "_id.month": 1 },
+        },
+      ]);
+
+      // Tính revenue theo từng tháng
+      const months = Array.from({ length: 12 }, (_, i) => i + 1);
+
+      let allServiceIds = [];
+      appointments.forEach((item) => {
+        item.serviceIds.forEach((arr) => {
+          allServiceIds = allServiceIds.concat(arr);
+        });
+      });
+
+      let serviceDetailMap = {};
+      if (allServiceIds.length > 0) {
+        const serviceDetails = await ServiceDetail.find({
+          _id: { $in: allServiceIds },
+        }).select("_id price");
+        serviceDetails.forEach((sd) => {
+          serviceDetailMap[sd._id.toString()] = sd.price;
+        });
+      }
+
+      const result = months.map((month) => {
+        const monthData = appointments.find((item) => item._id.month === month);
+        let revenue = 0;
+        if (monthData && monthData.serviceIds) {
+          monthData.serviceIds.forEach((serviceArr) => {
+            serviceArr.forEach((sid) => {
+              revenue += serviceDetailMap[sid.toString()] || 0;
+            });
+          });
+        }
+        return {
+          month,
+          totalAppointments: monthData ? monthData.totalAppointments : 0,
+          revenue,
+        };
+      });
+
+      // Service usage theo năm
+      let matchServiceStage = {
+        garage: mongoose.Types.ObjectId.createFromHexString(garageId),
+      };
+      if (year) {
+        matchServiceStage.end = {
+          $gte: new Date(selectedYear, 0, 1),
+          $lt: new Date(selectedYear + 1, 0, 1),
+        };
+      }
+
+      const serviceUsage = await Appointment.aggregate([
+        { $match: matchServiceStage },
+        { $unwind: "$service" },
+        {
+          $group: {
+            _id: "$service",
+            totalUses: { $sum: 1 },
+          },
+        },
+        {
+          $lookup: {
+            from: "servicedetails",
+            localField: "_id",
+            foreignField: "_id",
+            as: "serviceInfo",
+          },
+        },
+        { $unwind: "$serviceInfo" },
+        {
+          $project: {
+            serviceName: "$serviceInfo.name",
+            serviceId: "$serviceInfo._id",
+            totalUses: 1,
+            _id: 0,
+          },
+        },
+        { $sort: { totalUses: -1 } },
+      ]);
+
+      return {
+        type: "month",
+        appointments: result,
+        services: serviceUsage,
       };
     }
-
-    const serviceUsage = await Appointment.aggregate([
-      { $match: matchServiceStage },
-      { $unwind: "$service" },
-      {
-        $group: {
-          _id: "$service",
-          totalUses: { $sum: 1 },
-        },
-      },
-      {
-        $lookup: {
-          from: "servicedetails",
-          localField: "_id",
-          foreignField: "_id",
-          as: "serviceInfo",
-        },
-      },
-      { $unwind: "$serviceInfo" },
-      {
-        $project: {
-          serviceName: "$serviceInfo.name",
-          serviceId: "$serviceInfo._id",
-          totalUses: 1,
-          _id: 0,
-        },
-      },
-      { $sort: { totalUses: -1 } },
-    ]);
-
-    return {
-      appointments: result,
-      services: serviceUsage,
-    };
   } catch (err) {
     console.error("Error in viewDashboardChart:", err.message);
     throw new Error(err.message);
   }
 };
-
 
 export const viewDashboardChartByQuarter = async (garageId, userId, year) => {
   try {

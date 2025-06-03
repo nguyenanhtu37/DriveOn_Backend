@@ -402,10 +402,10 @@ const viewDashboardOverview = async (req, res) => {
 const viewDashboardChart = async (req, res) => {
   const { id } = req.params;
   const user = req.user.id;
-  const { year } = req.query;
+  const { year, type } = req.query;
 
   try {
-    const overview = await garageService.viewDashboardChart(id, user, year);
+    const overview = await garageService.viewDashboardChart(id, user, year, type);
     res.status(200).json(overview);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -434,12 +434,18 @@ const viewAdminDashboardOverview = async (req, res) => {
   }
 };
 
+
 export const getGarageStatusCountsByMonth = async (req, res) => {
   try {
     const year = req.query.year;
-    const statusCountsByMonth =
-      await garageService.getGarageCountByStatusAndMonth(year);
-    res.status(200).json(statusCountsByMonth);
+    const type = req.query.type || "month";
+    let result;
+    if (type === "quarter") {
+      result = await garageService.getGarageCountByStatusAndQuarter(year);
+    } else {
+      result = await garageService.getGarageCountByStatusAndMonth(year);
+    }
+    res.status(200).json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
