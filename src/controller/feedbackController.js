@@ -113,3 +113,13 @@ export const getFeedbackByAppointmentId = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+export const getAllFeedbacksByGarage = async (req, res) => {
+  const { id } = req.params; // garage id
+  try {
+    const feedbacks = await feedbackService.getAllFeedbacksByGarage(id);
+    res.status(200).json(feedbacks);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};

@@ -359,3 +359,22 @@ export const getFeedbackByAppointmentId = async (appointmentId) => {
     throw new Error("Error fetching feedbacks for the appointment");
   }
 };
+
+export const getAllFeedbacksByGarage = async (garageId) => {
+  try {
+    const feedbacks = await Feedback.find({ garage: garageId })
+      .populate("user", "name avatar")
+      .populate({
+        path: "appointment",
+        select: "start end service vehicle",
+        populate: [
+          { path: "service", select: "name" },
+          { path: "vehicle", select: "carName carPlate" },
+        ],
+      })
+      .populate("serviceDetail");
+    return feedbacks;
+  } catch (err) {
+    throw new Error(err.message);
+  }
+};
