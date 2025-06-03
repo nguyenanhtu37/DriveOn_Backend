@@ -71,7 +71,10 @@ const registerGarage = async (user, garageData) => {
 };
 
 const viewGarages = async (userId) => {
-  const garages = await Garage.find({ user: { $in: [userId] } });
+  const garages = await Garage.find({
+    user: { $in: [userId] },
+    status: { $all: ["enabled", "approved"] },
+  });
   console.log("userId: ", userId);
   console.log("garages: ", garages);
   return garages;
@@ -989,7 +992,6 @@ const viewDashboardOverview = async (garageId, userId) => {
   }
 };
 
-
 const viewDashboardChart = async (garageId, userId, year, type = "month") => {
   try {
     const selectedYear = year ? parseInt(year) : new Date().getFullYear();
@@ -1261,7 +1263,7 @@ export const viewDashboardChartByQuarter = async (garageId, userId, year) => {
       {
         $group: {
           _id: { quarter: "$quarter" },
-          serviceIds: { $push: "$service" }, 
+          serviceIds: { $push: "$service" },
           totalAppointments: { $sum: 1 },
         },
       },
@@ -1306,7 +1308,7 @@ export const viewDashboardChartByQuarter = async (garageId, userId, year) => {
       };
     });
 
-    // Service usage by quarter 
+    // Service usage by quarter
     const serviceUsage = await Appointment.aggregate([
       {
         $match: {
