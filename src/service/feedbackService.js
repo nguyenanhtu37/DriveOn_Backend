@@ -134,12 +134,32 @@ export const getFeedbackByGarageId = async ({
   }
 };
 
-export const viewFeedbackForGarageDetail = async (garageId) => {
+export const viewFeedbackForGarageDetail = async (
+  garageId,
+  showMoreCount = 1
+) => {
+  const perPage = 5;
+  const limit = perPage * showMoreCount;
+
   try {
+    const totalGeneral = await Feedback.countDocuments({
+      garage: garageId,
+      type: "general",
+    });
+
+    const totalSpecific = await Feedback.countDocuments({
+      garage: garageId,
+      type: "specific",
+    });
+
+    const totalFeedback = totalGeneral + totalSpecific;
+
     const generalFeedbacks = await Feedback.find({
       garage: garageId,
       type: "general",
     })
+      .sort({ createdAt: -1 })
+      .limit(limit)
       .populate("user", "name avatar")
       .populate({
         path: "appointment",
@@ -167,28 +187,36 @@ export const viewFeedbackForGarageDetail = async (garageId) => {
       garage: garageId,
       type: "specific",
     })
+      .sort({ createdAt: -1 })
+      .limit(limit)
       .populate("user", "name avatar")
       .populate("serviceDetail", "name price duration");
 
     const transformedFeedbacksSpecific = specificFeedbacks.map((feedback) => {
       const feedbackObj = feedback.toObject();
 
-      // Extract service name from serviceDetail
       let serviceName = "";
       if (feedbackObj.serviceDetail && feedbackObj.serviceDetail.name) {
         serviceName = feedbackObj.serviceDetail.name;
       }
 
       feedbackObj.serviceName = serviceName;
-
-      // Remove appointment and replace serviceDetail with just the necessary info
       delete feedbackObj.appointment;
       delete feedbackObj.serviceDetail;
 
       return feedbackObj;
     });
 
-    return [...transformedFeedbacks, ...transformedFeedbacksSpecific];
+    const combined = [...transformedFeedbacks, ...transformedFeedbacksSpecific]
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)) // đảm bảo sắp xếp chung
+      .slice(0, limit);
+
+    const canShowMore = combined.length < totalFeedback ? true : false;
+
+    return {
+      feedbacks: combined,
+      canShowMore,
+    };
   } catch (err) {
     throw new Error(err.message);
   }
