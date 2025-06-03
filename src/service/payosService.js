@@ -278,14 +278,19 @@ export const sendPaymentSuccessEmailToAdmin = async (
   }
 };
 
-export const getTransactionsByMonthOrQuarter = async (type = "month") => {
+export const getTransactionsByMonthOrQuarter = async (type = "month", year) => {
   try {
+    const selectedYear = year ? parseInt(year) : new Date().getFullYear();
+
     if (type === "quarter") {
-      // Thống kê theo quý
       const transactionsByQuarter = await Transaction.aggregate([
         {
           $match: {
             status: "PAID",
+            paidAt: {
+              $gte: new Date(selectedYear, 0, 1),
+              $lt: new Date(selectedYear + 1, 0, 1),
+            },
           },
         },
         {
@@ -295,7 +300,7 @@ export const getTransactionsByMonthOrQuarter = async (type = "month") => {
               quarter: { $ceil: { $divide: [{ $month: "$paidAt" }, 3] } },
             },
             totalTransactions: { $sum: 1 },
-            totalAmount: { $sum: "$amount" }, // Tổng amount
+            totalAmount: { $sum: "$amount" },
           },
         },
         {
@@ -310,17 +315,16 @@ export const getTransactionsByMonthOrQuarter = async (type = "month") => {
         { $sort: { year: 1, quarter: 1 } },
       ]);
 
-      const currentYear = new Date().getFullYear();
       const quarters = [1, 2, 3, 4];
       const filledData = quarters.map((quarter) => ({
         quarter,
-        year: currentYear,
+        year: selectedYear,
         totalTransactions: 0,
         totalAmount: 0,
       }));
 
       transactionsByQuarter.forEach((item) => {
-        if (item.year === currentYear) {
+        if (item.year === selectedYear) {
           const idx = filledData.findIndex((q) => q.quarter === item.quarter);
           if (idx !== -1) {
             filledData[idx].totalTransactions = item.totalTransactions;
@@ -331,11 +335,15 @@ export const getTransactionsByMonthOrQuarter = async (type = "month") => {
 
       return filledData;
     } else {
-      // Thống kê theo tháng 
+      // Thống kê theo tháng
       const transactionsByMonth = await Transaction.aggregate([
         {
           $match: {
             status: "PAID",
+            paidAt: {
+              $gte: new Date(selectedYear, 0, 1),
+              $lt: new Date(selectedYear + 1, 0, 1),
+            },
           },
         },
         {
@@ -345,7 +353,7 @@ export const getTransactionsByMonthOrQuarter = async (type = "month") => {
               year: { $year: "$paidAt" },
             },
             totalTransactions: { $sum: 1 },
-            totalAmount: { $sum: "$amount" }, // Tổng amount
+            totalAmount: { $sum: "$amount" },
           },
         },
         {
@@ -357,17 +365,14 @@ export const getTransactionsByMonthOrQuarter = async (type = "month") => {
             _id: 0,
           },
         },
-        {
-          $sort: { year: 1, month: 1 },
-        },
+        { $sort: { year: 1, month: 1 } },
       ]);
 
-      const currentYear = new Date().getFullYear();
       const allMonths = Array.from({ length: 12 }, (_, i) => i + 1);
 
       const filledData = allMonths.map((month) => ({
         month,
-        year: currentYear,
+        year: selectedYear,
         totalTransactions: 0,
         totalAmount: 0,
       }));

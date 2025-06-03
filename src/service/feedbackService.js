@@ -360,9 +360,44 @@ export const getFeedbackByAppointmentId = async (appointmentId) => {
   }
 };
 
-export const getAllFeedbacksByGarage = async (garageId) => {
+// export const getAllFeedbacksByGarage = async (garageId) => {
+//   try {
+//     const feedbacks = await Feedback.find({ garage: garageId })
+//       .populate("user", "name avatar")
+//       .populate({
+//         path: "appointment",
+//         select: "start end service vehicle",
+//         populate: [
+//           { path: "service", select: "name" },
+//           { path: "vehicle", select: "carName carPlate" },
+//         ],
+//       })
+//       .populate("serviceDetail");
+//     return feedbacks;
+//   } catch (err) {
+//     throw new Error(err.message);
+//   }
+// };
+
+export const getAllFeedbacksByGarage = async (garageId, year, quarter) => {
   try {
-    const feedbacks = await Feedback.find({ garage: garageId })
+    const query = { garage: garageId };
+
+    // Filter theo năm và quý nếu có
+    if (year) {
+      const selectedYear = parseInt(year);
+      let startDate = new Date(selectedYear, 0, 1);
+      let endDate = new Date(selectedYear + 1, 0, 1);
+
+      if (quarter) {
+        const q = parseInt(quarter);
+        startDate = new Date(selectedYear, (q - 1) * 3, 1);
+        endDate = new Date(selectedYear, q * 3, 1);
+      }
+      query.createdAt = { $gte: startDate, $lt: endDate };
+    }
+
+    const feedbacks = await Feedback.find(query)
       .populate("user", "name avatar")
       .populate({
         path: "appointment",

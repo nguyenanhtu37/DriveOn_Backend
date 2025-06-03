@@ -992,6 +992,7 @@ const viewDashboardOverview = async (garageId, userId) => {
   }
 };
 
+
 const viewDashboardChart = async (garageId, userId, year, type = "month") => {
   try {
     const selectedYear = year ? parseInt(year) : new Date().getFullYear();
@@ -1063,11 +1064,12 @@ const viewDashboardChart = async (garageId, userId, year, type = "month") => {
         };
       });
 
-      // Service usage by quarter
-      const serviceUsage = await Appointment.aggregate([
+      // Service usage by quarter (chi tiết từng service theo từng quý)
+      const serviceUsageByQuarter = await Appointment.aggregate([
         {
           $match: {
             garage: mongoose.Types.ObjectId.createFromHexString(garageId),
+            status: "Completed",
             end: {
               $gte: new Date(selectedYear, 0, 1),
               $lt: new Date(selectedYear + 1, 0, 1),
@@ -1108,13 +1110,30 @@ const viewDashboardChart = async (garageId, userId, year, type = "month") => {
         { $sort: { quarter: 1, totalUses: -1 } },
       ]);
 
+      // Tổng số lần sử dụng service theo từng quý
+      const serviceUsageSummary = quarters.map((quarter) => {
+        const servicesInQuarter = serviceUsageByQuarter.filter(
+          (item) => item.quarter === quarter
+        );
+        const totalServiceUsed = servicesInQuarter.reduce(
+          (sum, item) => sum + item.totalUses,
+          0
+        );
+        return {
+          quarter,
+          totalServiceUsed,
+          details: servicesInQuarter,
+        };
+      });
+
       return {
         type: "quarter",
         appointments: appointmentResult,
-        services: serviceUsage,
+        services: serviceUsageByQuarter,
+        serviceUsageSummary, // tổng số lần sử dụng service theo từng quý
       };
     } else {
-      // Thống kê theo tháng (mặc định)
+
       let matchStage = {
         garage: mongoose.Types.ObjectId.createFromHexString(garageId),
         status: "Completed",
@@ -1237,6 +1256,7 @@ const viewDashboardChart = async (garageId, userId, year, type = "month") => {
     throw new Error(err.message);
   }
 };
+
 
 export const viewDashboardChartByQuarter = async (garageId, userId, year) => {
   try {
