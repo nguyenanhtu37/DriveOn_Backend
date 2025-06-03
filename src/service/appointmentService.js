@@ -564,11 +564,11 @@ async function sendAppointmentEmails(
 // No change needed to the main createAppointmentService function as it just calls sendAppointmentEmails
 
 export const getAppointmentsByUserService = async (
-  userId,
-  page = 1,
-  limit = 10,
-  status,
-  keyword
+    userId,
+    page = 1,
+    limit = 10,
+    status,
+    keyword
 ) => {
   page = parseInt(page);
   limit = parseInt(limit);
@@ -585,18 +585,54 @@ export const getAppointmentsByUserService = async (
     query.status = { $in: statusList };
   }
 
+  // Add keyword search capability
+  if (keyword && keyword.trim() !== "") {
+    const searchRegex = new RegExp(keyword.trim(), 'i');
+
+    // First, populate and find appointments
+    const allAppointments = await Appointment.find(query)
+        .populate("garage", "name address")
+        .populate("vehicle", "carName carPlate")
+        .populate("service", "name")
+        .lean();
+
+    // Filter appointments that match the keyword in various fields
+    const filteredAppointmentIds = allAppointments
+        .filter(appointment => (
+            // Search in note field
+            (appointment.note && searchRegex.test(appointment.note)) ||
+            // Search in garage name/address
+            (appointment.garage && (
+                searchRegex.test(appointment.garage.name) ||
+                searchRegex.test(appointment.garage.address)
+            )) ||
+            // Search in vehicle info
+            (appointment.vehicle && (
+                searchRegex.test(appointment.vehicle.carName) ||
+                searchRegex.test(appointment.vehicle.carPlate)
+            )) ||
+            // Search in service names
+            (appointment.service && appointment.service.some(s =>
+                searchRegex.test(s.name)
+            ))
+        ))
+        .map(appointment => appointment._id);
+
+    query._id = { $in: filteredAppointmentIds };
+  }
+
   const skip = (page - 1) * limit;
 
   const totalCount = await Appointment.countDocuments(query);
 
   const appointments = await Appointment.find(query)
-    .populate("user", "name email")
-    .populate("garage", "name address")
-    .populate("vehicle", "carBrand carName carPlate")
-    .populate("service", "")
-    .sort({ start: 1 })
-    .skip(skip)
-    .limit(limit);
+      .populate("user", "name email")
+      .populate("garage", "name address")
+      .populate("vehicle", "carBrand carName carPlate")
+      .populate("service", "")
+      .sort({ start: 1 })
+      .skip(skip)
+      .limit(limit);
 
   const totalPages = Math.ceil(totalCount / limit);
 
@@ -612,6 +648,9 @@ export const getAppointmentsByUserService = async (
     },
   };
 };
+
+
+
 export const getAppointmentByIdService = async (appointmentId) => {
   return await Appointment.findById(appointmentId)
     .populate("user", "avatar name email locale phone") // Select basic user information

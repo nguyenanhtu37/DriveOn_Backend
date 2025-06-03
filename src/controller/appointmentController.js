@@ -32,18 +32,17 @@ export const getAppointmentsByUser = async (req, res) => {
 
   try {
     const result = await appointmentService.getAppointmentsByUserService(
-      userId,
-      page,
-      limit,
-      status,
-      keyword
+        userId,
+        page,
+        limit,
+        status,
+        keyword
     );
     res.status(200).json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
-
 export const getAppointmentsByVehicle = async (req, res) => {
   const { vehicleId } = req.params;
   const { page, limit } = req.query;
