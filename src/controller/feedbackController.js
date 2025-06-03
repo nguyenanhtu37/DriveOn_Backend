@@ -2,7 +2,7 @@ import * as feedbackService from "../service/feedbackService.js";
 
 export const viewFeedbackByGarageId = async (req, res) => {
   const { id } = req.params;
-  const { type, rating, service, keyword } = req.query; // garage id
+  const { type, rating, service, keyword, page, limit } = req.query; // garage id
   try {
     const feedbacks = await feedbackService.getFeedbackByGarageId({
       id,
@@ -10,6 +10,8 @@ export const viewFeedbackByGarageId = async (req, res) => {
       rating,
       service,
       keyword,
+      page,
+      limit,
     });
     res.status(200).json(feedbacks);
   } catch (err) {
