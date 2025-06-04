@@ -17,11 +17,14 @@ const addServiceDetail = async (req, res) => {
 
 const getServiceDetailsByGarage = async (req, res) => {
   const { garageId } = req.params;
+  const page = parseInt(req.query.page) || 1;
   try {
-    const serviceDetails = await serviceDetailService.getServiceDetailsByGarage(
-      garageId
+    const result = await serviceDetailService.getServiceDetailsByGarage(
+      garageId,
+      page,
+      6
     );
-    res.status(200).json(serviceDetails);
+    res.status(200).json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
