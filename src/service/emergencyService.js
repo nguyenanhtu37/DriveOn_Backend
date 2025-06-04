@@ -3,6 +3,7 @@ import { getIO, getReceiverSocketId } from "../libs/socket.js";
 import mongoose from "mongoose";
 import { sendSocketEvent } from "../libs/socketEvent.js";
 import ServiceDetail from "../models/serviceDetail.js";
+import Garage from "../models/garage.js";
 
 export const createEmergency = async (
   sessionId,
@@ -310,12 +311,40 @@ async function notifyAvailableGarages(emergency, type) {
     };
   }
 
-  filteredGarageIds.forEach((garageId) => {
+  let nearbyGarageIds = filteredGarageIds;
+
+  if (emergency.location && emergency.location.coordinates) {
+    const nearbyGarages = await Garage.find({
+      _id: { $in: filteredGarageIds },
+      location: {
+        $near: {
+          $geometry: {
+            type: "Point",
+            coordinates: emergency.location.coordinates,
+          },
+          $maxDistance: 10000,
+        },
+      },
+    });
+
+    nearbyGarageIds = nearbyGarages.map((garage) => garage._id.toString());
+
+    if (nearbyGarageIds.length === 0) {
+      return {
+        success: false,
+        message:
+          "No active garage with emergency service available within 10km",
+      };
+    }
+  }
+
+  // Send notifications only to nearby garages
+  nearbyGarageIds.forEach((garageId) => {
     sendSocketEvent(type, emergency, garageId);
   });
 
   return {
     success: true,
-    notifiedGarages: filteredGarageIds.length,
+    notifiedGarages: nearbyGarageIds.length,
   };
 }
