@@ -49,8 +49,8 @@ export const getTransactions = async (filter = {}, options = {}) => {
       .sort({ [sortBy]: sortOrder })
       .skip(skip)
       .limit(parseInt(limit))
-      .populate("subscriptionId", "name planType")
-      .populate("garageId", "name");
+      .populate("subscription", "name planType")
+      .populate("garage", "name");
 
     const total = await Transaction.countDocuments(filter);
 
@@ -64,7 +64,8 @@ export const getTransactions = async (filter = {}, options = {}) => {
       },
     };
   } catch (error) {
-    throw new Error(500, `Error fetching transactions: ${error.message}`);
+    error.status = 500; 
+    throw error;
   }
 };
 
@@ -75,8 +76,8 @@ export const getTransactionById = async (id) => {
     }
 
     const transaction = await Transaction.findById(id)
-      .populate("subscriptionId", "name planType")
-      .populate("garageId", "name");
+      .populate("subscription", "name planType")
+      .populate("garage", "name");
 
     if (!transaction) {
       throw new Error(404, "Transaction not found");
@@ -92,8 +93,8 @@ export const getTransactionById = async (id) => {
 export const getTransactionByOrderCode = async (orderCode) => {
   try {
     const transaction = await Transaction.findOne({ orderCode })
-      .populate("subscriptionId", "name planType")
-      .populate("garageId", "name");
+      .populate("subscription", "name planType")
+      .populate("garage", "name");
 
     if (!transaction) {
       throw new Error(404, "Transaction not found");
@@ -175,9 +176,9 @@ export const deleteTransaction = async (id) => {
   }
 };
 
-export const getGarageRevenueByMonth = async (garageId, year) => {
+export const getGarageRevenueByMonth = async (garage, year) => {
   try {
-    if (!mongoose.Types.ObjectId.isValid(garageId)) {
+    if (!mongoose.Types.ObjectId.isValid(garage)) {
       throw new Error(400, "Invalid garage ID");
     }
 
@@ -187,7 +188,7 @@ export const getGarageRevenueByMonth = async (garageId, year) => {
     const revenueData = await Transaction.aggregate([
       {
         $match: {
-          garageId: new mongoose.Types.ObjectId(garageId),
+          garage: new mongoose.Types.ObjectId(garage),
           status: "PAID",
           paidAt: {
             $gte: startDate,
@@ -228,14 +229,14 @@ export const getGarageRevenueByMonth = async (garageId, year) => {
   }
 };
 
-export const getTransactionsByGarageId = async (garageId, options = {}) => {
+export const getTransactionsBygarage = async (garage, options = {}) => {
   try {
-    if (!mongoose.Types.ObjectId.isValid(garageId)) {
+    if (!mongoose.Types.ObjectId.isValid(garage)) {
       throw new Error(400, "Invalid garage ID");
     }
 
     // Create filter for the specific garage
-    const filter = { garageId: garageId };
+    const filter = { garage: garage };
 
     // Use the existing getTransactions function with our filter
     return await getTransactions(filter, options);
