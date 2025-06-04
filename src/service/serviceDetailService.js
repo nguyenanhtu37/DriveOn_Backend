@@ -34,20 +34,29 @@ const addServiceDetail = async (serviceDetailData) => {
 };
 
 
-
-const getServiceDetailsByGarage = async (garageId) => {
+const getServiceDetailsByGarage = async (garageId, page = 1, limit = 6) => {
   const garageExists = await ServiceDetail.exists({ garage: garageId });
   if (!garageExists) {
     throw new Error("Garage not found");
   }
-  const serviceDetails = await ServiceDetail.find({
-    garage: garageId,
-    isDeleted: false, 
-  }).populate("service", "name");
-  const sortedServiceDetails = serviceDetails.sort((a, b) =>
-    a.name.localeCompare(b.name)
-  );
-  return sortedServiceDetails;
+  const skip = (page - 1) * limit;
+  const [serviceDetails, total] = await Promise.all([
+    ServiceDetail.find({
+      garage: garageId,
+      isDeleted: false,
+    })
+      .populate("service", "name")
+      .sort({ name: 1 })
+      .skip(skip)
+      .limit(limit),
+    ServiceDetail.countDocuments({ garage: garageId, isDeleted: false }),
+  ]);
+  return {
+    serviceDetails,
+    total,
+    totalPages: Math.ceil(total / limit),
+    currentPage: page,
+  };
 };
 
 const updateServiceDetail = async (serviceDetailId, updateData) => {
