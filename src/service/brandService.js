@@ -25,11 +25,11 @@ const addBrand = async (brandName, logo) => {
 //   }
 // };
 
-const getBrands = async (page = 1, limit = 10, keyword = "") => {
+const getBrands = async (page = 1, limit = 12, keyword = "") => {
   page = parseInt(page);
   limit = parseInt(limit);
   if (isNaN(page) || page < 1) page = 1;
-  if (isNaN(limit) || limit < 1) limit = 10;
+  if (isNaN(limit) || limit < 1) limit = 12;
 
   const query = { isDeleted: false };
 
