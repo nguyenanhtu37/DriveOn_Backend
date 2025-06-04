@@ -9,6 +9,7 @@ import {
   addMultiFeedback,
   viewFeedbackForGarageDetail,
   getFeedbackByAppointmentId,
+  getAllFeedbacksByGarage
 } from "../controller/feedbackController.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import { authorizeRoles } from "../middleware/authorizeRoles.js";
@@ -26,11 +27,10 @@ router.delete(
   authorizeRoles(["staff", "manager"]),
   deleteFeedbackByGarage
 );
-router.get(
-  "/garage/:garageId/service/:serviceDetailId",
-  viewFeedbackByServiceDetailInGarage
-);
+router.get("/service/:serviceDetailId", viewFeedbackByServiceDetailInGarage);
 
 router.get("/garageDetail/:garageId", viewFeedbackForGarageDetail);
+
+router.get("/garage/:id/all", getAllFeedbacksByGarage);
 
 export default router;

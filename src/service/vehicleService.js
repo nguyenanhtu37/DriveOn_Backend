@@ -37,12 +37,13 @@ const addVehicle = async (user, vehicleData) => {
 };
 
 const viewVehicles = async (userId) => {
-  const vehicles = await Vehicle.find({ 
+  const vehicles = await Vehicle.find({
     carOwner: userId,
-    isDeleted: false
+    isDeleted: false,
   })
     .populate("carOwner")
-    .select("carBrand carName carYear carColor carPlate carImages");
+    .populate("carBrand", "brandName")
+    .select(" carName carYear carColor carPlate carImages");
   return vehicles;
 };
 

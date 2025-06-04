@@ -8,11 +8,12 @@ const searchByKeyword = async (keyword) => {
         { name: { $regex: keyword, $options: "i" } },
         { address: { $regex: keyword, $options: "i" } },
       ],
+      status: "enabled",
     });
 
     const services = await ServiceDetail.find({
       name: { $regex: keyword, $options: "i" },
-    });
+    }).populate("garage", "address name");
 
     // Map garages and services to unified format
     const garageResults = garages.map((g) => ({
@@ -25,11 +26,12 @@ const searchByKeyword = async (keyword) => {
     }));
 
     const serviceResults = services.map((s) => ({
-      garageId: s.garage,
+      garageId: s.garage._id, // Now using _id since garage is populated
       name: s.name,
       type: "service",
       description: s.description || "",
       image: s.images[0] || "",
+      address: s.garage.address || "", // Adding the garage address
     }));
 
     return [...garageResults, ...serviceResults];
@@ -47,39 +49,49 @@ const searchWithFilter = async ({
   page = 1,
   limit = 10,
 }) => {
-  let garageResults = [];
-
   try {
+    // Validate pagination parameters
+    page = Math.max(1, parseInt(page) || 1);
+    limit = Math.max(1, Math.min(50, parseInt(limit) || 10));
+
+    let query = {};
+
+    // Keyword search
     if (keyword) {
-      const garages = await Garage.find({
+      // First search for garages directly
+      query = {
         $or: [
           { name: { $regex: keyword, $options: "i" } },
           { address: { $regex: keyword, $options: "i" } },
         ],
-      }).sort({ tag: -1, ratingAverage: -1 });
+        status: "enabled",
+      };
 
-      if (garages.length > 0) {
-        garageResults = garages;
-      } else {
-        const services = await ServiceDetail.find({
-          name: { $regex: keyword, $options: "i" },
-        });
-
-        const garageIds = services.map((s) => s.garage);
-        const uniqueGarageIds = [
-          ...new Set(garageIds.map((id) => id.toString())),
-        ];
-        garageResults = await Garage.find({
-          _id: { $in: uniqueGarageIds },
-        }).sort({ tag: -1, ratingAverage: -1 });
-      }
-    } else {
-      garageResults = await Garage.find({}).sort({
-        tag: -1,
-        ratingAverage: -1,
+      // Also find services matching the keyword
+      const matchingServices = await ServiceDetail.find({
+        name: { $regex: keyword, $options: "i" },
       });
+
+      // Get unique garage IDs from those services
+      if (matchingServices.length > 0) {
+        const garageIdsFromServices = [
+          ...new Set(matchingServices.map((s) => s.garage)),
+        ];
+
+        // Expand the query to include garages that have matching services
+        query = {
+          $or: [query, { _id: { $in: garageIdsFromServices } }],
+        };
+      }
     }
 
+    // Province filter
+    if (province) {
+      query.address = { $regex: province, $options: "i" };
+    }
+
+    // Service filter
+    let garageIdsWithService = [];
     if (service) {
       const listOfServices = service.split(",");
       const serviceDetails = await ServiceDetail.find({
@@ -87,17 +99,15 @@ const searchWithFilter = async ({
         isDeleted: false,
       });
 
-      const garageIdsWithService = [
-        ...new Set(serviceDetails.map((sd) => sd.garage.toString())),
+      garageIdsWithService = [
+        ...new Set(serviceDetails.map((sd) => sd.garage)),
       ];
-
-      // Filter garages to only those that offer the selected services
-      garageResults = garageResults.filter((garage) =>
-        garageIdsWithService.includes(garage._id.toString())
-      );
+      if (garageIdsWithService.length > 0) {
+        query._id = { $in: garageIdsWithService };
+      }
     }
 
-    // Operating day filtering
+    // Operating day filter preparation
     if (time) {
       const date = new Date(time);
       const daysOfWeek = [
@@ -110,17 +120,16 @@ const searchWithFilter = async ({
         "Saturday",
       ];
       const dayName = daysOfWeek[date.getUTCDay()];
-
-      garageResults = garageResults.filter((garage) =>
-        garage.operating_days.includes(dayName)
-      );
+      query.operating_days = dayName;
     }
 
+    // For location search, we need to use aggregation pipeline instead
     if (location) {
       const [lat, lng] = location.split(",").map(parseFloat);
       const point = [lng, lat];
 
-      const nearbyGarages = await Garage.aggregate([
+      // Count total matching documents first (for pagination)
+      const countPipeline = [
         {
           $geoNear: {
             near: { type: "Point", coordinates: point },
@@ -128,47 +137,62 @@ const searchWithFilter = async ({
             maxDistance: 5 * 1000,
             spherical: true,
             distanceMultiplier: 0.001,
+            query: query,
           },
         },
+        { $count: "total" },
+      ];
+
+      const countResult = await Garage.aggregate(countPipeline);
+      const total = countResult.length > 0 ? countResult[0].total : 0;
+
+      // Now get paginated results
+      const pipeline = [
         {
-          $match: {
-            _id: {
-              $in:
-                garageResults.length > 0
-                  ? garageResults.map((g) => g._id)
-                  : await Garage.distinct("_id"),
-            },
+          $geoNear: {
+            near: { type: "Point", coordinates: point },
+            distanceField: "distance",
+            maxDistance: 5 * 1000,
+            spherical: true,
+            distanceMultiplier: 0.001,
+            query: query,
           },
         },
-      ]);
+        { $sort: { tag: -1, ratingAverage: -1 } },
+        { $skip: (page - 1) * limit },
+        { $limit: limit },
+      ];
 
-      const garageResultIds = new Set(
-        garageResults.map((g) => g._id.toString())
-      );
-      garageResults = nearbyGarages.filter((g) =>
-        garageResultIds.has(g._id.toString())
-      );
-    } else if (province) {
-      garageResults = garageResults.filter((garage) =>
-        garage.address.toLowerCase().includes(province.toLowerCase())
-      );
+      const results = await Garage.aggregate(pipeline);
+
+      return {
+        results,
+        pagination: {
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit),
+        },
+      };
+    } else {
+      // For non-location searches, use standard MongoDB pagination
+      const total = await Garage.countDocuments(query);
+
+      const results = await Garage.find(query)
+        .sort({ tag: -1, ratingAverage: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit);
+
+      return {
+        results,
+        pagination: {
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit),
+        },
+      };
     }
-
-    // Pagination
-    const total = garageResults.length;
-    const start = (page - 1) * limit;
-    const end = start + limit;
-    const paginatedResults = garageResults.slice(start, end);
-
-    return {
-      results: paginatedResults,
-      pagination: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
-    };
   } catch (error) {
     throw new Error("Error searching for garages: " + error.message);
   }

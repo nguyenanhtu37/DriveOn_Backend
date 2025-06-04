@@ -16,13 +16,50 @@ const addBrand = async (brandName, logo) => {
   }
 };
 
-const getBrands = async () => {
-  try {
-    const brandList = await Brand.find({ isDeleted: false });
-    return brandList;
-  } catch (err) {
-    throw new Error("Cannot get brand list!");
+// const getBrands = async () => {
+//   try {
+//     const brandList = await Brand.find({ isDeleted: false });
+//     return brandList;
+//   } catch (err) {
+//     throw new Error("Cannot get brand list!");
+//   }
+// };
+
+const getBrands = async (page = 1, limit = 12, keyword = "") => {
+  page = parseInt(page);
+  limit = parseInt(limit);
+  if (isNaN(page) || page < 1) page = 1;
+  if (isNaN(limit) || limit < 1) limit = 12;
+
+  const query = { isDeleted: false };
+
+  // Tìm kiếm theo tên brand (nếu có keyword)
+  if (keyword && keyword.trim() !== "") {
+    const searchRegex = new RegExp(keyword.trim(), "i");
+    query.brandName = { $regex: searchRegex };
   }
+
+  const skip = (page - 1) * limit;
+  const totalCount = await Brand.countDocuments(query);
+
+  const brands = await Brand.find(query)
+    .sort({ brandName: 1 })
+    .skip(skip)
+    .limit(limit);
+
+  const totalPages = Math.ceil(totalCount / limit);
+
+  return {
+    brands,
+    pagination: {
+      currentPage: page,
+      totalPages,
+      pageSize: limit,
+      totalCount,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1,
+    },
+  };
 };
 
 const updateBrand = async (brandId, brandName, logo) => {

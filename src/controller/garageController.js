@@ -134,12 +134,24 @@ const addStaff = async (req, res) => {
 };
 
 const viewStaff = async (req, res) => {
-  const { id } = req.params; // garage id
   try {
-    const staffList = await garageService.viewStaff(req.user.id, id);
-    res.status(200).json(staffList);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    const { id: userId } = req.user;
+    const { id: garageId } = req.params;
+    const { page = 1, limit = 10 } = req.query;
+
+    const result = await garageService.viewStaff(userId, garageId, page, limit);
+
+    return res.status(200).json({
+      success: true,
+      message: "Staff list retrieved successfully",
+      data: result.staffList,
+      pagination: result.pagination
+    });
+  } catch (error) {
+    return res.status(400).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
@@ -390,9 +402,23 @@ const viewDashboardOverview = async (req, res) => {
 const viewDashboardChart = async (req, res) => {
   const { id } = req.params;
   const user = req.user.id;
+  const { year, type } = req.query;
 
   try {
-    const overview = await garageService.viewDashboardChart(id, user);
+    const overview = await garageService.viewDashboardChart(id, user, year, type);
+    res.status(200).json(overview);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const viewDashboardChartByQuarter = async (req, res) => {
+  const { id } = req.params;
+  const user = req.user.id;
+  const { year } = req.query;
+
+  try {
+    const overview = await garageService.viewDashboardChartByQuarter(id, user, year);
     res.status(200).json(overview);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -408,20 +434,18 @@ const viewAdminDashboardOverview = async (req, res) => {
   }
 };
 
-// export const getGarageStatusCounts = async (req, res) => {
-//   try {
-//     const statusCounts = await garageService.getGarageCountByStatus();
-//     res.status(200).json(statusCounts);
-//   } catch (err) {
-//     res.status(500).json({ error: err.message });
-//   }
-// };
 
 export const getGarageStatusCountsByMonth = async (req, res) => {
   try {
-    const statusCountsByMonth =
-      await garageService.getGarageCountByStatusAndMonth();
-    res.status(200).json(statusCountsByMonth);
+    const year = req.query.year;
+    const type = req.query.type || "month";
+    let result;
+    if (type === "quarter") {
+      result = await garageService.getGarageCountByStatusAndQuarter(year);
+    } else {
+      result = await garageService.getGarageCountByStatusAndMonth(year);
+    }
+    res.status(200).json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -433,6 +457,17 @@ export const getGarageList = async (req, res) => {
     return res.status(404).json({ message: "Garage not found" });
   }
   res.status(200).json(garage);
+};
+
+export const getGarageStatusCountsByQuarter = async (req, res) => {
+  try {
+    const year = req.query.year;
+    const statusCountsByQuarter =
+      await garageService.getGarageCountByStatusAndQuarter(year);
+    res.status(200).json(statusCountsByQuarter);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 };
 
 export {

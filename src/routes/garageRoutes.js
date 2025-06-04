@@ -30,6 +30,7 @@ import {
   viewDashboardOverview,
   viewDashboardChart,
   getGarageList,
+  viewDashboardChartByQuarter,
 } from "../controller/garageController.js";
 import { authorizeRoles } from "../middleware/authorizeRoles.js";
 
@@ -105,6 +106,11 @@ router.get(
   "/:id/dashboardChart",
   authorizeRoles(["staff", "manager"]),
   viewDashboardChart
+);
+router.get(
+  "/:id/dashboardChartByQuarter",
+  authorizeRoles(["staff", "manager"]),
+  viewDashboardChartByQuarter
 );
 
 export default router;

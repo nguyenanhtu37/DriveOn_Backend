@@ -14,11 +14,18 @@ export const addBrand = async (req, res) => {
 
 export const getBrands = async (req, res) => {
   try {
-    const brandList = await brandService.getBrands();
-    if (!brandList || brandList.length === 0) {
+    const { page = 1, limit = 12, keyword = "" } = req.query;
+    const result = await brandService.getBrands(page, limit, keyword);
+    if (!result.brands || result.brands.length === 0) {
       return res.status(404).json({ message: "No brand found!" });
     }
-    res.status(200).json({ message: `Brand list`, data: brandList });
+    res.status(200).json({
+      brands: result.brands,
+      currentPage: result.pagination.currentPage,
+      perPage: result.pagination.pageSize,
+      total: result.pagination.totalCount,
+      lastPage: result.pagination.totalPages
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

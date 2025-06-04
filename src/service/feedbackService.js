@@ -53,11 +53,55 @@ import {
 //   return newFeedback;
 // };
 
-export const getFeedbackByGarageId = async (garageId) => {
+export const getFeedbackByGarageId = async ({
+  id,
+  type,
+  rating,
+  service,
+  keyword,
+  page = 1,
+  limit = 10,
+}) => {
   try {
-    const feedbacks = await Feedback.find({ garage: garageId })
+    // Validate page and limit parameters
+    page = parseInt(page);
+    limit = parseInt(limit);
+    if (isNaN(page) || page < 1) page = 1;
+    if (isNaN(limit) || limit < 1) limit = 10;
+
+    // Build the query with garage ID as base
+    const query = { garage: id };
+
+    // Add filters if they are provided
+    if (type) {
+      query.type = type;
+    }
+
+    if (rating) {
+      query.rating = parseInt(rating);
+    }
+
+    if (service) {
+      query.serviceDetail = service;
+    }
+
+    // For keyword search in content
+    if (keyword) {
+      query.$or = [
+        { content: { $regex: keyword, $options: "i" } },
+        { "user.name": { $regex: keyword, $options: "i" } },
+      ];
+    }
+
+    // Calculate skip value for pagination
+    const skip = (page - 1) * limit;
+
+    // Get total count for pagination metadata using the same query
+    const totalCount = await Feedback.countDocuments(query);
+
+    // Get paginated and filtered feedbacks
+    const feedbacks = await Feedback.find(query)
       .populate("user", "name avatar")
-      // .populate("garage", "name")
       .populate({
         path: "appointment",
         select: "start end service vehicle",
@@ -65,29 +109,114 @@ export const getFeedbackByGarageId = async (garageId) => {
           { path: "service", select: "name" },
           { path: "vehicle", select: "carName carPlate" },
         ],
-      });
+      })
+      .populate("serviceDetail")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
 
-    return feedbacks;
+    // Calculate pagination metadata
+    const totalPages = Math.ceil(totalCount / limit);
+
+    return {
+      feedbacks,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        pageSize: limit,
+        totalCount,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      },
+    };
   } catch (err) {
     throw new Error(err.message);
   }
 };
 
-export const viewFeedbackForGarageDetail = async (garageId) => {
+export const viewFeedbackForGarageDetail = async (
+  garageId,
+  showMoreCount = 1
+) => {
+  const perPage = 5;
+  const limit = perPage * showMoreCount;
+
   try {
-    const feedbacks = await Feedback.find({ garage: garageId, type: "general" })
+    const totalGeneral = await Feedback.countDocuments({
+      garage: garageId,
+      type: "general",
+    });
+
+    const totalSpecific = await Feedback.countDocuments({
+      garage: garageId,
+      type: "specific",
+    });
+
+    const totalFeedback = totalGeneral + totalSpecific;
+
+    const generalFeedbacks = await Feedback.find({
+      garage: garageId,
+      type: "general",
+    })
+      .sort({ createdAt: -1 })
+      .limit(limit)
       .populate("user", "name avatar")
-      // .populate("garage", "name")
       .populate({
         path: "appointment",
         select: "start end service vehicle",
-        populate: [
-          { path: "service", select: "name" },
-          { path: "vehicle", select: "carName carPlate" },
-        ],
+        populate: [{ path: "service", select: "name" }],
       });
 
-    return feedbacks;
+    const transformedFeedbacks = generalFeedbacks.map((feedback) => {
+      const feedbackObj = feedback.toObject();
+
+      let serviceNames = "";
+      if (feedbackObj.appointment && feedbackObj.appointment.service) {
+        serviceNames = feedbackObj.appointment.service
+          .map((service) => service.name)
+          .join(", ");
+      }
+
+      feedbackObj.serviceNames = serviceNames;
+      delete feedbackObj.appointment;
+
+      return feedbackObj;
+    });
+
+    const specificFeedbacks = await Feedback.find({
+      garage: garageId,
+      type: "specific",
+    })
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .populate("user", "name avatar")
+      .populate("serviceDetail", "name price duration");
+
+    const transformedFeedbacksSpecific = specificFeedbacks.map((feedback) => {
+      const feedbackObj = feedback.toObject();
+
+      let serviceName = "";
+      if (feedbackObj.serviceDetail && feedbackObj.serviceDetail.name) {
+        serviceName = feedbackObj.serviceDetail.name;
+      }
+
+      feedbackObj.serviceName = serviceName;
+      delete feedbackObj.appointment;
+      delete feedbackObj.serviceDetail;
+
+      return feedbackObj;
+    });
+
+    const combined = [...transformedFeedbacks, ...transformedFeedbacksSpecific]
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)) // đảm bảo sắp xếp chung
+      .slice(0, limit);
+
+    const canShowMore = combined.length < totalFeedback ? true : false;
+
+    return {
+      feedbacks: combined,
+      canShowMore,
+    };
   } catch (err) {
     throw new Error(err.message);
   }
@@ -165,20 +294,19 @@ export const deleteFeedbackByGarage = async (feedbackId) => {
   }
 };
 
-// xem được toàn bộ feedback về service đó
-export const getFeedbackByServiceDetailInGarage = async (
-  garageId,
-  serviceDetailId
-) => {
+export const getFeedbackByServiceDetailInGarage = async (serviceDetailId) => {
   try {
     const feedbacks = await Feedback.find({
-      garage: garageId,
       serviceDetail: serviceDetailId,
       type: "specific",
     })
       .populate("user", "name avatar")
-      .populate("appointment", "start end")
-      .populate("serviceDetail", "name price duration");
+      .populate("serviceDetail", "name price duration")
+      .populate({
+        path: "appointment",
+        select: "start end service vehicle",
+        populate: [{ path: "service", select: "name" }],
+      });
 
     return feedbacks;
   } catch (err) {
@@ -257,5 +385,59 @@ export const getFeedbackByAppointmentId = async (appointmentId) => {
     return feedbacks;
   } catch (error) {
     throw new Error("Error fetching feedbacks for the appointment");
+  }
+};
+
+// export const getAllFeedbacksByGarage = async (garageId) => {
+//   try {
+//     const feedbacks = await Feedback.find({ garage: garageId })
+//       .populate("user", "name avatar")
+//       .populate({
+//         path: "appointment",
+//         select: "start end service vehicle",
+//         populate: [
+//           { path: "service", select: "name" },
+//           { path: "vehicle", select: "carName carPlate" },
+//         ],
+//       })
+//       .populate("serviceDetail");
+//     return feedbacks;
+//   } catch (err) {
+//     throw new Error(err.message);
+//   }
+// };
+
+export const getAllFeedbacksByGarage = async (garageId, year, quarter) => {
+  try {
+    const query = { garage: garageId };
+
+    // Filter theo năm và quý nếu có
+    if (year) {
+      const selectedYear = parseInt(year);
+      let startDate = new Date(selectedYear, 0, 1);
+      let endDate = new Date(selectedYear + 1, 0, 1);
+
+      if (quarter) {
+        const q = parseInt(quarter);
+        startDate = new Date(selectedYear, (q - 1) * 3, 1);
+        endDate = new Date(selectedYear, q * 3, 1);
+      }
+      query.createdAt = { $gte: startDate, $lt: endDate };
+    }
+
+    const feedbacks = await Feedback.find(query)
+      .populate("user", "name avatar")
+      .populate({
+        path: "appointment",
+        select: "start end service vehicle",
+        populate: [
+          { path: "service", select: "name" },
+          { path: "vehicle", select: "carName carPlate" },
+        ],
+      })
+      .populate("serviceDetail");
+    return feedbacks;
+  } catch (err) {
+    throw new Error(err.message);
   }
 };

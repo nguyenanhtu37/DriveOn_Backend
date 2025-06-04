@@ -142,9 +142,13 @@ export const webHook = async (req, res) => {
   }
 };
 
+
+// xem transactions theo tháng hoặc quý hoặc năm
 export const getTransactionsByMonth = async (req, res) => {
   try {
-    const transactions = await payosService.getTransactionsByMonth();
+    const type = req.query.type || "month";
+    const year = req.query.year;
+    const transactions = await payosService.getTransactionsByMonthOrQuarter(type, year);
     res.status(200).json(transactions);
   } catch (err) {
     console.error("Error in getTransactionsByMonth:", err.message);

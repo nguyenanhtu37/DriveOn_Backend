@@ -1,9 +1,18 @@
 import * as feedbackService from "../service/feedbackService.js";
 
 export const viewFeedbackByGarageId = async (req, res) => {
-  const { id } = req.params; // garage id
+  const { id } = req.params;
+  const { type, rating, service, keyword, page, limit } = req.query; // garage id
   try {
-    const feedbacks = await feedbackService.getFeedbackByGarageId(id);
+    const feedbacks = await feedbackService.getFeedbackByGarageId({
+      id,
+      type,
+      rating,
+      service,
+      keyword,
+      page,
+      limit,
+    });
     res.status(200).json(feedbacks);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -11,9 +20,13 @@ export const viewFeedbackByGarageId = async (req, res) => {
 };
 
 export const viewFeedbackForGarageDetail = async (req, res) => {
-  const { id } = req.params; // garage id
+  const { garageId } = req.params;
+  const { showMoreCount } = req.query;
   try {
-    const feedbacks = await feedbackService.viewFeedbackForGarageDetail(id);
+    const feedbacks = await feedbackService.viewFeedbackForGarageDetail(
+      garageId,
+      showMoreCount
+    );
     res.status(200).json(feedbacks);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -73,10 +86,9 @@ export const deleteFeedbackByGarage = async (req, res) => {
 };
 
 export const viewFeedbackByServiceDetailInGarage = async (req, res) => {
-  const { garageId, serviceDetailId } = req.params;
+  const { serviceDetailId } = req.params;
   try {
     const feedbacks = await feedbackService.getFeedbackByServiceDetailInGarage(
-      garageId,
       serviceDetailId
     );
     res.status(200).json(feedbacks);
@@ -100,6 +112,27 @@ export const getFeedbackByAppointmentId = async (req, res) => {
     const feedbacks = await feedbackService.getFeedbackByAppointmentId(
       appointmentId
     );
+    res.status(200).json(feedbacks);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// export const getAllFeedbacksByGarage = async (req, res) => {
+//   const { id } = req.params; // garage id
+//   try {
+//     const feedbacks = await feedbackService.getAllFeedbacksByGarage(id);
+//     res.status(200).json(feedbacks);
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// };
+
+export const getAllFeedbacksByGarage = async (req, res) => {
+  const { id } = req.params; // garage id
+  const { year, quarter } = req.query;
+  try {
+    const feedbacks = await feedbackService.getAllFeedbacksByGarage(id, year, quarter);
     res.status(200).json(feedbacks);
   } catch (err) {
     res.status(500).json({ error: err.message });

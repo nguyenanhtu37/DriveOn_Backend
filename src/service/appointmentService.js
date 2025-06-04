@@ -563,12 +563,88 @@ async function sendAppointmentEmails(
 
 // No change needed to the main createAppointmentService function as it just calls sendAppointmentEmails
 
-export const getAppointmentsByUserService = async (userId) => {
-  return await Appointment.find({ user: userId })
+export const getAppointmentsByUserService = async (
+  userId,
+  page = 1,
+  limit = 10,
+  status,
+  keyword
+) => {
+  page = parseInt(page);
+  limit = parseInt(limit);
+  if (isNaN(page) || page < 1) page = 1;
+  if (isNaN(limit) || limit < 1) limit = 10;
+
+  const query = { user: userId };
+
+  if (status === "Upcoming") {
+    query.status = { $in: ["Pending", "Accepted"] };
+    query.start = { $gte: new Date() }; // Only future appointments
+  } else if (status !== "All") {
+    const statusList = status.split(",").map((s) => s.trim());
+    query.status = { $in: statusList };
+  }
+
+  // Add keyword search capability
+  if (keyword && keyword.trim() !== "") {
+    const searchRegex = new RegExp(keyword.trim(), "i");
+
+    // First, populate and find appointments
+    const allAppointments = await Appointment.find(query)
+      .populate("garage", "name address")
+      .populate("vehicle", "carName carPlate")
+      .populate("service", "name")
+      .lean();
+
+    // Filter appointments that match the keyword in various fields
+    const filteredAppointmentIds = allAppointments
+      .filter(
+        (appointment) =>
+          // Search in note field
+          (appointment.note && searchRegex.test(appointment.note)) ||
+          // Search in garage name/address
+          (appointment.garage &&
+            (searchRegex.test(appointment.garage.name) ||
+              searchRegex.test(appointment.garage.address))) ||
+          // Search in vehicle info
+          (appointment.vehicle &&
+            (searchRegex.test(appointment.vehicle.carName) ||
+              searchRegex.test(appointment.vehicle.carPlate))) ||
+          // Search in service names
+          (appointment.service &&
+            appointment.service.some((s) => searchRegex.test(s.name)))
+      )
+      .map((appointment) => appointment._id);
+
+    query._id = { $in: filteredAppointmentIds };
+  }
+
+  const skip = (page - 1) * limit;
+
+  const totalCount = await Appointment.countDocuments(query);
+
+  const appointments = await Appointment.find(query)
     .populate("user", "name email")
     .populate("garage", "name address")
     .populate("vehicle", "carBrand carName carPlate")
-    .populate("service", "");
+    .populate("service", "")
+    .sort({ start: 1 })
+    .skip(skip)
+    .limit(limit);
+
+  const totalPages = Math.ceil(totalCount / limit);
+
+  return {
+    appointments,
+    pagination: {
+      currentPage: page,
+      totalPages,
+      pageSize: limit,
+      totalCount,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1,
+    },
+  };
 };
 
 export const getAppointmentByIdService = async (appointmentId) => {
@@ -577,7 +653,7 @@ export const getAppointmentByIdService = async (appointmentId) => {
     .populate("garage", "name address") // Select basic garage information
     .populate({
       path: "vehicle",
-      select: "carBrand carName carPlate",
+      select: "carBrand carName carPlate carImages ",
       populate: {
         path: "carBrand",
         select: "brandName logo",
@@ -587,18 +663,39 @@ export const getAppointmentByIdService = async (appointmentId) => {
     .populate("assignedStaff", "name avatar"); // Add staff information
 };
 
-export const getAppointmentsByVehicleService = async (vehicleId, userId) => {
+export const getAppointmentsByVehicleService = async (
+  vehicleId,
+  userId,
+  page = 1,
+  limit = 10
+) => {
+  // Validate page and limit parameters
+  page = parseInt(page);
+  limit = parseInt(limit);
+  if (isNaN(page) || page < 1) page = 1;
+  if (isNaN(limit) || limit < 1) limit = 10;
+
   // Check if the vehicle exists
   const vehicle = await Vehicle.findById(vehicleId);
   if (!vehicle) {
     throw new Error("Vehicle not found");
   }
+
   if (vehicle.carOwner.toString() !== userId) {
     throw new Error("Unauthorized - Vehicle doesn't belong to this user");
   }
 
-  // Find only completed appointments for this vehicle
-  return await Appointment.find({
+  // Calculate skip value for pagination
+  const skip = (page - 1) * limit;
+
+  // Get total count for pagination metadata
+  const totalCount = await Appointment.countDocuments({
+    vehicle: vehicleId,
+    status: "Completed", // Only count completed appointments
+  });
+
+  // Find only completed appointments for this vehicle with pagination
+  const appointments = await Appointment.find({
     vehicle: vehicleId,
     status: "Completed", // Only return completed appointments
   })
@@ -614,18 +711,84 @@ export const getAppointmentsByVehicleService = async (vehicleId, userId) => {
     })
     .populate("service", "name price duration")
     .populate("assignedStaff", "name avatar");
-};
+  //   .skip(skip)
+  //   .limit(limit);
 
-export const getAppointmentsByGarageService = async (garageId) => {
+  // // Calculate pagination metadata
+  // const totalPages = Math.ceil(totalCount / limit);
+
+  return appointments;
+};
+export const getAppointmentsByGarageService = async (
+  garageId,
+  page = 1,
+  limit = 10,
+  startDate,
+  endDate,
+  status
+) => {
+  // Validate page and limit parameters
+  page = parseInt(page);
+  limit = parseInt(limit);
+  if (isNaN(page) || page < 1) page = 1;
+  if (isNaN(limit) || limit < 1) limit = 10;
+
   const garage = await Garage.findById(garageId);
   if (!garage) {
     throw new Error("Garage not found");
   }
-  return await Appointment.find({ garage: garageId })
-    .populate("user", "name email avatar address") // Select basic user information
-    .populate("garage", "name address") // Select basic garage information
-    .populate("vehicle", "carBrand carName carPlate") // Select basic vehicle information
-    .populate("service"); // Populate service details
+
+  // Build query filters
+  const query = { garage: garageId };
+
+  // Add date range filters if provided
+  if (startDate || endDate) {
+    query.start = {};
+    if (startDate) {
+      query.start.$gte = new Date(startDate);
+    }
+    if (endDate) {
+      query.start.$lte = new Date(endDate);
+    }
+  }
+
+  // Add status filter if provided
+  if (status && status !== "all") {
+    // Support comma-separated status values
+    const statusList = status.split(",").map((s) => s.trim());
+    query.status = { $in: statusList };
+  }
+
+  // Calculate skip value for pagination
+  const skip = (page - 1) * limit;
+
+  // Get total count for pagination metadata using the same query
+  const totalCount = await Appointment.countDocuments(query);
+
+  // Get paginated and filtered appointments
+  const appointments = await Appointment.find(query)
+    .populate("user", "name email avatar address")
+    .populate("garage", "name address")
+    .populate("vehicle", "carBrand carName carPlate")
+    .populate("service")
+    .sort({ start: -1 }) // Sort by start date, newest first
+    .skip(skip)
+    .limit(limit);
+
+  // Calculate pagination metadata
+  const totalPages = Math.ceil(totalCount / limit);
+
+  return {
+    appointments,
+    pagination: {
+      currentPage: page,
+      totalPages,
+      pageSize: limit,
+      totalCount,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1,
+    },
+  };
 };
 
 export const confirmAppointmentService = async (appointmentId, userId) => {
@@ -1099,11 +1262,6 @@ export const createAppointmentByStaffService = async ({
   if (!staff) {
     throw new Error("Staff not found");
   }
-  if (!staff.garageList.includes(garageId.toString())) {
-    throw new Error(
-      "Staff does not have permission to create appointments for this garage"
-    );
-  }
 
   // Kiểm tra xem userId có phải là car owner không
   const carOwner = await User.findById(carOwnerId);
@@ -1340,6 +1498,79 @@ export const getAcceptedAppointmentsService = async (userId, garageId) => {
     .populate("garage", "name address")
     .populate("vehicle", "carBrand carName carPlate")
     .populate("service");
+};
+
+//Filter all type appointment
+export const getFilteredAppointmentsService = async (
+  filters = {},
+  page = 1,
+  limit = 10
+) => {
+  // Validate page and limit parameters
+  page = parseInt(page);
+  limit = parseInt(limit);
+  if (isNaN(page) || page < 1) page = 1;
+  if (isNaN(limit) || limit < 1) limit = 10;
+
+  // Build query based on provided filters
+  const query = {};
+
+  // Add entity filters
+  if (filters.userId) query.user = filters.userId;
+  if (filters.garageId) query.garage = filters.garageId;
+  if (filters.vehicleId) query.vehicle = filters.vehicleId;
+
+  // // Add status filter
+  // if (filters.status) {
+  //   const statusList = filter.status.split(',');
+  //   query.status = { $in: statusList };
+  // }
+  // Add status filter
+  if (filters.status && filters.status !== "all") {
+    // Chia theo dấu cách hoặc dấu phẩy
+    const statusList = filters.status.split(/[\s,]+/);
+    // Lọc những status nằm trong mảng
+    query.status = { $in: statusList };
+  }
+
+  // Calculate skip value for pagination
+  const skip = (page - 1) * limit;
+
+  // Get total count for pagination metadata
+  const totalCount = await Appointment.countDocuments(query);
+
+  // Get paginated appointments
+  const appointments = await Appointment.find(query)
+    .populate("user", "name email avatar address")
+    .populate("garage", "name address")
+    .populate({
+      path: "vehicle",
+      select: "carBrand carName carPlate",
+      populate: {
+        path: "carBrand",
+        select: "brandName logo",
+      },
+    })
+    .populate("service", "name price duration")
+    .populate("assignedStaff", "name avatar")
+    .sort({ start: -1 }) // Sort by appointment date, newest first
+    .skip(skip)
+    .limit(limit);
+
+  // Calculate pagination metadata
+  const totalPages = Math.ceil(totalCount / limit);
+
+  return {
+    appointments,
+    pagination: {
+      currentPage: page,
+      totalPages,
+      pageSize: limit,
+      totalCount,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1,
+    },
+  };
 };
 
 export const cancelAppointmentService = async (appointmentId, userId) => {
@@ -1738,28 +1969,70 @@ export const getHourlyAppointmentLimitService = async (garageId) => {
 };
 
 // Get all appointments in a specific 1-hour window for a garage
-export const countPendingAppointmentsInHour = async (garageId, date) => {
-  // date: Date object or ISO string
-  const startDate = new Date(date);
-  if (isNaN(startDate.getTime())) throw new Error("Invalid date");
+export const getAppointmentsInTimeRangeService = async (
+  garageId,
+  startDate,
+  endDate,
+  page = 1,
+  limit = 10
+) => {
+  // Validate inputs
+  if (!garageId) throw new Error("Garage ID is required");
 
-  // Set to start of the hour
-  startDate.setMinutes(0, 0, 0);
-  const endDate = new Date(startDate);
-  endDate.setHours(endDate.getHours() + 1);
+  const start = new Date(startDate);
+  const end = new Date(endDate);
 
-  // Get all appointments in the time period, not just count
-  const appointments = await Appointment.find({
+  if (isNaN(start.getTime())) throw new Error("Invalid start date");
+  if (isNaN(end.getTime())) throw new Error("Invalid end date");
+
+  // Validate and parse pagination parameters
+  page = parseInt(page);
+  limit = parseInt(limit);
+  if (isNaN(page) || page < 1) page = 1;
+  if (isNaN(limit) || limit < 1) limit = 10;
+
+  // Calculate skip value for pagination
+  const skip = (page - 1) * limit;
+
+  // Query to find appointments in the specific time range for the garage
+  const query = {
     garage: garageId,
-    status: "Pending",
-    start: { $gte: startDate, $lt: endDate },
-  })
-    .populate("user", "name email phone avatar")
-    .populate("vehicle", "carBrand carName carPlate")
-    .populate("service", "name price duration");
+    start: { $gte: start, $lt: end },
+    status: { $in: ["Pending", "Accepted"] }, // Only count pending and accepted appointments
+  };
+
+  // Get total count for pagination metadata
+  const totalCount = await Appointment.countDocuments(query);
+
+  // Get paginated appointments
+  const appointments = await Appointment.find(query)
+    .populate("user", "name email avatar")
+    .populate("garage", "name address")
+    .populate({
+      path: "vehicle",
+      select: "carBrand carName carPlate",
+      populate: {
+        path: "carBrand",
+        select: "name image",
+      },
+    })
+    .populate("service", "name price duration")
+    .sort({ start: 1 }) // Sort by start time ascending
+    .skip(skip)
+    .limit(limit);
+
+  // Calculate pagination metadata
+  const totalPages = Math.ceil(totalCount / limit);
 
   return {
-    count: appointments.length,
-    appointments: appointments,
+    appointments,
+    pagination: {
+      currentPage: page,
+      totalPages,
+      pageSize: limit,
+      totalCount,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1,
+    },
   };
 };
