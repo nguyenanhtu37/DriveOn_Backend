@@ -30,6 +30,21 @@ const getServiceDetailsByGarage = async (req, res) => {
   }
 };
 
+const getServiceForGarageDetail = async (req, res) => {
+  const { garageId } = req.params;
+  const { page, limit } = req.query;
+  try {
+    const serviceDetails = await serviceDetailService.getServiceForGarageDetail(
+      garageId,
+      page,
+      limit
+    );
+    res.status(200).json(serviceDetails);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 const updateServiceDetail = async (req, res) => {
   const { id } = req.params;
   try {
@@ -148,4 +163,5 @@ export {
   getServiceDetailsByGarage,
   updateServiceDetail,
   deleteServiceDetail,
+  getServiceForGarageDetail,
 };
