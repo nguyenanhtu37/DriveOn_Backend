@@ -86,9 +86,6 @@ const searchWithFilter = async ({
     }
 
     // Province filter
-    if (province) {
-      query.address = { $regex: province, $options: "i" };
-    }
 
     // Service filter
     let garageIdsWithService = [];
@@ -123,6 +120,10 @@ const searchWithFilter = async ({
       query.operating_days = dayName;
     }
 
+    if (!location && province) {
+      query.address = { $regex: province, $options: "i" };
+    }
+
     // For location search, we need to use aggregation pipeline instead
     if (location) {
       const [lat, lng] = location.split(",").map(parseFloat);
@@ -134,7 +135,7 @@ const searchWithFilter = async ({
           $geoNear: {
             near: { type: "Point", coordinates: point },
             distanceField: "distance",
-            maxDistance: 5 * 1000,
+            maxDistance: 10 * 1000,
             spherical: true,
             distanceMultiplier: 0.001,
             query: query,
