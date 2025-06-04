@@ -35,27 +35,34 @@ const addServiceDetail = async (serviceDetailData) => {
 
 
 const getServiceDetailsByGarage = async (garageId, page = 1, limit = 6) => {
-  const garageExists = await ServiceDetail.exists({ garage: garageId });
-  if (!garageExists) {
-    throw new Error("Garage not found");
-  }
+  page = parseInt(page);
+  limit = parseInt(limit);
+  if (isNaN(page) || page < 1) page = 1;
+  if (isNaN(limit) || limit < 1) limit = 6;
+
+  const query = { garage: garageId, isDeleted: false };
+
   const skip = (page - 1) * limit;
-  const [serviceDetails, total] = await Promise.all([
-    ServiceDetail.find({
-      garage: garageId,
-      isDeleted: false,
-    })
-      .populate("service", "name")
-      .sort({ name: 1 })
-      .skip(skip)
-      .limit(limit),
-    ServiceDetail.countDocuments({ garage: garageId, isDeleted: false }),
-  ]);
+  const totalCount = await ServiceDetail.countDocuments(query);
+
+  const serviceDetails = await ServiceDetail.find(query)
+    .populate("service", "name")
+    .sort({ name: 1 })
+    .skip(skip)
+    .limit(limit);
+
+  const totalPages = Math.ceil(totalCount / limit);
+
   return {
     serviceDetails,
-    total,
-    totalPages: Math.ceil(total / limit),
-    currentPage: page,
+    pagination: {
+      currentPage: page,
+      totalPages,
+      pageSize: limit,
+      totalCount,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1,
+    },
   };
 };
 
