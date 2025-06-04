@@ -12,315 +12,142 @@ import Role from "../models/role.js";
 import mongoose from "mongoose";
 import { sendSocketEvent } from "../libs/socketEvent.js";
 
-const checkBooking = async (
-  vehicleId,
-  garageId,
-  start,
-  end,
-  currentAppointmentId = null,
-  isSplit = false
-) => {
-  const garage = await Garage.findById(garageId);
-  if (!garage) {
-    return {
-      hasConflict: true,
-      conflictMessage: "Garage not found",
-    };
-  }
+const DAYS_OF_WEEK = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+];
 
-  // Using getUTCDay for day of week calculations in UTC
-  const daysOfWeek = [
-    "Sunday",
-    "Monday",
-    "Tuesday",
-    "Wednesday",
-    "Thursday",
-    "Friday",
-    "Saturday",
-  ];
-  const vietnamDate = new Date(start.getTime() + 7 * 60 * 60 * 1000); // Add 7 hours
-  const appointmentDay = daysOfWeek[vietnamDate.getUTCDay()];
-
-  // Check if garage operates on start day
-  if (!garage.operating_days.includes(appointmentDay)) {
-    return {
-      hasConflict: true,
-      conflictMessage: `Garage is closed on ${appointmentDay}s`,
-    };
-  }
-
-  // Get opening hours for the start day
-  const [garageOpenHour, garageOpenMinute] = garage.openTime
-    .split(":")
-    .map(Number);
-  const [garageCloseHour, garageCloseMinute] = garage.closeTime
-    .split(":")
-    .map(Number);
-
-  // Special handling for 24-hour garages
-  const is24HourGarage =
-    garageOpenHour === 0 &&
-    garageOpenMinute === 0 &&
-    garageCloseHour === 23 &&
-    garageCloseMinute === 59;
-
-  // Convert local Vietnam time (UTC+7) to UTC by subtracting 7 hours
-  const utcOpenHour = garageOpenHour - 7;
-  const utcOpenMinute = garageOpenMinute;
-  const utcCloseHour = garageCloseHour - 7;
-  const utcCloseMinute = garageCloseMinute;
-
-  // Handle day wraparound if UTC hour becomes negative
-  let openDayOffset = 0;
-  let utcAdjustedOpenHour = utcOpenHour;
-
-  if (utcAdjustedOpenHour < 0) {
-    utcAdjustedOpenHour += 24;
-    openDayOffset = -1; // Previous day in UTC
-  }
-
-  // Create time for garage opening on appointment day using setUTCHours
-  const garageOpenTime = new Date(start);
-  garageOpenTime.setUTCDate(garageOpenTime.getUTCDate() + openDayOffset);
-  garageOpenTime.setUTCHours(utcAdjustedOpenHour, utcOpenMinute, 0, 0);
-
-  // Convert start time to Vietnam timezone for easier comparison
-  const appointmentVietnamTime = new Date(start.getTime() + 7 * 60 * 60 * 1000); // Add 7 hours
-  const appointmentHour = appointmentVietnamTime.getUTCHours();
-  const appointmentMinute = appointmentVietnamTime.getUTCMinutes();
-
-  // Handle close time wraparound
-  let closeDayOffset = 0;
-  let utcAdjustedCloseHour = utcCloseHour;
-
-  if (utcAdjustedCloseHour < 0) {
-    utcAdjustedCloseHour += 24;
-    closeDayOffset = -1; // Previous day in UTC
-  }
-
-  // Create time for garage closing on appointment day
-  const garageCloseTime = new Date(start);
-  garageCloseTime.setUTCDate(garageCloseTime.getUTCDate() + closeDayOffset);
-  garageCloseTime.setUTCHours(utcAdjustedCloseHour, utcCloseMinute, 0, 0);
-
-  // Only check opening time for the initial start time, not for split appointment end time
-  if (!is24HourGarage && !isSplit && start < garageOpenTime) {
-    return {
-      hasConflict: true,
-      conflictMessage: `Garage opens at ${garage.openTime}`,
-    };
-  }
-
-  // Check closing time only for non-split appointments
-  if (!is24HourGarage && !isSplit && start > garageCloseTime) {
-    return {
-      hasConflict: true,
-      conflictMessage: `Garage closes at ${garage.closeTime}`,
-    };
-  }
-
-  // For split appointments, we've already validated the times in convertAndValidateDateTime
-
-  const overlappingAppointments = await Appointment.find({
-    vehicle: vehicleId,
-    garage: { $ne: garageId }, // chỉ check conflict ở garage khác
-    _id: { $ne: currentAppointmentId },
-    $or: [
-      { start: { $lte: start }, end: { $gt: start } },
-      { start: { $lt: end }, end: { $gte: end } },
-      { start: { $gte: start }, end: { $lte: end } },
-    ],
-    status: { $nin: ["Cancelled", "Rejected", "Completed"] },
-  });
-
-  if (overlappingAppointments.length > 0) {
-    const conflictGarage = await Garage.findById(
-      overlappingAppointments[0].garage
-    );
-    const garageName = conflictGarage ? conflictGarage.name : "another garage";
-
-    return {
-      hasConflict: true,
-      conflictMessage: `Vehicle is already scheduled at ${garageName} during this time`,
-    };
-  }
-
-  return { hasConflict: false };
-};
-
-const convertAndValidateDateTime = async (start, serviceIds) => {
+/**
+ * Chuyển và xác thực ngày giờ tạo appointment.
+ * start: Date UTC hoặc ISO string UTC
+ * serviceIds: mảng serviceDetail IDs
+ * Trả về { isValid, startTime, endTime, isSplit, continuationDay?, note? }
+ */
+export const convertAndValidateDateTime = async (start, serviceIds) => {
   try {
-    const daysOfWeek = [
-      "Sunday",
-      "Monday",
-      "Tuesday",
-      "Wednesday",
-      "Thursday",
-      "Friday",
-      "Saturday",
-    ];
+    // 1. Chuẩn bị startTime (UTC)
     const startTime = typeof start === "string" ? new Date(start) : start;
-
     if (isNaN(startTime.getTime())) {
-      throw new Error(
-        "Invalid date format. Please provide a valid date and time."
-      );
+      throw new Error("Invalid date format. Hãy cung cấp ngày giờ hợp lệ.");
     }
 
+    // 2. Bắt buộc startTime > now (UTC)
     const nowUtc = new Date();
     if (startTime <= nowUtc) {
       throw new Error("Appointment time must be in the future");
     }
 
-    // Convert to Vietnam time for day of week determination
-    const vietnamDate = new Date(startTime.getTime() + 7 * 60 * 60 * 1000);
-    const appointmentDay = daysOfWeek[vietnamDate.getUTCDay()];
+    // 3. Xác định ngày giờ VN của startTime
+    const offsetMs = 7 * 60 * 60 * 1000; // +7h
+    const localStart = new Date(startTime.getTime() + offsetMs);
+    const localYear = localStart.getUTCFullYear();
+    const localMonth = localStart.getUTCMonth();
+    const localDate = localStart.getUTCDate();
 
-    // Get garage details from first service
+    // 4. Lấy garage qua service đầu tiên
     const firstService = await ServiceDetail.findById(serviceIds[0]);
-
-    if (!firstService) {
-      throw new Error("Service not found");
-    }
-
+    if (!firstService) throw new Error("Service not found");
     const garage = await Garage.findById(firstService.garage);
+    if (!garage) throw new Error("Garage not found");
 
-    if (!garage) {
-      throw new Error("Garage not found");
+    // 5. Kiểm ngày hoạt động của garage theo localStart (giờ VN)
+    const weekday = DAYS_OF_WEEK[localStart.getUTCDay()];
+    if (!garage.operating_days.includes(weekday)) {
+      throw new Error(`Garage is closed on ${weekday}s`);
     }
 
-    // Check if garage operates on the appointment day
-    if (!garage.operating_days.includes(appointmentDay)) {
-      throw new Error(`Garage is closed on ${appointmentDay}s`);
+    // 6. Tính tổng duration (phút) từ serviceIds
+    let totalMinutes = 0;
+    for (const id of serviceIds) {
+      const svc = await ServiceDetail.findById(id);
+      if (!svc) throw new Error(`Service ID ${id} not found`);
+      totalMinutes += svc.duration || 60;
     }
 
-    // Calculate total service duration
-    let totalDurationMinutes = 0;
-    for (const serviceId of serviceIds) {
-      const serviceDetail = await ServiceDetail.findById(serviceId);
-      if (!serviceDetail) {
-        throw new Error(`Service with ID ${serviceId} not found`);
-      }
-      totalDurationMinutes += serviceDetail.duration || 60;
-    }
+    // 7. Parse openTime/closeTime (giờ VN) từ garage
+    const [openH, openM] = garage.openTime.split(":").map(Number);
+    const [closeH, closeM] = garage.closeTime.split(":").map(Number);
 
-    // Parse garage operating hours (Vietnam time)
-    const [openHour, openMinute] = garage.openTime.split(":").map(Number);
-    const [closeHour, closeMinute] = garage.closeTime.split(":").map(Number);
-
-    // Check if it's a 24-hour garage
+    // 8. Kiểm xem garage có mở 24h không
     const is24HourGarage =
-      openHour === 0 &&
-      openMinute === 0 &&
-      closeHour === 23 &&
-      closeMinute === 59;
+        openH === 0 &&
+        openM === 0 &&
+        closeH === 23 &&
+        closeM === 59;
 
-    // Convert local Vietnam time (UTC+7) to UTC
-    const utcOpenHour = openHour - 7;
-    const utcOpenMinute = openMinute;
-    const utcCloseHour = closeHour - 7;
-    const utcCloseMinute = closeMinute;
+    // 9. Tạo mốc openUtc và closeUtc trên ngày local VN, rồi trừ 7h để về UTC
+    const openUtc = new Date(
+        Date.UTC(localYear, localMonth, localDate, openH, openM, 0)
+    );
+    openUtc.setTime(openUtc.getTime() - offsetMs);
 
-    // Handle day wraparound for opening time
-    let openDayOffset = 0;
-    let utcAdjustedOpenHour = utcOpenHour;
-    if (utcAdjustedOpenHour < 0) {
-      utcAdjustedOpenHour += 24;
-      openDayOffset = -1;
-    }
+    const closeUtc = new Date(
+        Date.UTC(localYear, localMonth, localDate, closeH, closeM, 0)
+    );
+    closeUtc.setTime(closeUtc.getTime() - offsetMs);
 
-    // Handle day wraparound for closing time
-    let closeDayOffset = 0;
-    let utcAdjustedCloseHour = utcCloseHour;
-    if (utcAdjustedCloseHour < 0) {
-      utcAdjustedCloseHour += 24;
-      closeDayOffset = -1;
-    }
-
-    // Create garage open and close times for the appointment day
-    const garageOpenTime = new Date(startTime);
-    garageOpenTime.setUTCDate(garageOpenTime.getUTCDate() + openDayOffset);
-    garageOpenTime.setUTCHours(utcAdjustedOpenHour, utcOpenMinute, 0, 0);
-
-    const garageCloseTime = new Date(startTime);
-    garageCloseTime.setUTCDate(garageCloseTime.getUTCDate() + closeDayOffset);
-    garageCloseTime.setUTCHours(utcAdjustedCloseHour, utcCloseMinute, 0, 0);
-
-    // 1. Check if start time is within operating hours
-    if (!is24HourGarage && startTime < garageOpenTime) {
-      throw new Error(
-        `Appointment only create within ${garage.openTime} to ${garage.closeTime}`
-      );
-    }
-
-    if (!is24HourGarage && startTime > garageCloseTime) {
-      throw new Error(
-        `Appointment only create within ${garage.openTime} to ${garage.closeTime}`
-      );
-    }
-
-    // 2. Calculate initial end time based on duration
-    let endTime = new Date(startTime.getTime() + totalDurationMinutes * 60000);
-
-    // 3. If end time exceeds closing time, handle split appointment
-    if (!is24HourGarage && endTime > garageCloseTime) {
-      // Minutes that can be completed on day 1
-      const minutesBeforeClosing = Math.floor(
-        (garageCloseTime - startTime) / 60000
-      );
-
-      // Remaining minutes to be scheduled on next operating day
-      const remainingMinutes = totalDurationMinutes - minutesBeforeClosing;
-
-      // Find the next operating day
-      let currentDate = new Date(startTime);
-      currentDate.setUTCDate(currentDate.getUTCDate() + 1); // Start with next day
-
-      let daysToAdd = 1;
-      let nextDayIndex;
-      let maxIterations = 14; // Safety limit
-      let iterationCount = 0;
-
-      // Keep checking days until we find an operating day
-      while (maxIterations > 0) {
-        iterationCount++;
-        const currentVietnamDate = new Date(
-          currentDate.getTime() + 7 * 60 * 60 * 1000
-        );
-        nextDayIndex = currentVietnamDate.getUTCDay();
-        const nextDayName = daysOfWeek[nextDayIndex];
-
-        // Check if garage operates on this day
-        if (garage.operating_days.includes(nextDayName)) {
-          break; // Found next operating day
-        }
-
-        // Move to the next day
-        currentDate.setUTCDate(currentDate.getUTCDate() + 1);
-        daysToAdd++;
-        maxIterations--;
-      }
-
-      if (maxIterations === 0) {
+    // 10. Kiểm startTime nằm trong [openUtc, closeUtc] (nếu không 24h)
+    if (!is24HourGarage) {
+      if (startTime < openUtc) {
         throw new Error(
-          "Could not find next operating day within reasonable timeframe"
+            `Appointment only create within ${garage.openTime} to ${garage.closeTime} (VN)`
+        );
+      }
+      if (startTime > closeUtc) {
+        throw new Error(
+            `Appointment only create within ${garage.openTime} to ${garage.closeTime} (VN)`
+        );
+      }
+    }
+
+    // 11. Tính endTime ban đầu (UTC)
+    let endTime = new Date(startTime.getTime() + totalMinutes * 60000);
+
+    // 12. Nếu endTime vượt closeUtc, xử lý split appointment sang ngày VN kế tiếp
+    if (!is24HourGarage && endTime > closeUtc) {
+      // Số phút có thể làm trong ngày đầu
+      const minutesBeforeClose = Math.floor((closeUtc - startTime) / 60000);
+      const remainingMinutes = totalMinutes - minutesBeforeClose;
+
+      // Tìm ngày VN kế tiếp garage vẫn mở
+      let iterDate = new Date(localStart);
+      let found = false;
+      let nextWeekday;
+      for (let i = 1; i <= 14; i++) {
+        iterDate.setUTCDate(iterDate.getUTCDate() + 1);
+        const checkDay = new Date(iterDate.getTime() + offsetMs);
+        nextWeekday = DAYS_OF_WEEK[checkDay.getUTCDay()];
+        if (garage.operating_days.includes(nextWeekday)) {
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        throw new Error(
+            "Could not find next operating day within reasonable timeframe"
         );
       }
 
-      // Get the next operating day's opening time
-      const nextDayOpenTime = new Date(startTime);
-      nextDayOpenTime.setUTCDate(nextDayOpenTime.getUTCDate() + daysToAdd);
-      nextDayOpenTime.setUTCHours(utcAdjustedOpenHour, utcOpenMinute, 0, 0);
-
-      // Calculate new end time: next day open time + remaining minutes
-      endTime = new Date(nextDayOpenTime.getTime() + remainingMinutes * 60000);
-
-      // Format display info for continuation details
-      const nextDayVietnamTime = new Date(
-        nextDayOpenTime.getTime() + 7 * 60 * 60 * 1000
+      // Xây mốc openUtcNext trên ngày VN kế tiếp, sau đó trừ 7h để thành UTC
+      const y2 = iterDate.getUTCFullYear();
+      const m2 = iterDate.getUTCMonth();
+      const d2 = iterDate.getUTCDate();
+      const openUtcNext = new Date(
+          Date.UTC(y2, m2, d2, openH, openM, 0)
       );
-      const nextDayDisplay = nextDayVietnamTime.toLocaleDateString("vi-VN");
-      const nextDayName = daysOfWeek[nextDayIndex];
+      openUtcNext.setTime(openUtcNext.getTime() - offsetMs);
+
+      // endTime mới = openUtcNext + remainingMinutes
+      endTime = new Date(openUtcNext.getTime() + remainingMinutes * 60000);
+
+      const displayDateNext = new Date(
+          openUtcNext.getTime() + offsetMs
+      ).toLocaleDateString("vi-VN");
 
       return {
         isValid: true,
@@ -328,16 +155,16 @@ const convertAndValidateDateTime = async (start, serviceIds) => {
         endTime,
         isSplit: true,
         continuationDay: {
-          date: nextDayOpenTime,
-          displayDate: nextDayDisplay,
-          dayName: nextDayName,
+          date: openUtcNext,
+          displayDate: displayDateNext,
+          dayName: nextWeekday,
           durationMinutes: remainingMinutes,
         },
-        note: `Service will continue on ${nextDayName}, ${nextDayDisplay} for ${remainingMinutes} minutes.`,
+        note: `Service continues on ${nextWeekday}, ${displayDateNext} for ${remainingMinutes} minutes.`,
       };
     }
 
-    // Return standard appointment if it fits within operating hours
+    // 13. Nếu không split
     return {
       isValid: true,
       startTime,
@@ -354,16 +181,116 @@ const convertAndValidateDateTime = async (start, serviceIds) => {
   }
 };
 
+/**
+ * Kiểm xung đột lịch giữa các appointment khác
+ * vehicleId, garageId, start, end đều là Date UTC hoặc tương đương
+ * currentAppointmentId: nếu đang cập nhật, để loại trừ chính nó
+ * isSplit: nếu lịch bị split, không kiểm khoảng giờ mở/đóng ở đây
+ */
+export const checkBooking = async (
+    vehicleId,
+    garageId,
+    start,
+    end,
+    currentAppointmentId = null,
+    isSplit = false
+) => {
+  // 1. Lấy garage
+  const garage = await Garage.findById(garageId);
+  if (!garage) {
+    return { hasConflict: true, conflictMessage: "Garage not found" };
+  }
+
+  // 2. Xác định ngày VN của start
+  const offsetMs = 7 * 60 * 60 * 1000;
+  const localStart = new Date(start.getTime() + offsetMs);
+  const localYear = localStart.getUTCFullYear();
+  const localMonth = localStart.getUTCMonth();
+  const localDate = localStart.getUTCDate();
+
+  // 3. Kiểm weekday VN của localStart
+  const weekday = DAYS_OF_WEEK[localStart.getUTCDay()];
+  if (!garage.operating_days.includes(weekday)) {
+    return {
+      hasConflict: true,
+      conflictMessage: `Garage is closed on ${weekday}s`,
+    };
+  }
+
+  // 4. Parse openTime/closeTime (giờ VN)
+  const [openH, openM] = garage.openTime.split(":").map(Number);
+  const [closeH, closeM] = garage.closeTime.split(":").map(Number);
+  const is24HourGarage =
+      openH === 0 && openM === 0 && closeH === 23 && closeM === 59;
+
+  // 5. Tạo mốc openUtc và closeUtc trên ngày VN đó, sau trừ 7h để thành UTC
+  const openUtc = new Date(
+      Date.UTC(localYear, localMonth, localDate, openH, openM, 0)
+  );
+  openUtc.setTime(openUtc.getTime() - offsetMs);
+
+  const closeUtc = new Date(
+      Date.UTC(localYear, localMonth, localDate, closeH, closeM, 0)
+  );
+  closeUtc.setTime(closeUtc.getTime() - offsetMs);
+
+  // 6. Kiểm start nằm trong khoảng [openUtc, closeUtc] nếu không split và không 24h
+  if (!is24HourGarage && !isSplit) {
+    if (start < openUtc) {
+      return {
+        hasConflict: true,
+        conflictMessage: `Garage opens at ${garage.openTime} (VN)`,
+      };
+    }
+    if (start > closeUtc) {
+      return {
+        hasConflict: true,
+        conflictMessage: `Garage closes at ${garage.closeTime} (VN)`,
+      };
+    }
+  }
+
+  // 7. Kiểm xung đột với các appointment khác
+  const overlapping = await Appointment.find({
+    vehicle: vehicleId,
+    garage: { $ne: garageId },
+    _id: { $ne: currentAppointmentId },
+    $or: [
+      { start: { $lte: start }, end: { $gt: start } },
+      { start: { $lt: end }, end: { $gte: end } },
+      { start: { $gte: start }, end: { $lte: end } },
+    ],
+    status: { $nin: ["Cancelled", "Rejected", "Completed"] },
+  });
+
+  if (overlapping.length) {
+    const otherG = await Garage.findById(overlapping[0].garage);
+    const name = otherG ? otherG.name : "another garage";
+    return {
+      hasConflict: true,
+      conflictMessage: `Vehicle is already scheduled at ${name} during this time`,
+    };
+  }
+
+  return { hasConflict: false };
+};
+
+/**
+ * Tạo mới appointment, gọi convertAndValidateDateTime và checkBooking trước khi lưu
+ * Tham số đầu vào:
+ *  userId, garage, service (mảng serviceDetail IDs), vehicle (ID),
+ *  start (Date UTC hoặc ISO string), tag, note
+ */
 export const createAppointmentService = async ({
-  userId,
-  garage,
-  service,
-  vehicle,
-  start,
-  tag,
-  note,
-}) => {
-  // Validation and conflict checking code remains the same
+                                                 userId,
+                                                 garage,
+                                                 service,
+                                                 vehicle,
+                                                 start,
+                                                 tag,
+                                                 note,
+                                               }) => {
+  // 1. Validate dữ liệu đầu vào
   const validation = createAppointmentValidate({
     garage,
     service,
@@ -376,36 +303,28 @@ export const createAppointmentService = async ({
     throw new Error(`Validation error: ${JSON.stringify(validation.errors)}`);
   }
 
+  // 2. Chuyển & validate ngày giờ
   const startTime = typeof start === "string" ? new Date(start) : start;
   const validationResult = await convertAndValidateDateTime(startTime, service);
-
   if (!validationResult.isValid) {
     throw new Error(validationResult.error);
   }
-
   const { startTime: validatedStartTime, endTime, isSplit } = validationResult;
 
-  const firstService = await ServiceDetail.findById(service[0]);
-  if (!firstService) {
-    throw new Error("Service not found");
-  }
-
+  // 3. Kiểm xung đột lịch
   const bookingCheck = await checkBooking(
-    vehicle,
-    garage,
-    validatedStartTime,
-    endTime,
-    null,
-    isSplit // Pass the isSplit flag to checkBooking
+      vehicle,
+      garage,
+      validatedStartTime,
+      endTime,
+      null,
+      isSplit
   );
-
-  if (bookingCheck && bookingCheck.hasConflict) {
-    throw new Error(
-      bookingCheck.conflictMessage || "Booking conflict detected"
-    );
+  if (bookingCheck.hasConflict) {
+    throw new Error(bookingCheck.conflictMessage || "Booking conflict detected");
   }
 
-  // Create and save the appointment
+  // 4. Tạo và lưu appointment
   const newAppointment = new Appointment({
     user: userId,
     garage,
@@ -417,23 +336,22 @@ export const createAppointmentService = async ({
     tag,
     note,
   });
-
   await newAppointment.save();
 
+  // 5. Gửi sự kiện real-time
   sendSocketEvent("newAppointment", garage, garage);
 
-  // Send emails asynchronously - fire and forget
+  // 6. Gửi email (fire and forget)
   sendAppointmentEmails(
-    newAppointment._id,
-    userId,
-    garage,
-    vehicle,
-    note,
-    validatedStartTime,
-    endTime
-  ).catch((error) => console.error("Error sending appointment emails:", error));
+      newAppointment._id,
+      userId,
+      garage,
+      vehicle,
+      note,
+      validatedStartTime,
+      endTime
+  ).catch((err) => console.error("Error sending appointment emails:", err));
 
-  // Return immediately after saving the appointment
   return newAppointment;
 };
 
