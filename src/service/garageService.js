@@ -992,7 +992,6 @@ const viewDashboardOverview = async (garageId, userId) => {
   }
 };
 
-
 const viewDashboardChart = async (garageId, userId, year, type = "month") => {
   try {
     const selectedYear = year ? parseInt(year) : new Date().getFullYear();
@@ -1133,7 +1132,6 @@ const viewDashboardChart = async (garageId, userId, year, type = "month") => {
         serviceUsageSummary, // tổng số lần sử dụng service theo từng quý
       };
     } else {
-
       let matchStage = {
         garage: mongoose.Types.ObjectId.createFromHexString(garageId),
         status: "Completed",
@@ -1256,7 +1254,6 @@ const viewDashboardChart = async (garageId, userId, year, type = "month") => {
     throw new Error(err.message);
   }
 };
-
 
 export const viewDashboardChartByQuarter = async (garageId, userId, year) => {
   try {
@@ -1451,7 +1448,13 @@ export const getGarageCountByStatusAndMonth = async (year) => {
 };
 
 const getGarageList = async () => {
-  const garagePros = await Garage.find({ tag: "pro" });
+  const garagePros = await Garage.find({
+    tag: "pro",
+    status: { $in: ["enabled"] },
+  })
+    .sort({ ratingAverage: -1 })
+    .limit(10);
+
   const topFavoritesAgg = await Favorite.aggregate([
     { $group: { _id: "$garage", count: { $sum: 1 } } },
     {
@@ -1464,15 +1467,18 @@ const getGarageList = async () => {
     },
     { $unwind: "$garage" },
     {
+      $match: {
+        "garage.status": { $regex: "enabled", $options: "i" },
+      },
+    },
+    {
       $replaceRoot: { newRoot: "$garage" },
     },
-    // Add fields for sorting
     {
       $addFields: {
         isPro: { $cond: [{ $eq: ["$tag", "pro"] }, 1, 0] },
       },
     },
-    // Sort: pro first, then by ratingAverage desc
     {
       $sort: { isPro: -1, ratingAverage: -1 },
     },
@@ -1480,7 +1486,11 @@ const getGarageList = async () => {
   ]);
   const topFavorites = topFavoritesAgg;
 
-  const topRated = await Garage.find().sort({ ratingAverage: -1 }).limit(10);
+  const topRated = await Garage.find({
+    status: { $in: ["enabled"] },
+  })
+    .sort({ ratingAverage: -1 })
+    .limit(10);
 
   const mostBooked = await Appointment.aggregate([
     { $group: { _id: "$garage", count: { $sum: 1 } } },
@@ -1494,12 +1504,16 @@ const getGarageList = async () => {
     },
     { $unwind: "$garage" },
     {
+      $match: {
+        "garage.status": { $regex: "enabled", $options: "i" },
+      },
+    },
+    {
       $addFields: {
         isPro: { $cond: [{ $eq: ["$garage.tag", "pro"] }, 1, 0] },
         ratingAverage: "$garage.ratingAverage",
       },
     },
-    // Sort: pro first, then by ratingAverage desc, then by most booked
     { $sort: { isPro: -1, ratingAverage: -1, count: -1 } },
     { $replaceRoot: { newRoot: "$garage" } },
     { $limit: 10 },
