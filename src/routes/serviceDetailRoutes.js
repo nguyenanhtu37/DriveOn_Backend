@@ -9,6 +9,7 @@ import {
   getEmergency,
   searchServicesByKeyword,
   softDeleteServiceDetail,
+  getServiceForGarageDetail,
 } from "../controller/serviceDetailController.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 
@@ -22,7 +23,8 @@ router.get("/searchService", searchServicesByKeyword);
 // router.get('/emergency', getEmergency);
 
 router.post("/add", authMiddleware, addServiceDetail); // Add new service detail by garage
-router.get("/garage/:garageId", getServiceDetailsByGarage); // Get service details by garage ID
+router.get("/garage/:garageId", getServiceDetailsByGarage);
+router.get("/garageDetail/:garageId", getServiceForGarageDetail); // Get service details by garage ID
 router.put("/:id", authMiddleware, updateServiceDetail); // Update service detail by ID
 router.delete("/:id", authMiddleware, softDeleteServiceDetail); // Delete service detail by ID
 

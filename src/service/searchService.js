@@ -54,7 +54,7 @@ const searchWithFilter = async ({
     page = Math.max(1, parseInt(page) || 1);
     limit = Math.max(1, Math.min(50, parseInt(limit) || 10));
 
-    let query = {};
+    let query = { status: "enabled" };
 
     // Keyword search
     if (keyword) {
@@ -64,7 +64,6 @@ const searchWithFilter = async ({
           { name: { $regex: keyword, $options: "i" } },
           { address: { $regex: keyword, $options: "i" } },
         ],
-        status: "enabled",
       };
 
       // Also find services matching the keyword

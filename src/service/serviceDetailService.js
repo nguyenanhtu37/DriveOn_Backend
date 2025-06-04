@@ -33,8 +33,6 @@ const addServiceDetail = async (serviceDetailData) => {
   return newServiceDetail;
 };
 
-
-
 const getServiceDetailsByGarage = async (garageId) => {
   const garageExists = await ServiceDetail.exists({ garage: garageId });
   if (!garageExists) {
@@ -42,12 +40,52 @@ const getServiceDetailsByGarage = async (garageId) => {
   }
   const serviceDetails = await ServiceDetail.find({
     garage: garageId,
-    isDeleted: false, 
+    isDeleted: false,
   }).populate("service", "name");
   const sortedServiceDetails = serviceDetails.sort((a, b) =>
     a.name.localeCompare(b.name)
   );
   return sortedServiceDetails;
+};
+
+const getServiceForGarageDetail = async (garageId, page = 1, limit = 10) => {
+  page = parseInt(page);
+  limit = parseInt(limit);
+  if (isNaN(page) || page < 1) page = 1;
+  if (isNaN(limit) || limit < 1) limit = 10;
+
+  const garageExists = await ServiceDetail.exists({ garage: garageId });
+  if (!garageExists) {
+    throw new Error("Garage not found");
+  }
+
+  const query = {
+    garage: garageId,
+    isDeleted: false,
+  };
+
+  const skip = (page - 1) * limit;
+  const totalCount = await ServiceDetail.countDocuments(query);
+
+  const serviceDetails = await ServiceDetail.find(query)
+    .populate("service", "name")
+    .sort({ name: 1 })
+    .skip(skip)
+    .limit(limit);
+
+  const totalPages = Math.ceil(totalCount / limit);
+
+  return {
+    serviceDetails,
+    pagination: {
+      currentPage: page,
+      totalPages,
+      pageSize: limit,
+      totalCount,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1,
+    },
+  };
 };
 
 const updateServiceDetail = async (serviceDetailId, updateData) => {
@@ -78,12 +116,10 @@ const deleteServiceDetail = async (serviceDetailId) => {
   return { message: "Service detail deleted successfully" };
 };
 
-
-
 export const getServiceDetailById = async (serviceDetailId) => {
   const serviceDetail = await ServiceDetail.findOne({
     _id: serviceDetailId,
-    isDeleted: false, 
+    isDeleted: false,
   })
     .populate("service")
     .populate("garage", "name address phone");
@@ -594,4 +630,5 @@ export {
   getServiceDetailsByGarage,
   updateServiceDetail,
   deleteServiceDetail,
+  getServiceForGarageDetail,
 };
