@@ -767,13 +767,15 @@ export const getAppointmentsByGarageService = async (
 
   // Get paginated and filtered appointments
   const appointments = await Appointment.find(query)
-    .populate("user", "name email avatar address")
-    .populate("garage", "name address")
-    .populate("vehicle", "carBrand carName carPlate")
-    .populate("service")
-    .sort({ start: -1 }) // Sort by start date, newest first
-    .skip(skip)
-    .limit(limit);
+      .populate("user", "name email avatar address")
+      .populate("garage", "name address")
+      .populate("vehicle", "carBrand carName carPlate")
+      .populate("service")
+      .sort({ _id: -1 }) // newest-first
+      .skip(skip)
+      .limit(limit);
+
+
 
   // Calculate pagination metadata
   const totalPages = Math.ceil(totalCount / limit);
