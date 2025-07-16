@@ -30,9 +30,10 @@
 - Dashboard Analytics: View system stats: users, garages, bookings
 
 # Demo/Screenshots
-  Production: https://drive-on-frontend.vercel.app
-  Booking appointment with AI workflow demo: https://youtu.be/YmXF5PBdFTo?si=91_E4PV6j3WtqbVv
-  Project demo: https://drive.google.com/file/d/1qslYEVJZIbCciN4ITRUfSGJ8vAhS7H49/view?usp=drive_link
+- Production: https://drive-on-frontend.vercel.app
+- Booking appointment with AI workflow demo: https://youtu.be/YmXF5PBdFTo?si=91_E4PV6j3WtqbVv
+- Project demo: https://drive.google.com/file/d/1qslYEVJZIbCciN4ITRUfSGJ8vAhS7H49/view?usp=drive_link
+- 
 <img width="2363" height="2366" alt="image" src="https://github.com/user-attachments/assets/b9d93663-2789-4510-a024-cc2f124b4b40" />
 
 # Installation Instructions:
